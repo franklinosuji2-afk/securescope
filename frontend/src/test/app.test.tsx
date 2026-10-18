@@ -490,19 +490,42 @@ describe("Overview guidance and posture", () => {
     http_file_url: "",
     http_file_content: "",
   };
-  const summary = { ...scan, findings: undefined, error: undefined, metadata: undefined, score_note: undefined };
+  const site = {
+    host: "example.org",
+    latest_scan_id: "abc123",
+    score: 84,
+    grade: "B",
+    scanned_at: "2026-10-18T12:00:00Z",
+    previous_score: null as number | null,
+    score_change: null as number | null,
+    open_counts: { medium: 1 },
+    open_total: 1,
+    top_finding: null,
+    history: [{ scan_id: "abc123", score: 84, scanned_at: "2026-10-18T12:00:00Z" }],
+  };
+  const topFinding = {
+    host: "example.org",
+    scan_id: "abc123",
+    finding_id: "SS-HDR-CSP-001",
+    title: "Content-Security-Policy header missing",
+    severity: "medium",
+    confidence: "high",
+    remediation: "Add a CSP.",
+  };
+  const empty = { sites: [], fix_first: null, other_open: 0 };
+  const scanned = { sites: [{ ...site, top_finding: topFinding }], fix_first: topFinding, other_open: 0 };
 
-  function route(targets: Target[], scans: unknown[]): Handler {
+  function route(targets: Target[], overview: unknown): Handler {
     return (url) => {
       if (url.includes("/targets")) return { items: targets };
+      if (url.includes("/overview")) return overview;
       if (url.includes("/scans/")) return scan;
-      if (url.includes("/scans")) return { items: scans, total: scans.length };
       return {};
     };
   }
 
   it("walks a new user through the first step", async () => {
-    mockFetch(route([], []));
+    mockFetch(route([], empty));
     renderApp();
     expect(await screen.findByRole("heading", { name: "Get your first result" })).toBeInTheDocument();
     const current = screen.getByRole("listitem", { current: "step" });
@@ -512,7 +535,7 @@ describe("Overview guidance and posture", () => {
   });
 
   it("offers verified sites as one-click choices and fills the URL", async () => {
-    mockFetch(route([verified], []));
+    mockFetch(route([verified], empty));
     renderApp();
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "example.org" }));
@@ -521,7 +544,7 @@ describe("Overview guidance and posture", () => {
   });
 
   it("shows what to fix first, and drops the setup guide, once a scan has completed", async () => {
-    mockFetch(route([verified], [summary]));
+    mockFetch(route([verified], scanned));
     renderApp();
     expect(await screen.findByRole("heading", { name: "Fix this first" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Get your first result" })).not.toBeInTheDocument();
@@ -535,16 +558,30 @@ describe("Overview guidance and posture", () => {
     expect(card).toHaveTextContent("1 open");
   });
 
-  it("does not count a resolved finding as open", async () => {
-    const resolved = { ...scan, findings: [{ ...finding, status: "resolved" as const }] };
-    mockFetch((url) => (url.includes("/scans/") ? resolved : route([verified], [summary])(url)));
+  it("says nothing is open when the server reports no open findings", async () => {
+    const clean = { sites: [{ ...site, open_counts: {}, open_total: 0 }], fix_first: null, other_open: 0 };
+    mockFetch(route([verified], clean));
     renderApp();
     expect(await screen.findByText(/Nothing open/)).toBeInTheDocument();
     expect(screen.getByRole("listitem", { name: "example.org" })).toHaveTextContent("No open findings.");
   });
 
+  it("shows the score change and a text alternative for the score history", async () => {
+    const history = [
+      { scan_id: "a", score: 76, scanned_at: "2026-10-18T10:00:00Z" },
+      { scan_id: "b", score: 84, scanned_at: "2026-10-18T12:00:00Z" },
+    ];
+    const rising = { sites: [{ ...site, previous_score: 76, score_change: 8, history }], fix_first: null, other_open: 0 };
+    mockFetch(route([verified], rising));
+    renderApp();
+    const card = await screen.findByRole("listitem", { name: "example.org" });
+    expect(card).toHaveTextContent("▲ Up 8 since the previous scan");
+    expect(screen.getByRole("img", { name: /Score history over 2 scans: 76, 84. Now 84, up from 76./ })).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: /Score of each completed scan/ })).toBeInTheDocument();
+  });
+
   it("tells viewers they cannot scan and offers no setup buttons", async () => {
-    mockApi(route([], []), userWith("VIEWER"));
+    mockApi(route([], empty), userWith("VIEWER"));
     renderApp();
     expect(await screen.findByText(/cannot start scans/)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Add a site" })).not.toBeInTheDocument();
@@ -553,8 +590,34 @@ describe("Overview guidance and posture", () => {
 
   it("links a just-finished scan to its findings", async () => {
     window.location.hash = "#/?scan=abc123";
-    mockFetch(route([verified], [summary]));
+    mockFetch(route([verified], scanned));
     renderApp();
     expect(await screen.findByRole("link", { name: "Review 1 finding" })).toHaveAttribute("href", "#/findings?scan=abc123");
   });
 });
+
+describe("Navigation menu (narrow screens)", () => {
+  it("opens and closes from the Menu button, closes on Escape and returns focus", async () => {
+    mockFetch(() => ({ sites: [], fix_first: null, other_open: 0, items: [] }));
+    renderApp();
+    const user = userEvent.setup();
+    const button = await screen.findByRole("button", { name: "Menu" });
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    expect(button).toHaveAttribute("aria-controls", "rail-menu");
+    await user.click(button);
+    expect(screen.getByRole("button", { name: "Close menu" })).toHaveAttribute("aria-expanded", "true");
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("button", { name: "Menu" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: "Menu" })).toHaveFocus();
+  });
+
+  it("closes after a page is chosen", async () => {
+    mockFetch(() => ({ sites: [], fix_first: null, other_open: 0, items: [] }));
+    renderApp();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Menu" }));
+    await user.click(screen.getByRole("link", { name: "Targets" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Menu" })).toHaveAttribute("aria-expanded", "false"));
+  });
+});
+

@@ -46,7 +46,41 @@ const finding = (id: string, title: string, severity: string, n: string, status 
   last_seen_at: "2026-10-18T12:00:00Z",
 });
 
-const latestExample = {
+const topFinding = {
+  host: "example.org",
+  scan_id: "s2",
+  finding_id: "SS-HDR-HSTS-001",
+  title: "Strict-Transport-Security header is missing",
+  severity: "high",
+  confidence: "high",
+  remediation: "Send 'Strict-Transport-Security: max-age=31536000; includeSubDomains'.",
+};
+
+const overview = {
+  sites: [
+    {
+      host: "example.org",
+      latest_scan_id: "s2",
+      score: 84,
+      grade: "B",
+      scanned_at: "2026-10-18T12:00:00Z",
+      previous_score: 76,
+      score_change: 8,
+      open_counts: { high: 1, low: 1 },
+      open_total: 2,
+      top_finding: topFinding,
+      history: [
+        { scan_id: "s0", score: 60, scanned_at: "2026-10-16T12:00:00Z" },
+        { scan_id: "s1", score: 76, scanned_at: "2026-10-18T10:00:00Z" },
+        { scan_id: "s2", score: 84, scanned_at: "2026-10-18T12:00:00Z" },
+      ],
+    },
+  ],
+  fix_first: topFinding,
+  other_open: 1,
+};
+
+const findingsScan = {
   ...summary("s2", "example.org", "2026-10-18T12:00:00Z", 84, "B", { high: 1, low: 1 }),
   error: null,
   metadata: null,
@@ -54,7 +88,6 @@ const latestExample = {
   findings: [
     finding("SS-HDR-HSTS-001", "Strict-Transport-Security header is missing", "high", "1"),
     finding("SS-COOKIE-SAMESITE-001", "Cookies set without an explicit SameSite attribute", "low", "2"),
-    finding("SS-HDR-CSP-002", "Content-Security-Policy allows unsafe script execution", "medium", "3", "resolved"),
   ],
 };
 
@@ -68,16 +101,8 @@ async function stub(page: Page, state: "new" | "verified" | "scanned") {
         items:
           state === "new" ? [] : state === "verified" ? [target("example.org", "verified")] : [target("example.org", "verified"), target("staging.example.org", "pending")],
       };
-    } else if (url.includes("/scans/s2")) body = latestExample;
-    else if (url.includes("/scans") && state === "scanned") {
-      body = {
-        total: 2,
-        items: [
-          summary("s2", "example.org", "2026-10-18T12:00:00Z", 84, "B", { high: 1, low: 1 }),
-          summary("s1", "example.org", "2026-10-18T10:00:00Z", 76, "C", { high: 1, medium: 1, low: 1 }),
-        ],
-      };
-    }
+    } else if (url.includes("/overview")) body = state === "scanned" ? overview : { sites: [], fix_first: null, other_open: 0 };
+    else if (url.includes("/scans/s2")) body = findingsScan;
     await route.fulfill({ json: body });
   });
 }
@@ -106,13 +131,13 @@ for (const scheme of ["dark", "light"] as const) {
     await stub(page, "scanned");
     await page.goto("/#/");
     await expect(page.getByRole("heading", { name: "Fix this first" })).toBeVisible();
-    // High outranks low; the resolved CSP finding is not offered.
     await expect(page.getByText("Strict-Transport-Security header is missing").first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "Get your first result" })).toHaveCount(0);
     const card = page.getByRole("listitem", { name: "example.org" });
     await expect(card).toContainText("84");
     await expect(card).toContainText("Up 8 since the previous scan");
     await expect(card).toContainText("2 open");
+    await expect(card.getByRole("img", { name: /Score history over 3 scans: 60, 76, 84/ })).toBeVisible();
     expect(await serious(page), `${scheme} posture`).toEqual([]);
     await page.screenshot({ path: `test-results/overview-scanned-${scheme}.png`, fullPage: true });
   });
@@ -134,4 +159,34 @@ test("overview does not scroll sideways on a phone", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Fix this first" })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
+});
+
+test("on a phone the navigation is a menu that works by keyboard and passes accessibility checks", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await stub(page, "scanned");
+  await page.goto("/#/");
+  const menu = page.getByRole("button", { name: "Menu" });
+  await expect(menu).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary" })).toBeHidden();
+  await menu.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
+  expect(await serious(page), "menu open").toEqual([]);
+  await page.screenshot({ path: "test-results/overview-mobile-menu.png" });
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("navigation", { name: "Primary" })).toBeHidden();
+  await expect(menu).toBeFocused();
+  await menu.click();
+  await page.getByRole("link", { name: "Targets" }).click();
+  await expect(page.getByRole("heading", { name: "Targets", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary" })).toBeHidden();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+});
+
+test("on a desktop there is no Menu button and navigation is always visible", async ({ page }) => {
+  await stub(page, "scanned");
+  await page.goto("/#/");
+  await expect(page.getByRole("button", { name: "Menu" })).toBeHidden();
+  await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
 });

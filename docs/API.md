@@ -26,6 +26,7 @@ Base path `/api/v1`. Interactive schema at `/api/docs` when the backend is reach
 | POST | `/scans` | scan:create | 202; requires `authorization_confirmed` **and a verified target for the exact host (403 otherwise)** |
 | GET | `/scans`, `/scans/{id}` | scan:read | Scoped to the active organization |
 | GET | `/scans/{id}/report?format=json\|md\|html` | report:export | Includes confidence and status per finding |
+| GET | `/overview` | scan:read | Per recently scanned site: latest score and grade, change since the previous completed scan, open findings by severity, the top open finding and up to 12 past scores. Completed scans only; at most 6 sites, newest first. Also `fix_first` (the single most worth fixing, by severity then confidence) and `other_open` |
 | PATCH | `/findings/{fingerprint}` | finding:triage | `{"status": "open"\|"accepted_risk"\|"false_positive", "note"?}` (note max 500); 204; 404 for unknown or other-organization findings; 422 for `resolved` (system only) |
 
 Errors are `{"detail": "..."}`; validation errors are 422. **Not implemented:** periodic re-verification, schedules, report storage, PDF.
@@ -33,3 +34,8 @@ Errors are `{"detail": "..."}`; validation errors are 422. **Not implemented:** 
 ## Findings
 
 Every finding in a scan response carries `fingerprint` (a stable id for that check on that host), `confidence` (`high` for direct observations, `medium` for heuristic signature matches), `status`, `status_note`, `first_seen_at` and `last_seen_at`. Status is kept per organization and host. A finding becomes `resolved` only when a later **completed** scan of the same host no longer reports it; failed scans and scans that stopped at a redirect to another site never resolve anything. A resolved finding that appears again returns to `open`. `accepted_risk` and `false_positive` are analyst decisions and are not changed by scans.
+
+## Overview
+
+`GET /overview` answers "where do my sites stand" in one request. A site appears once it has a completed scan; failed and unfinished scans are ignored. `open_counts` and `fix_first` count only findings whose organization-level status is `open`, so resolved findings, accepted risks and false positives never count. `score_change` is the latest score minus the previous completed scan's score for the same host (null for a first scan). `history` lists completed scans' scores oldest first. The endpoint looks at the organization's 500 most recent completed scans.
+

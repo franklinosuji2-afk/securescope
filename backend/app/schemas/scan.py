@@ -156,3 +156,45 @@ class ErrorBody(BaseModel):
 class HealthResponse(BaseModel):
     status: Literal["ok"] = "ok"
     version: str
+
+
+class ScorePoint(BaseModel):
+    scan_id: str
+    score: int
+    scanned_at: datetime
+
+
+class TopFinding(BaseModel):
+    """The open finding on a site that is most worth fixing next."""
+
+    host: str
+    scan_id: str
+    finding_id: str
+    title: str
+    severity: Severity
+    confidence: Confidence
+    remediation: str
+
+
+class SitePosture(BaseModel):
+    host: str
+    latest_scan_id: str
+    score: int | None = None
+    grade: str | None = None
+    scanned_at: datetime
+    previous_score: int | None = None
+    score_change: int | None = Field(
+        default=None, description="Latest score minus the previous completed scan's score"
+    )
+    open_counts: dict[str, int] = Field(
+        default={}, description="Open findings by severity; zero counts are omitted"
+    )
+    open_total: int = 0
+    top_finding: TopFinding | None = None
+    history: list[ScorePoint] = Field(default=[], description="Completed scans' scores, oldest first")
+
+
+class Overview(BaseModel):
+    sites: list[SitePosture] = []
+    fix_first: TopFinding | None = None
+    other_open: int = Field(default=0, description="Open findings on the listed sites besides fix_first")

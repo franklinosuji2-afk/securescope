@@ -128,3 +128,40 @@ export function canManageTargets(role: Role): boolean {
 export function canTriageFindings(role: Role): boolean {
   return role === "OWNER" || role === "ADMIN" || role === "SECURITY_ANALYST";
 }
+
+export interface ScorePoint {
+  scan_id: string;
+  score: number;
+  scanned_at: string;
+}
+
+export interface TopFinding {
+  host: string;
+  scan_id: string;
+  finding_id: string;
+  title: string;
+  severity: Severity;
+  confidence: Confidence;
+  remediation: string;
+}
+
+export interface SitePosture {
+  host: string;
+  latest_scan_id: string;
+  score: number | null;
+  grade: string | null;
+  scanned_at: string;
+  previous_score: number | null;
+  score_change: number | null;
+  open_counts: Partial<Record<Severity, number>>;
+  open_total: number;
+  top_finding: TopFinding | null;
+  history: ScorePoint[];
+}
+
+export interface Overview {
+  sites: SitePosture[];
+  fix_first: TopFinding | null;
+  other_open: number;
+}
+

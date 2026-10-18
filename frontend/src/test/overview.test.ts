@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { deltaText, fixFirst, openCounts, setupSteps, siteSummaries } from "../overview";
-import type { Finding, ScanDetail, ScanSummary, Severity, Target } from "../types";
+import { chartPoints, deltaText, historySummary, setupSteps } from "../overview";
+import type { Target } from "../types";
 
 function target(hostname: string, status: Target["status"] = "pending"): Target {
   return {
@@ -21,74 +21,32 @@ function target(hostname: string, status: Target["status"] = "pending"): Target 
   };
 }
 
-function summary(id: string, host: string, created: string, score: number | null, status: ScanSummary["status"] = "completed"): ScanSummary {
-  return { id, target_url: `https://${host}/`, host, status, score, grade: "A", created_at: created, finished_at: created, counts: {} };
-}
-
-function finding(id: string, severity: Severity, status: Finding["status"] = "open", confidence: Finding["confidence"] = "high"): Finding {
-  return {
-    id, title: id, severity, category: "c", description: "d", evidence: null, remediation: "r", confidence,
-    fingerprint: id.padEnd(32, "x"), status, status_note: null, first_seen_at: null, last_seen_at: null,
-  };
-}
-
-function detail(base: ScanSummary, findings: Finding[]): ScanDetail {
-  return { ...base, error: null, metadata: null, findings, score_note: "" };
-}
-
 describe("setupSteps", () => {
   it("starts with adding a site when there is nothing yet", () => {
-    const steps = setupSteps([], [], true);
+    const steps = setupSteps([], false, true);
     expect(steps.map((s) => s.state)).toEqual(["current", "waiting", "waiting", "waiting"]);
     expect(steps[0]!.action?.href).toBe("#/targets");
   });
 
   it("moves to verification once a site is added, naming the site", () => {
-    const steps = setupSteps([target("example.org")], [], true);
+    const steps = setupSteps([target("example.org")], false, true);
     expect(steps.map((s) => s.state)).toEqual(["done", "current", "waiting", "waiting"]);
     expect(steps[1]!.action?.label).toBe("Verify example.org");
     expect(steps[1]!.detail).toContain("example.org");
   });
 
   it("moves to scanning once a site is verified, with no button because the form is on the page", () => {
-    const steps = setupSteps([target("example.org", "verified")], [], true);
+    const steps = setupSteps([target("example.org", "verified")], false, true);
     expect(steps.map((s) => s.state)).toEqual(["done", "done", "current", "waiting"]);
     expect(steps[2]!.action).toBeNull();
   });
 
   it("offers no buttons to roles that cannot manage targets", () => {
-    const steps = setupSteps([], [], false);
-    expect(steps.every((s) => s.action === null)).toBe(true);
+    expect(setupSteps([], false, false).every((s) => s.action === null)).toBe(true);
   });
 });
 
-describe("siteSummaries", () => {
-  const targets = [target("a.example", "verified")];
-
-  it("uses completed scans only and compares with the previous scan of the same host", () => {
-    const scans = [
-      summary("s3", "a.example", "2026-10-18T12:00:00Z", 100),
-      summary("s2", "a.example", "2026-10-18T11:00:00Z", 96),
-      summary("s1", "a.example", "2026-10-18T10:00:00Z", 80),
-      summary("s4", "a.example", "2026-10-18T13:00:00Z", null, "failed"),
-    ];
-    const [site] = siteSummaries(targets, scans);
-    expect(site!.latest.id).toBe("s3");
-    expect(site!.previous!.id).toBe("s2");
-    expect(site!.delta).toBe(4);
-    expect(site!.verified).toBe(true);
-  });
-
-  it("reports no delta for a first scan and keeps hosts apart", () => {
-    const sites = siteSummaries(targets, [
-      summary("x", "a.example", "2026-10-18T10:00:00Z", 90),
-      summary("y", "b.example", "2026-10-18T11:00:00Z", 70),
-    ]);
-    expect(sites.map((s) => s.host)).toEqual(["b.example", "a.example"]);
-    expect(sites.every((s) => s.delta === null)).toBe(true);
-    expect(sites.find((s) => s.host === "b.example")!.verified).toBe(false);
-  });
-
+describe("score change wording", () => {
   it("describes changes in words, not colour", () => {
     expect(deltaText(null)).toBe("First scan of this site");
     expect(deltaText(0)).toBe("No change since the previous scan");
@@ -97,39 +55,25 @@ describe("siteSummaries", () => {
   });
 });
 
-describe("fixFirst", () => {
-  const base = summary("s1", "a.example", "2026-10-18T10:00:00Z", 80);
-
-  it("picks the most severe open finding and counts the rest", () => {
-    const fix = fixFirst([detail(base, [finding("LOW-1", "low"), finding("HIGH-1", "high"), finding("INFO-1", "info")])]);
-    expect(fix!.finding.id).toBe("HIGH-1");
-    expect(fix!.others).toBe(2);
+describe("score history chart", () => {
+  it("plots on a fixed 0-100 scale, so a drop always looks like a drop", () => {
+    const [a, b] = chartPoints([100, 0], 100, 50, 0);
+    expect(a).toEqual({ x: 0, y: 0 });
+    expect(b).toEqual({ x: 100, y: 50 });
+    const [low, high] = chartPoints([40, 60], 100, 100, 0);
+    expect(low!.y).toBeGreaterThan(high!.y); // higher score is higher on the chart
   });
 
-  it("ignores resolved, accepted and false-positive findings", () => {
-    const fix = fixFirst([
-      detail(base, [
-        finding("HIGH-1", "high", "resolved"),
-        finding("HIGH-2", "high", "accepted_risk"),
-        finding("HIGH-3", "high", "false_positive"),
-        finding("LOW-1", "low"),
-      ]),
-    ]);
-    expect(fix!.finding.id).toBe("LOW-1");
-    expect(fix!.others).toBe(0);
+  it("clamps out-of-range scores and centres a single point", () => {
+    expect(chartPoints([150], 100, 50, 0)[0]).toEqual({ x: 50, y: 0 });
+    expect(chartPoints([-5], 100, 50, 0)[0]!.y).toBe(50);
   });
 
-  it("prefers a confirmed finding over a heuristic one of the same severity", () => {
-    const fix = fixFirst([detail(base, [finding("A-HEUR", "medium", "open", "medium"), finding("B-SURE", "medium")])]);
-    expect(fix!.finding.id).toBe("B-SURE");
-  });
-
-  it("returns null when nothing is open", () => {
-    expect(fixFirst([detail(base, [finding("X", "high", "resolved")])])).toBeNull();
-    expect(fixFirst([])).toBeNull();
-  });
-
-  it("counts only open findings by severity", () => {
-    expect(openCounts([finding("A", "high"), finding("B", "high"), finding("C", "low", "resolved")])).toEqual({ high: 2 });
+  it("gives the same information as text", () => {
+    expect(historySummary([])).toBe("No score history yet.");
+    expect(historySummary([90])).toBe("One scan so far, score 90.");
+    expect(historySummary([76, 84, 100])).toBe("Score history over 3 scans: 76, 84, 100. Now 100, up from 76.");
+    expect(historySummary([100, 90])).toBe("Score history over 2 scans: 100, 90. Now 90, down from 100.");
+    expect(historySummary([80, 85, 80])).toContain("unchanged from 80");
   });
 });

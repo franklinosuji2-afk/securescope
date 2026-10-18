@@ -1,13 +1,14 @@
-import { formatDate, severityLabel } from "../format";
-import { deltaText, openCounts, totalOf, type FixFirst, type SiteSummary } from "../overview";
-import { buildHash } from "../router";
-import type { ScanDetail } from "../types";
-import { SEVERITIES } from "../types";
-import { gradeClass } from "../format";
-import { SeverityBadge } from "./ui";
+import { gradeClass, formatDate, severityLabel } from "../format";
 import { guidanceFor } from "../guidance";
+import { deltaText } from "../overview";
+import { buildHash } from "../router";
+import type { Overview, SitePosture } from "../types";
+import { SEVERITIES } from "../types";
+import ScoreTrend from "./ScoreTrend";
+import { SeverityBadge } from "./ui";
 
-export function FixFirstPanel({ fix }: { fix: FixFirst | null }) {
+export function FixFirstPanel({ overview }: { overview: Overview }) {
+  const fix = overview.fix_first;
   if (!fix) {
     return (
       <section className="card fix-first" aria-labelledby="fix-title">
@@ -19,27 +20,26 @@ export function FixFirstPanel({ fix }: { fix: FixFirst | null }) {
       </section>
     );
   }
-  const { finding, scan, others } = fix;
-  const guide = guidanceFor(finding.id);
+  const guide = guidanceFor(fix.finding_id);
   return (
     <section className="card fix-first" aria-labelledby="fix-title">
       <h2 id="fix-title">Fix this first</h2>
       <div className="fix-head">
-        <SeverityBadge severity={finding.severity} />
-        <strong>{finding.title}</strong>
-        <span className="muted small">on {scan.host}</span>
+        <SeverityBadge severity={fix.severity} />
+        <strong>{fix.title}</strong>
+        <span className="muted small">on {fix.host}</span>
       </div>
       <p>{guide.impact}</p>
       <p className="small">
-        <strong>What to do:</strong> {finding.remediation}
+        <strong>What to do:</strong> {fix.remediation}
       </p>
       <div className="row">
-        <a className="btn btn-link" href={buildHash("findings", scan.id, finding.id)}>
+        <a className="btn btn-link" href={buildHash("findings", fix.scan_id, fix.finding_id)}>
           See the evidence and fix
         </a>
-        {others > 0 && (
+        {overview.other_open > 0 && (
           <span className="muted small">
-            {others} other open finding{others === 1 ? "" : "s"} across your sites
+            {overview.other_open} other open finding{overview.other_open === 1 ? "" : "s"} across your sites
           </span>
         )}
       </div>
@@ -47,70 +47,51 @@ export function FixFirstPanel({ fix }: { fix: FixFirst | null }) {
   );
 }
 
-export function SiteCard({ site, detail }: { site: SiteSummary; detail: ScanDetail | undefined }) {
-  const counts = detail ? openCounts(detail.findings) : null;
-  const total = counts ? totalOf(counts) : null;
-  const trendClass = site.delta === null || site.delta === 0 ? "" : site.delta > 0 ? "trend-up" : "trend-down";
+export function SiteCard({ site }: { site: SitePosture }) {
+  const trendClass = site.score_change === null || site.score_change === 0 ? "muted" : site.score_change > 0 ? "trend-up" : "trend-down";
   return (
     <li className="card site-card" aria-label={site.host}>
       <div className="site-head">
         <h3>{site.host}</h3>
         <span className="stat-value site-score">
-          {site.latest.score ?? "–"}
-          {site.latest.grade && <span className={gradeClass(site.latest.grade)}>Grade {site.latest.grade}</span>}
+          {site.score ?? "–"}
+          {site.grade && <span className={gradeClass(site.grade)}>Grade {site.grade}</span>}
         </span>
       </div>
-      <p className={`small ${trendClass || "muted"}`}>{deltaText(site.delta)}</p>
-      {counts && total !== null ? (
-        total === 0 ? (
-          <p className="small">No open findings.</p>
-        ) : (
-          <p className="small">
-            <strong>{total} open</strong>:{" "}
-            {SEVERITIES.filter((s) => counts[s]).map((s, i, a) => (
-              <span key={s}>
-                <span className={`sev-${s}`}>
-                  {counts[s]} {severityLabel(s)}
-                </span>
-                {i < a.length - 1 ? ", " : ""}
-              </span>
-            ))}
-          </p>
-        )
+      <p className={`small ${trendClass}`}>{deltaText(site.score_change)}</p>
+      <ScoreTrend history={site.history} />
+      {site.open_total === 0 ? (
+        <p className="small">No open findings.</p>
       ) : (
-        <p className="muted small">Open findings unavailable.</p>
+        <p className="small">
+          <strong>{site.open_total} open</strong>:{" "}
+          {SEVERITIES.filter((s) => site.open_counts[s]).map((s, i, a) => (
+            <span key={s}>
+              <span className={`sev-${s}`}>
+                {site.open_counts[s]} {severityLabel(s)}
+              </span>
+              {i < a.length - 1 ? ", " : ""}
+            </span>
+          ))}
+        </p>
       )}
-      <p className="muted small">Last scanned {formatDate(site.latest.finished_at ?? site.latest.created_at)}</p>
-      <a className="btn-ghost" href={buildHash("findings", site.latest.id)}>
+      <p className="muted small">Last scanned {formatDate(site.scanned_at)}</p>
+      <a className="btn-ghost" href={buildHash("findings", site.latest_scan_id)}>
         View findings
       </a>
     </li>
   );
 }
 
-export function SiteCards({ sites, details }: { sites: SiteSummary[]; details: Record<string, ScanDetail> }) {
-  return (
-    <ul className="site-grid" aria-label="Your sites">
-      {sites.map((site) => (
-        <SiteCard key={site.host} site={site} detail={details[site.latest.id]} />
-      ))}
-    </ul>
-  );
-}
-
-export default function Posture({
-  sites,
-  details,
-  fix,
-}: {
-  sites: SiteSummary[];
-  details: Record<string, ScanDetail>;
-  fix: FixFirst | null;
-}) {
+export default function Posture({ overview }: { overview: Overview }) {
   return (
     <div className="stack">
-      <FixFirstPanel fix={fix} />
-      <SiteCards sites={sites} details={details} />
+      <FixFirstPanel overview={overview} />
+      <ul className="site-grid" aria-label="Your sites">
+        {overview.sites.map((site) => (
+          <SiteCard key={site.host} site={site} />
+        ))}
+      </ul>
     </div>
   );
 }

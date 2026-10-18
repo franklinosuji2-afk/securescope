@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./auth";
 import { useTheme } from "./theme";
 import { Loading } from "./components/ui";
@@ -22,6 +23,23 @@ export default function App() {
   const [route, navigate] = useRoute();
   const { user, loading, organization, setOrganizationId, signOut } = useAuth();
   const { theme, toggle } = useTheme();
+  // On narrow screens the navigation is a menu. It is open only for the page it was opened on, so choosing
+  // any page closes it without an effect; Escape closes it and returns focus to the button.
+  const routeKey = `${route.page}|${route.scanId ?? ""}`;
+  const [openFor, setOpenFor] = useState<string | null>(null);
+  const menuOpen = openFor === routeKey;
+  const setMenuOpen = (open: boolean) => setOpenFor(open ? routeKey : null);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpenFor(null);
+      menuButton.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   if (loading) {
     return (
@@ -70,7 +88,8 @@ export default function App() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <aside className="rail">
+      <aside className={`rail${menuOpen ? " rail-open" : ""}`}>
+        <div className="rail-top">
         <div className="brand">
           <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
             <path d="M16 3 5 7v8c0 7 4.6 11.7 11 14 6.4-2.3 11-7 11-14V7L16 3Z" fill="none" strokeWidth="2.2" style={{ stroke: "var(--accent)" }} />
@@ -78,6 +97,18 @@ export default function App() {
           </svg>
           SecureScope
         </div>
+        <button
+          ref={menuButton}
+          type="button"
+          className="btn-ghost menu-btn"
+          aria-expanded={menuOpen}
+          aria-controls="rail-menu"
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          {menuOpen ? "Close menu" : "Menu"}
+        </button>
+        </div>
+        <div className="rail-menu" id="rail-menu">
         <nav className="nav" aria-label="Primary">
           {NAV.map((n) => (
             <a
@@ -119,6 +150,7 @@ export default function App() {
           </button>
         </div>
         <p className="rail-note">Heuristic, passive checks only. Not a penetration test.</p>
+        </div>
       </aside>
       <main className="main" id="main" tabIndex={-1}>
         {route.page === "overview" && <Overview route={route} onStarted={(id) => navigate("overview", id)} />}

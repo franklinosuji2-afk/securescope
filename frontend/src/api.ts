@@ -1,4 +1,4 @@
-import type { FindingStatus, Member, Organization, OrganizationDetail, ReportFormat, Role, ScanDetail, ScanList, Target, User, VerificationMethod } from "./types";
+import type { FindingStatus, Member, Overview, Organization, OrganizationDetail, ReportFormat, Role, ScanDetail, ScanList, Target, User, VerificationMethod } from "./types";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -144,3 +144,6 @@ export function setFindingStatus(fingerprint: string, status: FindingStatus, not
     body: JSON.stringify({ status, note: note.trim() || null }),
   });
 }
+
+export const getOverview = () => request<Overview>("/overview");
+

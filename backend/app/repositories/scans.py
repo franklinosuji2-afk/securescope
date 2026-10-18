@@ -14,15 +14,28 @@ from app.models.scan import FindingRow, FindingStateRow, ScanRow
 from app.scanner.fingerprint import fingerprint
 from app.scanner.scoring import count_by_severity
 from app.schemas.scan import (
+    SEVERITY_ORDER,
     Confidence,
     Finding,
     FindingStatus,
+    Overview,
     ScanDetail,
     ScanStatus,
     ScanSummary,
+    ScorePoint,
     Severity,
+    SitePosture,
     TargetMetadata,
+    TopFinding,
 )
+
+# The overview looks at this many of an organization's most recent completed scans.
+OVERVIEW_SCAN_WINDOW = 500
+_CONFIDENCE_RANK = {Confidence.HIGH: 0, Confidence.MEDIUM: 1, Confidence.LOW: 2}
+
+
+def _priority(finding: TopFinding) -> tuple[int, int, str]:
+    return (SEVERITY_ORDER.index(finding.severity), _CONFIDENCE_RANK[finding.confidence], finding.finding_id)
 
 
 def _now() -> datetime:
@@ -304,6 +317,97 @@ class ScanRepository:
             ).all()
             items = [ScanSummary(**self._summary(r, self._findings(r))) for r in rows]
         return items, total
+
+    def overview(self, organization_id: str, *, max_sites: int = 6, history: int = 12) -> Overview:
+        """Where each recently scanned site stands, from completed scans only.
+
+        Failed and unfinished scans say nothing about a site's posture, so they are ignored. An open
+        finding is one whose organization-level state is open; resolved, accepted and false-positive
+        findings are not counted.
+        """
+        with self._session() as session:
+            rows = session.scalars(
+                select(ScanRow)
+                .where(
+                    ScanRow.organization_id == organization_id, ScanRow.status == ScanStatus.COMPLETED.value
+                )
+                .order_by(ScanRow.created_at.desc(), ScanRow.id.desc())
+                .limit(OVERVIEW_SCAN_WINDOW)
+            ).all()
+            by_host: dict[str, list[ScanRow]] = {}
+            for row in rows:
+                by_host.setdefault(row.host, []).append(row)
+            hosts = list(by_host)[:max_sites]
+            if not hosts:
+                return Overview()
+            states = {
+                state.fingerprint: state
+                for state in session.scalars(
+                    select(FindingStateRow).where(
+                        FindingStateRow.organization_id == organization_id, FindingStateRow.host.in_(hosts)
+                    )
+                )
+            }
+            sites: list[SitePosture] = []
+            candidates: list[TopFinding] = []
+            open_total = 0
+            for host in hosts:
+                scans = by_host[host]  # newest first
+                latest = scans[0]
+                open_findings = [f for f in self._findings(latest, states) if f.status is FindingStatus.OPEN]
+                counts: dict[str, int] = {}
+                for finding in open_findings:
+                    counts[finding.severity.value] = counts.get(finding.severity.value, 0) + 1
+                top = min(
+                    (
+                        TopFinding(
+                            host=host,
+                            scan_id=latest.id,
+                            finding_id=f.id,
+                            title=f.title,
+                            severity=f.severity,
+                            confidence=f.confidence,
+                            remediation=f.remediation,
+                        )
+                        for f in open_findings
+                    ),
+                    key=_priority,
+                    default=None,
+                )
+                if top:
+                    candidates.append(top)
+                open_total += len(open_findings)
+                previous = scans[1] if len(scans) > 1 else None
+                change = (
+                    latest.score - previous.score
+                    if latest.score is not None and previous is not None and previous.score is not None
+                    else None
+                )
+                scored = [r for r in reversed(scans) if r.score is not None][-history:]
+                sites.append(
+                    SitePosture(
+                        host=host,
+                        latest_scan_id=latest.id,
+                        score=latest.score,
+                        grade=latest.grade,
+                        scanned_at=_aware(latest.finished_at or latest.created_at),
+                        previous_score=previous.score if previous is not None else None,
+                        score_change=change,
+                        open_counts=counts,
+                        open_total=len(open_findings),
+                        top_finding=top,
+                        history=[
+                            ScorePoint(
+                                scan_id=r.id,
+                                score=r.score,
+                                scanned_at=_aware(r.finished_at or r.created_at),
+                            )
+                            for r in scored
+                        ],
+                    )
+                )
+            best = min(candidates, key=_priority, default=None)
+            return Overview(sites=sites, fix_first=best, other_open=open_total - 1 if best else 0)
 
     def ping(self) -> bool:
         """Cheap connectivity check used by the readiness endpoint."""

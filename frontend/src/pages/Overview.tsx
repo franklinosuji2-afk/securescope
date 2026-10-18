@@ -4,7 +4,7 @@ import ScanForm from "../components/ScanForm";
 import ScanView from "../components/ScanView";
 import SetupGuide from "../components/SetupGuide";
 import { ErrorNotice, Loading } from "../components/ui";
-import { fixFirst, hasCompletedScan, setupSteps, siteSummaries } from "../overview";
+import { setupSteps } from "../overview";
 import { buildHash, type Route } from "../router";
 import { canManageTargets, canScan } from "../types";
 import { useOverviewData } from "../useOverviewData";
@@ -17,11 +17,9 @@ export default function Overview({ route, onStarted }: { route: Route; onStarted
   const allowed = role ? canScan(role) : false;
   const data = useOverviewData(`${route.scanId ?? ""}:${scan?.status ?? ""}`);
 
-  const sites = siteSummaries(data.targets, data.scans);
-  const scanned = hasCompletedScan(data.scans);
+  const scanned = data.overview.sites.length > 0;
   const showGuide = !data.loading && !data.error && !scanned && !route.scanId;
   const verifiedHosts = data.targets.filter((t) => t.status === "verified").map((t) => t.hostname);
-  const fix = fixFirst(sites.map((s) => data.details[s.latest.id]).filter((d) => d !== undefined));
 
   return (
     <div className="stack">
@@ -34,8 +32,8 @@ export default function Overview({ route, onStarted }: { route: Route; onStarted
       </header>
       {data.loading && <Loading label="Loading your sites…" />}
       {data.error && <ErrorNotice message={data.error} />}
-      {showGuide && <SetupGuide steps={setupSteps(data.targets, data.scans, role ? canManageTargets(role) : false)} />}
-      {scanned && <Posture sites={sites} details={data.details} fix={fix} />}
+      {showGuide && <SetupGuide steps={setupSteps(data.targets, scanned, role ? canManageTargets(role) : false)} />}
+      {scanned && <Posture overview={data.overview} />}
       {allowed ? (
         <ScanForm onStarted={onStarted} verifiedHosts={verifiedHosts} />
       ) : (
