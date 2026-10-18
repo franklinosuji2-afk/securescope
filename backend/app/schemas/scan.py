@@ -31,6 +31,7 @@ class ScanStatus(StrEnum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 class Confidence(StrEnum):

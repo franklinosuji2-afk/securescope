@@ -191,6 +191,8 @@ code, .mono { font-family: var(--mono); font-size: 0.86em; }
 .pill-completed { color: var(--ok); }
 .pill-running, .pill-queued { color: var(--accent-soft); }
 .pill-failed { color: var(--danger); }
+.pill-cancelled { color: var(--muted); }
+.stack-sm { display: grid; gap: 8px; }
 .sev { text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7rem; }
 .sev-critical { color: var(--sev-critical); }
 .sev-high { color: var(--sev-high); }
@@ -233,7 +235,7 @@ code, .mono { font-family: var(--mono); font-size: 0.86em; }
 .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
 /* Table */
-.table-wrap { overflow-x: auto; }
+.table-wrap { overflow-x: auto; position: relative; }
 table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 th { text-align: left; color: var(--muted); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
 th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -253,7 +255,7 @@ tbody tr:last-child td { border-bottom: 0; }
 .site-grid { margin-top: 0; }
 
 @media (max-width: 860px) {
-  .shell { grid-template-columns: 1fr; }
+  .shell { grid-template-columns: minmax(0, 1fr); }
   .rail { position: sticky; top: 0; z-index: 20; height: auto; gap: 0; padding: 10px 14px; border-right: 0; border-bottom: 1px solid var(--border); }
   .menu-btn { display: inline-block; }
   .rail-menu { display: none; padding-top: 14px; max-height: calc(100vh - 64px); overflow-y: auto; }

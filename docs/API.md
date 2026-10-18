@@ -25,11 +25,22 @@ Base path `/api/v1`. Interactive schema at `/api/docs` when the backend is reach
 | POST | `/targets/{id}/verify` | target:manage | `{"method": "dns_txt"\|"http_file"}`; 200 with the updated target (check `status` and `last_check_error`), 409 if expired, 429 if rate limited |
 | POST | `/scans` | scan:create | 202; requires `authorization_confirmed` **and a verified target for the exact host (403 otherwise)** |
 | GET | `/scans`, `/scans/{id}` | scan:read | Scoped to the active organization |
-| GET | `/scans/{id}/report?format=json\|md\|html` | report:export | Includes confidence and status per finding |
+| POST | `/scans/{id}/cancel` | scan:create | Stops a queued or running scan; 200 with the scan (status `cancelled`, no findings recorded); 409 if it already finished; 404 for unknown or other-organization scans |
+| POST | `/scans/{id}/retry` | scan:create | Starts a **new** scan of a failed or cancelled scan's address; 202 with the new scan. Ownership, target rules and rate limits are checked again (403, 400, 429 as for `POST /scans`); 409 if the scan is not failed or cancelled |
+| GET | `/scans/{id}/report?format=json\|md\|html\|pdf` | report:export | Includes confidence and status per finding. `pdf` is an A4 document with the same content as the HTML report |
+| GET | `/audit-events?limit=&offset=&event_type=` | audit:read (OWNER, ADMIN) | Newest first, only this organization's events: `items` (id, timestamp, event_type, actor_user_id, actor_email, resource_type, resource_id, request_id), `total`, and `event_types` (every type recorded, for filtering). `event_type` must match `[a-z_.]{1,48}`; `limit` 1-100 |
 | GET | `/overview` | scan:read | Per recently scanned site: latest score and grade, change since the previous completed scan, open findings by severity, the top open finding and up to 12 past scores. Completed scans only; at most 6 sites, newest first. Also `fix_first` (the single most worth fixing, by severity then confidence) and `other_open` |
 | PATCH | `/findings/{fingerprint}` | finding:triage | `{"status": "open"\|"accepted_risk"\|"false_positive", "note"?}` (note max 500); 204; 404 for unknown or other-organization findings; 422 for `resolved` (system only) |
 
-Errors are `{"detail": "..."}`; validation errors are 422. **Not implemented:** periodic re-verification, schedules, report storage, PDF.
+Errors are `{"detail": "..."}`; validation errors are 422. **Not implemented:** periodic re-verification, schedules, report storage.
+
+## Scan states
+
+`queued` -> `running` -> `completed` or `failed`; a queued or running scan can become `cancelled`. The database decides every race: a scan that finishes after it was cancelled is discarded, and a cancelled scan never changes finding states, scores or the overview. Cancellation works inside the one API process that runs the scan; a scan left over from a restart is marked `failed` at startup. Retrying creates a new scan and keeps the old one in history.
+
+## Audit log
+
+`GET /audit-events` is limited to owners and admins because it names members and shows what each did. Event types: `user.registered`, `auth.email_verified`, `auth.login.failed`, `auth.logout`, `org.created`, `org.member.added`, `org.member.role_changed`, `org.member.removed`, `target.created`, `target.verified`, `target.verification_failed`, `target.challenge_regenerated`, `target.deleted`, `scan.created`, `scan.cancelled`, `scan.retried`, `report.exported`, `finding.status_changed`. The log stores no IP addresses, passwords, tokens or page content. An event whose user no longer exists has no actor.
 
 ## Findings
 

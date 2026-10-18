@@ -51,6 +51,8 @@ class AppState:
         self.txt_lookup: TxtLookup = system_txt_lookup
         self.verification_transport: httpx.AsyncBaseTransport | None = None
         self.tasks: set[asyncio.Task[None]] = set()
+        # Running scan tasks by scan id, so a scan can be cancelled. One process serves all requests.
+        self.scan_tasks: dict[str, asyncio.Task[None]] = {}
 
     @property
     def pending(self) -> int:

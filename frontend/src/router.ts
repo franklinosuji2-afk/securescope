@@ -6,6 +6,7 @@ export type Page =
   | "findings"
   | "history"
   | "team"
+  | "audit"
   | "login"
   | "register"
   | "forgot-password"
@@ -17,6 +18,7 @@ const PAGES: readonly Page[] = [
   "findings",
   "history",
   "team",
+  "audit",
   "login",
   "register",
   "forgot-password",

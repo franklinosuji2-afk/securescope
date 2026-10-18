@@ -31,6 +31,7 @@ from app.schemas.scan import (
 
 # The overview looks at this many of an organization's most recent completed scans.
 OVERVIEW_SCAN_WINDOW = 500
+ACTIVE = [ScanStatus.QUEUED.value, ScanStatus.RUNNING.value]
 _CONFIDENCE_RANK = {Confidence.HIGH: 0, Confidence.MEDIUM: 1, Confidence.LOW: 2}
 
 
@@ -82,13 +83,33 @@ class ScanRepository:
             )
         return scan_id
 
-    def mark_running(self, scan_id: str) -> None:
+    def mark_running(self, scan_id: str) -> bool:
+        """False when the scan is no longer queued (for example it was cancelled while waiting)."""
         with self._session.begin() as session:
-            session.execute(
+            result = session.execute(
                 update(ScanRow)
-                .where(ScanRow.id == scan_id)
+                .where(ScanRow.id == scan_id, ScanRow.status == ScanStatus.QUEUED.value)
                 .values(status=ScanStatus.RUNNING.value, started_at=_now())
             )
+            return result.rowcount == 1  # type: ignore[attr-defined,no-any-return]
+
+    def cancel_scan(self, scan_id: str, organization_id: str) -> bool:
+        """Cancels a queued or running scan of this organization. False if it already finished."""
+        with self._session.begin() as session:
+            result = session.execute(
+                update(ScanRow)
+                .where(
+                    ScanRow.id == scan_id,
+                    ScanRow.organization_id == organization_id,
+                    ScanRow.status.in_(ACTIVE),
+                )
+                .values(
+                    status=ScanStatus.CANCELLED.value,
+                    error="Cancelled before it finished.",
+                    finished_at=_now(),
+                )
+            )
+            return result.rowcount == 1  # type: ignore[attr-defined,no-any-return]
 
     def complete_scan(
         self,
@@ -97,12 +118,13 @@ class ScanRepository:
         score: int,
         grade: str,
         metadata: TargetMetadata,
-    ) -> None:
+    ) -> bool:
+        """Stores a finished scan. False, and nothing stored, if it was cancelled in the meantime."""
         with self._session.begin() as session:
             scan_row = session.get(ScanRow, scan_id)
-            session.execute(
+            result = session.execute(
                 update(ScanRow)
-                .where(ScanRow.id == scan_id)
+                .where(ScanRow.id == scan_id, ScanRow.status.in_(ACTIVE))
                 .values(
                     status=ScanStatus.COMPLETED.value,
                     score=score,
@@ -111,6 +133,8 @@ class ScanRepository:
                     finished_at=_now(),
                 )
             )
+            if result.rowcount != 1:  # type: ignore[attr-defined]
+                return False
             host = scan_row.host if scan_row else metadata.host
             session.add_all(
                 FindingRow(
@@ -138,6 +162,7 @@ class ScanRepository:
                     findings,
                     may_resolve=metadata.off_origin_redirect is None,
                 )
+            return True
 
     @staticmethod
     def _record_states(
@@ -209,9 +234,10 @@ class ScanRepository:
 
     def fail_scan(self, scan_id: str, error: str) -> None:
         with self._session.begin() as session:
+            # A scan that was cancelled keeps its cancelled state.
             session.execute(
                 update(ScanRow)
-                .where(ScanRow.id == scan_id)
+                .where(ScanRow.id == scan_id, ScanRow.status.in_(ACTIVE))
                 .values(status=ScanStatus.FAILED.value, error=error, finished_at=_now())
             )
 
@@ -229,7 +255,7 @@ class ScanRepository:
         with self._session.begin() as session:
             result = session.execute(
                 update(ScanRow)
-                .where(ScanRow.status.in_([ScanStatus.QUEUED.value, ScanStatus.RUNNING.value]))
+                .where(ScanRow.status.in_(ACTIVE))
                 .values(
                     status=ScanStatus.FAILED.value,
                     error="The service restarted before this scan finished.",

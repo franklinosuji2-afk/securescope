@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, listScans } from "../api";
+import { ApiError, cancelScan, listScans, retryScan } from "../api";
+import { useAuth } from "../auth";
 import { EmptyState, ErrorNotice, Loading, StatusPill } from "../components/ui";
 import { formatDate } from "../format";
 import type { ScanSummary } from "../types";
+import { canScan, isActive } from "../types";
 
 const PAGE = 25;
 
@@ -11,6 +13,27 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refresh, setRefresh] = useState(0);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const { organization } = useAuth();
+  const mayControl = organization ? canScan(organization.role) : false;
+
+  async function control(scan: ScanSummary, action: "cancel" | "retry") {
+    setBusyId(scan.id);
+    try {
+      if (action === "cancel") {
+        await cancelScan(scan.id);
+        setRefresh((n) => n + 1);
+      } else {
+        onOpen((await retryScan(scan.id)).id);
+      }
+      setError(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "That did not work. Try again.");
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   const loadMore = useCallback(async (offset: number) => {
     try {
@@ -42,7 +65,7 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refresh]);
 
   return (
     <div className="stack">
@@ -81,9 +104,33 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
                   <td>{Object.values(s.counts).reduce((a, b) => a + (b ?? 0), 0)}</td>
                   <td>{formatDate(s.created_at)}</td>
                   <td>
-                    <button className="btn-ghost" type="button" onClick={() => onOpen(s.id)} aria-label={`Open scan of ${s.host}`}>
-                      Open
-                    </button>
+                    <div className="row">
+                      <button className="btn-ghost" type="button" onClick={() => onOpen(s.id)} aria-label={`Open scan of ${s.host}`}>
+                        Open
+                      </button>
+                      {mayControl && isActive(s.status) && (
+                        <button
+                          className="btn-ghost"
+                          type="button"
+                          disabled={busyId === s.id}
+                          onClick={() => void control(s, "cancel")}
+                          aria-label={`Cancel scan of ${s.host}`}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      {mayControl && (s.status === "failed" || s.status === "cancelled") && (
+                        <button
+                          className="btn-ghost"
+                          type="button"
+                          disabled={busyId === s.id}
+                          onClick={() => void control(s, "retry")}
+                          aria-label={`Retry scan of ${s.host}`}
+                        >
+                          Retry
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

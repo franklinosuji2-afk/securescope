@@ -1,12 +1,17 @@
-import { reportUrl } from "../api";
+import { useState } from "react";
+import { ApiError, cancelScan, reportUrl, retryScan } from "../api";
 import { formatDate } from "../format";
 import type { ScanDetail } from "../types";
+import { isActive } from "../types";
 import { ErrorNotice, ScoreCard, SeverityBreakdown, StatusPill } from "./ui";
 
 export function ReportButtons({ scanId }: { scanId: string }) {
   return (
     <div className="row" role="group" aria-label="Export report">
       <span className="muted small">Export:</span>
+      <a className="btn-ghost" href={reportUrl(scanId, "pdf")} download>
+        PDF
+      </a>
       <a className="btn-ghost" href={reportUrl(scanId, "html")} download>
         HTML
       </a>
@@ -68,10 +73,87 @@ export function TargetMeta({ scan }: { scan: ScanDetail }) {
   );
 }
 
-export default function ScanView({ scan }: { scan: ScanDetail }) {
+/** Stop a scan that is still going, or run a failed or cancelled one again. */
+export function ScanActions({
+  scan,
+  onChanged,
+  onRetried,
+}: {
+  scan: ScanDetail;
+  /** Called after a cancel, so the scan can be loaded again. */
+  onChanged: () => void;
+  /** Called with the id of the new scan after a retry. */
+  onRetried: (scanId: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+
+  async function run(action: () => Promise<void>) {
+    setBusy(true);
+    setError(null);
+    try {
+      await action();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "That did not work. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const cancel = () =>
+    run(async () => {
+      await cancelScan(scan.id);
+      setMessage("Scan cancelled. No findings were recorded.");
+      onChanged();
+    });
+  const retry = () =>
+    run(async () => {
+      const next = await retryScan(scan.id);
+      onRetried(next.id);
+    });
+
+  return (
+    <div className="stack-sm">
+      <div className="row">
+        {isActive(scan.status) && (
+          <button className="btn-ghost" type="button" disabled={busy} onClick={() => void cancel()}>
+            {busy ? "Cancelling…" : "Cancel scan"}
+          </button>
+        )}
+        {(scan.status === "failed" || scan.status === "cancelled") && (
+          <button className="btn-ghost" type="button" disabled={busy} onClick={() => void retry()}>
+            {busy ? "Starting…" : "Retry scan"}
+          </button>
+        )}
+      </div>
+      <p className="visually-hidden" role="status">
+        {message}
+      </p>
+      {error && <ErrorNotice message={error} />}
+    </div>
+  );
+}
+
+export default function ScanView({
+  scan,
+  onChanged,
+  onRetried,
+}: {
+  scan: ScanDetail;
+  onChanged?: () => void;
+  onRetried?: (scanId: string) => void;
+}) {
   return (
     <div className="stack">
       {scan.status === "failed" && <ErrorNotice message={scan.error ?? "The scan failed."} />}
+      {scan.status === "cancelled" && (
+        <div className="notice notice-info" role="note">
+          This scan was cancelled before it finished. No findings or score were recorded, and earlier results are
+          unchanged.
+        </div>
+      )}
+      {onChanged && onRetried && <ScanActions scan={scan} onChanged={onChanged} onRetried={onRetried} />}
       <div className="grid grid-3">
         <ScanStatusCard scan={scan} />
         <ScoreCard score={scan.score} grade={scan.grade} note={scan.score_note} />

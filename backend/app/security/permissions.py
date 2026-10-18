@@ -22,6 +22,7 @@ class Permission(StrEnum):
     TARGET_READ = "target:read"
     TARGET_MANAGE = "target:manage"
     FINDING_TRIAGE = "finding:triage"
+    AUDIT_READ = "audit:read"
 
 
 _ALL = set(Permission)

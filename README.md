@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/franklinosuji2-afk/securescope/actions/workflows/ci.yml/badge.svg)](https://github.com/franklinosuji2-afk/securescope/actions/workflows/ci.yml)
 
-> **Status: v0.6.** Accounts, organizations, roles, tenant isolation and domain-ownership verification (DNS TXT / HTTP file) are implemented; scans only run against verified domains. Findings have a lifecycle (open, accepted risk, false positive, resolved) and the dashboard leads with what to fix first. Real email is **not** sent, so do not expose it publicly yet. See `docs/IMPLEMENTATION_PLAN.md`.
+> **Status: v0.7.** Accounts, organizations, roles, tenant isolation and domain-ownership verification (DNS TXT / HTTP file) are implemented; scans only run against verified domains. Findings have a lifecycle (open, accepted risk, false positive, resolved) and the dashboard leads with what to fix first. Real email is **not** sent, so do not expose it publicly yet. See `docs/IMPLEMENTATION_PLAN.md`.
 
 A passive web-application security **posture** scanner for sites you own or are authorized to test. It checks a handful of safe, non-exploitative signals, explains each finding with evidence and a fix, keeps scan history, and exports reports.
 
@@ -44,8 +44,10 @@ Captured from the running app against a real scan history of my own portfolio si
 | Finding lifecycle per organization and host: open, accepted risk, false positive (set by analysts, with a note), resolved (set only when a later completed scan no longer reports it). Failed scans never resolve anything | Implemented |
 | Reports state what was checked, what passed and the limits of the scan | Implemented |
 | Scan history, retention cleanup (default 30 days) | Implemented |
-| Report export: HTML, Markdown, JSON | Implemented |
-| Dashboard: Overview (guided setup, "fix this first", per-site posture and score history), Targets, Findings (filters, detail page with impact, evidence and fix), Scan History, Team | Implemented |
+| Report export: PDF, HTML, Markdown, JSON | Implemented |
+| Scan control: cancel a queued or running scan, retry a failed or cancelled one (ownership and rate limits are checked again) | Implemented |
+| Audit log for owners and admins: API and page with filter and paging | Implemented |
+| Dashboard: Overview (guided setup, "fix this first", per-site posture and score history), Targets, Findings (filters, detail page with impact, evidence and fix), Scan History, Team, Audit log | Implemented |
 | Accessibility: light and dark themes, severity never shown by colour alone, keyboard-operable, automated axe checks in CI, mobile navigation menu | Implemented. No manual screen-reader testing yet |
 | Domain targets with DNS TXT / HTTP-file ownership verification; scans refused for unverified hosts | Implemented. HTTP-file verification confirmed once end to end on a real domain; the DNS TXT path is tested with mocks only |
 | Registration, login, logout, sessions (HttpOnly cookies + CSRF), Argon2id passwords | Implemented |
@@ -55,8 +57,8 @@ Captured from the running app against a real scan history of my own portfolio si
 ## Roadmap (not implemented)
 
 - Periodic re-verification of target ownership
-- Real email delivery, audit-log read API, session management UI
-- Scheduled rescans, scan cancellation, PDF reports
+- Real email delivery, session management UI
+- Scheduled rescans
 - Outdated-software detection, TLS configuration/certificate analysis, optional OWASP ZAP integration
 - Egress proxy for production DNS-rebinding defence
 
@@ -81,7 +83,10 @@ See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/DATA_RETENTION.md](docs/
 | POST | `/api/v1/scans` | Start a scan: `{"url": "...", "authorization_confirmed": true}` → 202 |
 | GET | `/api/v1/scans?limit=&offset=` | List scans |
 | GET | `/api/v1/scans/{id}` | Scan detail with findings |
-| GET | `/api/v1/scans/{id}/report?format=json\|md\|html` | Export |
+| POST | `/api/v1/scans/{id}/cancel` | Cancel a queued or running scan |
+| POST | `/api/v1/scans/{id}/retry` | Run a failed or cancelled scan again (new scan) → 202 |
+| GET | `/api/v1/scans/{id}/report?format=json\|md\|html\|pdf` | Export |
+| GET | `/api/v1/audit-events?limit=&offset=&event_type=` | Audit log (owners and admins) |
 | GET | `/api/v1/overview` | Per-site posture: latest score, change, open findings, score history, what to fix first |
 | PATCH | `/api/v1/findings/{fingerprint}` | Analyst triage: accepted risk, false positive, or reopen |
 

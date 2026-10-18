@@ -74,7 +74,12 @@ export default function Findings({ route }: { route: Route }) {
       {scan && (
         <>
           {scan.status === "failed" && <ErrorNotice message={scan.error ?? "The scan failed, so there are no findings."} />}
-          {scan.status !== "completed" && scan.status !== "failed" && <Loading label="Scan in progress…" />}
+          {scan.status === "cancelled" && (
+            <div className="notice notice-info" role="note">
+              This scan was cancelled before it finished, so there are no findings from it.
+            </div>
+          )}
+          {(scan.status === "queued" || scan.status === "running") && <Loading label="Scan in progress…" />}
           {findings.length > 0 && (
             <form className="toolbar" role="search" aria-label="Filter findings" onSubmit={(e) => e.preventDefault()}>
               <label className="toolbar-field">

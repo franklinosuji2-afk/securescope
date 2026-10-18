@@ -8,8 +8,10 @@ import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, VerifyE
 import Targets from "./pages/Targets";
 import Team from "./pages/Team";
 import Findings from "./pages/Findings";
+import Audit from "./pages/Audit";
 import History from "./pages/History";
 import Overview from "./pages/Overview";
+import { canReadAudit } from "./types";
 
 const NAV: { page: Page; label: string }[] = [
   { page: "overview", label: "Overview" },
@@ -17,6 +19,7 @@ const NAV: { page: Page; label: string }[] = [
   { page: "findings", label: "Findings" },
   { page: "history", label: "Scan History" },
   { page: "team", label: "Team" },
+  { page: "audit", label: "Audit log" },
 ];
 
 export default function App() {
@@ -110,7 +113,7 @@ export default function App() {
         </div>
         <div className="rail-menu" id="rail-menu">
         <nav className="nav" aria-label="Primary">
-          {NAV.map((n) => (
+          {NAV.filter((n) => n.page !== "audit" || (organization ? canReadAudit(organization.role) : false)).map((n) => (
             <a
               key={n.page}
               href={buildHash(n.page, n.page === "history" ? null : route.scanId)}
@@ -158,6 +161,7 @@ export default function App() {
         {route.page === "findings" && <Findings route={route} />}
         {route.page === "history" && <History onOpen={(id) => navigate("findings", id)} />}
         {route.page === "team" && <Team />}
+        {route.page === "audit" && <Audit />}
       </main>
     </div>
   );

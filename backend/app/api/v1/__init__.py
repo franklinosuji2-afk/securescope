@@ -6,10 +6,10 @@ import logging
 from fastapi import APIRouter, Response
 
 from app.api.deps import StateDep
-from app.api.v1 import auth, findings, organizations, overview, scans, targets
+from app.api.v1 import audit, auth, findings, organizations, overview, scans, targets
 from app.schemas.scan import HealthResponse
 
-VERSION = "0.6.0"
+VERSION = "0.7.0"
 logger = logging.getLogger("securescope.api")
 
 router = APIRouter(prefix="/api/v1")
@@ -38,3 +38,4 @@ router.include_router(scans.router)
 router.include_router(targets.router)
 router.include_router(findings.router)
 router.include_router(overview.router)
+router.include_router(audit.router)

@@ -24,15 +24,10 @@ CanCreate = Annotated[OrgContext, Depends(require(Permission.SCAN_CREATE))]
 CanExport = Annotated[OrgContext, Depends(require(Permission.REPORT_EXPORT))]
 
 
-@router.post("", response_model=ScanDetail, status_code=202)
-async def create_scan(body: ScanCreate, request: Request, state: StateDep, ctx: CanCreate) -> ScanDetail:
-    if not body.authorization_confirmed:
-        raise HTTPException(
-            status_code=400,
-            detail="You must confirm that you own this target or have written authorization to test it.",
-        )
+async def _start_scan(state: StateDep, request: Request, ctx: OrgContext, url: str) -> ScanDetail:
+    """Runs every safety check, then queues the scan. Used for new scans and for retries alike."""
     try:
-        _, host, _, _ = parse_target_url(body.url, state.settings)
+        _, host, _, _ = parse_target_url(url, state.settings)
     except TargetError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     # Ownership is checked before any DNS lookup or outbound request is made for this host.
@@ -43,7 +38,7 @@ async def create_scan(body: ScanCreate, request: Request, state: StateDep, ctx: 
             detail=f"Ownership of {host} has not been verified. Add and verify it under Targets first.",
         )
     try:
-        target = await validate_target(body.url, state.settings)
+        target = await validate_target(url, state.settings)
     except TargetError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -68,25 +63,46 @@ async def create_scan(body: ScanCreate, request: Request, state: StateDep, ctx: 
         target.host,
         verified.id,
     )
+    await _audit(state, request, ctx, "scan.created", scan_id)
+    task = asyncio.create_task(
+        execute_scan(scan_id, target.url, target.host, state.settings, state.repo, state.semaphore)
+    )
+    state.tasks.add(task)
+    state.scan_tasks[scan_id] = task
+
+    def _forget(done: asyncio.Task[None]) -> None:
+        state.tasks.discard(done)
+        if state.scan_tasks.get(scan_id) is done:
+            del state.scan_tasks[scan_id]
+
+    task.add_done_callback(_forget)
+    log_event(logger, "scan queued", scan_id=scan_id, host=target.host, organization_id=ctx.organization_id)
+    detail = await asyncio.to_thread(state.repo.get_scan, scan_id, ctx.organization_id)
+    if detail is None:  # created a moment ago in this organization; only possible on a storage fault
+        raise HTTPException(status_code=500, detail="The scan could not be loaded.")
+    return detail
+
+
+async def _audit(state: StateDep, request: Request, ctx: OrgContext, event: str, scan_id: str) -> None:
     await asyncio.to_thread(
         state.audit.record,
-        "scan.created",
+        event,
         organization_id=ctx.organization_id,
         actor_user_id=ctx.principal.user.id,
         resource_type="scan",
         resource_id=scan_id,
         request_id=request_id(request),
     )
-    task = asyncio.create_task(
-        execute_scan(scan_id, target.url, target.host, state.settings, state.repo, state.semaphore)
-    )
-    state.tasks.add(task)
-    task.add_done_callback(state.tasks.discard)
-    log_event(logger, "scan queued", scan_id=scan_id, host=target.host, organization_id=ctx.organization_id)
-    detail = await asyncio.to_thread(state.repo.get_scan, scan_id, ctx.organization_id)
-    if detail is None:  # created a moment ago in this organization; only possible on a storage fault
-        raise HTTPException(status_code=500, detail="The scan could not be loaded.")
-    return detail
+
+
+@router.post("", response_model=ScanDetail, status_code=202)
+async def create_scan(body: ScanCreate, request: Request, state: StateDep, ctx: CanCreate) -> ScanDetail:
+    if not body.authorization_confirmed:
+        raise HTTPException(
+            status_code=400,
+            detail="You must confirm that you own this target or have written authorization to test it.",
+        )
+    return await _start_scan(state, request, ctx, body.url)
 
 
 @router.get("", response_model=ScanList)
@@ -114,21 +130,48 @@ async def get_scan(scan_id: str, state: StateDep, ctx: CanRead) -> ScanDetail:
     return await _load(state, ctx, scan_id)
 
 
+@router.post("/{scan_id}/cancel", response_model=ScanDetail)
+async def cancel_scan(scan_id: str, request: Request, state: StateDep, ctx: CanCreate) -> ScanDetail:
+    detail = await _load(state, ctx, scan_id)
+    if detail.status not in (ScanStatus.QUEUED, ScanStatus.RUNNING):
+        raise HTTPException(status_code=409, detail="This scan has already finished, so it cannot be cancelled.")
+    # The database decides who wins a race with the scanner finishing at the same moment.
+    if not await asyncio.to_thread(state.repo.cancel_scan, scan_id, ctx.organization_id):
+        raise HTTPException(status_code=409, detail="This scan has already finished, so it cannot be cancelled.")
+    task = state.scan_tasks.get(scan_id)
+    if task is not None:
+        task.cancel()
+    await _audit(state, request, ctx, "scan.cancelled", scan_id)
+    return await _load(state, ctx, scan_id)
+
+
+@router.post("/{scan_id}/retry", response_model=ScanDetail, status_code=202)
+async def retry_scan(scan_id: str, request: Request, state: StateDep, ctx: CanCreate) -> ScanDetail:
+    """Starts a new scan of the same address. Ownership, target rules and rate limits apply again."""
+    detail = await _load(state, ctx, scan_id)
+    if detail.status not in (ScanStatus.FAILED, ScanStatus.CANCELLED):
+        raise HTTPException(status_code=409, detail="Only a failed or cancelled scan can be retried.")
+    created = await _start_scan(state, request, ctx, detail.target_url)
+    await _audit(state, request, ctx, "scan.retried", scan_id)
+    return created
+
+
 @router.get("/{scan_id}/report")
 async def export_report(
     scan_id: str,
     request: Request,
     state: StateDep,
     ctx: CanExport,
-    format: Literal["json", "md", "html"] = "json",  # noqa: A002
+    format: Literal["json", "md", "html", "pdf"] = "json",  # noqa: A002
 ) -> Response:
     detail = await _load(state, ctx, scan_id)
     if detail.status in (ScanStatus.QUEUED, ScanStatus.RUNNING):
         raise HTTPException(status_code=409, detail="The scan has not finished yet.")
-    media, extension, content = {
+    media, extension, render = {
         "json": ("application/json", "json", reports.to_json),
         "md": ("text/markdown; charset=utf-8", "md", reports.to_markdown),
         "html": ("text/html; charset=utf-8", "html", reports.to_html),
+        "pdf": ("application/pdf", "pdf", reports.to_pdf),
     }[format]
     headers = {"Content-Disposition": f'attachment; filename="{reports.safe_filename(detail, extension)}"'}
     if format == "html":
@@ -142,4 +185,6 @@ async def export_report(
         resource_id=scan_id,
         request_id=request_id(request),
     )
-    return Response(content=content(detail), media_type=media, headers=headers)
+    # Building a PDF is CPU work, so it runs off the event loop.
+    content = await asyncio.to_thread(render, detail)
+    return Response(content=content, media_type=media, headers=headers)

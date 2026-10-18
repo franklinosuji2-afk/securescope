@@ -21,6 +21,7 @@ from app.models.account import (
     SessionRow,
     UserRow,
 )
+from app.schemas.audit import AuditEntry
 from app.security.permissions import Role
 from app.security.tokens import hash_token
 
@@ -388,6 +389,49 @@ class AuditRepository:
                     .where(AuditEventRow.organization_id == organization_id)
                     .order_by(AuditEventRow.timestamp.desc())
                     .limit(limit)
+                )
+            )
+
+    def query_events(
+        self, organization_id: str, *, limit: int, offset: int, event_type: str | None = None
+    ) -> tuple[list[AuditEntry], int]:
+        """Newest first. Only events of `organization_id` are ever visible (tenant isolation)."""
+        scope = [AuditEventRow.organization_id == organization_id]
+        if event_type:
+            scope.append(AuditEventRow.event_type == event_type)
+        with self._session() as session:
+            total = session.scalar(select(func.count()).select_from(AuditEventRow).where(*scope)) or 0
+            rows = session.execute(
+                select(AuditEventRow, UserRow.email)
+                .outerjoin(UserRow, UserRow.id == AuditEventRow.actor_user_id)
+                .where(*scope)
+                .order_by(AuditEventRow.timestamp.desc(), AuditEventRow.id.desc())
+                .limit(limit)
+                .offset(offset)
+            ).all()
+            items = [
+                AuditEntry(
+                    id=row.id,
+                    timestamp=_aware(row.timestamp),
+                    event_type=row.event_type,
+                    actor_user_id=row.actor_user_id,
+                    actor_email=email,
+                    resource_type=row.resource_type,
+                    resource_id=row.resource_id,
+                    request_id=row.request_id,
+                )
+                for row, email in rows
+            ]
+        return items, total
+
+    def event_types(self, organization_id: str) -> list[str]:
+        with self._session() as session:
+            return list(
+                session.scalars(
+                    select(AuditEventRow.event_type)
+                    .where(AuditEventRow.organization_id == organization_id)
+                    .distinct()
+                    .order_by(AuditEventRow.event_type)
                 )
             )
 

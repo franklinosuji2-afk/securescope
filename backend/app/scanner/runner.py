@@ -27,7 +27,8 @@ async def execute_scan(
 ) -> None:
     async with semaphore:
         started = time.monotonic()
-        await asyncio.to_thread(repo.mark_running, scan_id)
+        if not await asyncio.to_thread(repo.mark_running, scan_id):
+            return  # cancelled while it was waiting for a free slot
         try:
             result = await asyncio.wait_for(fetch_target(url, settings), timeout=settings.max_scan_seconds)
             findings, checks_run = run_checks(result)
@@ -45,7 +46,10 @@ async def execute_scan(
                 requests_made=result.requests_made,
                 checks_run=checks_run,
             )
-            await asyncio.to_thread(repo.complete_scan, scan_id, findings, score, grade, metadata)
+            stored = await asyncio.to_thread(repo.complete_scan, scan_id, findings, score, grade, metadata)
+            if not stored:
+                log_event(logger, "scan finished after it was cancelled; result discarded", scan_id=scan_id)
+                return
             log_event(
                 logger,
                 "scan completed",
@@ -55,6 +59,9 @@ async def execute_scan(
                 findings=len(findings),
                 duration_ms=int((time.monotonic() - started) * 1000),
             )
+        except asyncio.CancelledError:
+            log_event(logger, "scan cancelled", scan_id=scan_id, host=host)
+            raise
         except FetchError as exc:
             await asyncio.to_thread(repo.fail_scan, scan_id, str(exc))
             log_event(logger, "scan failed", scan_id=scan_id, host=host, reason=str(exc))

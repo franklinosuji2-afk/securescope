@@ -38,3 +38,29 @@ export function statusExplanation(status: FindingStatus): string {
 export function confidenceLabel(confidence: Confidence): string {
   return { high: "High confidence", medium: "Medium confidence", low: "Low confidence" }[confidence];
 }
+
+const AUDIT_LABELS: Record<string, string> = {
+  "user.registered": "Account created",
+  "auth.email_verified": "Email confirmed",
+  "auth.login.failed": "Failed sign-in",
+  "auth.logout": "Signed out",
+  "org.created": "Organization created",
+  "org.member.added": "Member added",
+  "org.member.role_changed": "Member role changed",
+  "org.member.removed": "Member removed",
+  "target.created": "Site added",
+  "target.verified": "Site ownership verified",
+  "target.verification_failed": "Site verification failed",
+  "target.challenge_regenerated": "Verification challenge renewed",
+  "target.deleted": "Site removed",
+  "scan.created": "Scan started",
+  "scan.cancelled": "Scan cancelled",
+  "scan.retried": "Scan retried",
+  "report.exported": "Report exported",
+  "finding.status_changed": "Finding status changed",
+};
+
+/** A readable name for an audit event type. Unknown types show their raw name rather than hiding it. */
+export function auditLabel(eventType: string): string {
+  return AUDIT_LABELS[eventType] ?? eventType;
+}

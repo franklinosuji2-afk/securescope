@@ -21,7 +21,7 @@ def wait_for(client: TestClient, scan_id: str, timeout: float = 15.0) -> dict:  
 
 def test_health(strict_client: TestClient) -> None:
     body = strict_client.get("/api/v1/health").json()
-    assert body == {"status": "ok", "version": "0.6.0"}
+    assert body == {"status": "ok", "version": "0.7.0"}
 
 
 def test_security_headers_on_api_responses(strict_client: TestClient) -> None:
@@ -107,7 +107,7 @@ def test_end_to_end_scan_with_findings_and_exports(local_client: TestClient, moc
     report_html = local_client.get(f"/api/v1/scans/{scan_id}/report?format=html")
     assert report_html.headers["content-type"].startswith("text/html")
     assert "style-src 'unsafe-inline'" in report_html.headers["content-security-policy"]
-    assert local_client.get(f"/api/v1/scans/{scan_id}/report?format=pdf").status_code == 422
+    assert local_client.get(f"/api/v1/scans/{scan_id}/report?format=docx").status_code == 422
 
 
 def test_hardened_target_has_only_the_expected_findings(local_client: TestClient, mock_server: str) -> None:

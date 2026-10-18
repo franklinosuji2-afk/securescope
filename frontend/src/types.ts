@@ -1,5 +1,5 @@
 export type Severity = "critical" | "high" | "medium" | "low" | "info";
-export type ScanStatus = "queued" | "running" | "completed" | "failed";
+export type ScanStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 
 export const SEVERITIES: readonly Severity[] = ["critical", "high", "medium", "low", "info"];
 
@@ -63,7 +63,7 @@ export interface ScanList {
   total: number;
 }
 
-export type ReportFormat = "json" | "md" | "html";
+export type ReportFormat = "json" | "md" | "html" | "pdf";
 
 export type Role = "OWNER" | "ADMIN" | "SECURITY_ANALYST" | "MEMBER" | "VIEWER";
 export const ROLES: readonly Role[] = ["OWNER", "ADMIN", "SECURITY_ANALYST", "MEMBER", "VIEWER"];
@@ -123,6 +123,31 @@ export interface Target {
 
 export function canManageTargets(role: Role): boolean {
   return role === "OWNER" || role === "ADMIN" || role === "SECURITY_ANALYST";
+}
+
+export function canReadAudit(role: Role): boolean {
+  return role === "OWNER" || role === "ADMIN";
+}
+
+export function isActive(status: ScanStatus): boolean {
+  return status === "queued" || status === "running";
+}
+
+export interface AuditEntry {
+  id: string;
+  timestamp: string;
+  event_type: string;
+  actor_user_id: string | null;
+  actor_email: string | null;
+  resource_type: string | null;
+  resource_id: string | null;
+  request_id: string | null;
+}
+
+export interface AuditList {
+  items: AuditEntry[];
+  total: number;
+  event_types: string[];
 }
 
 export function canTriageFindings(role: Role): boolean {

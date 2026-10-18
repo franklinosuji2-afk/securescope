@@ -30,6 +30,8 @@ Every scan row carries an `organization_id`. All reads go through repository met
 | View targets | yes | yes | yes | yes | yes |
 | Add, verify, regenerate, remove targets | yes | yes | yes | no | no |
 | Change a finding's status (accepted risk, false positive, reopen) | yes | yes | yes | no | no |
+| Cancel or retry scans | yes | yes | yes | yes | no |
+| Read the audit log | yes | yes | no | no | no |
 | Add / change / remove members | yes | yes (below ADMIN only) | no | no | no |
 
 Admins cannot grant OWNER or ADMIN, cannot change or remove admins or owners, and cannot promote themselves. An organization always keeps at least one owner. Any member can leave. The matrix lives in `app/security/permissions.py`; the frontend mirrors it for display only.
@@ -47,7 +49,11 @@ Verification is exact-host: `example.com` does not authorise `www.example.com` o
 
 ## Audit log
 
-`audit_events` records registration, logins (success and failure, without the email), logout, session refresh, password reset and email verification, organization creation, member add/role change/removal, target creation/verification/failed verification/challenge regeneration/removal, scan creation and report export, each with actor, resource and request id. There is no API or UI to read it yet.
+`audit_events` records registration, logins (success and failure, without the email), logout, session refresh, password reset and email verification, organization creation, member add/role change/removal, target creation/verification/failed verification/challenge regeneration/removal, scan creation, cancellation and retry, report export and finding status changes, each with actor, resource and request id. Owners and admins can read it (`GET /audit-events`, the **Audit log** page); every other role gets 403, and one organization never sees another's events (tests: `app/tests/test_audit_log.py`).
+
+## PDF reports
+
+Evidence in a report can contain anything a remote server sent. In the PDF, control characters are dropped, markup is escaped so it prints as text, characters outside the built-in fonts print as `?`, and no links, actions or scripts are ever written (tests: `app/tests/test_pdf_report.py`).
 
 ## Scanner safety
 

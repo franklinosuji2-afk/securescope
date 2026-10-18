@@ -1,4 +1,4 @@
-import type { FindingStatus, Member, Overview, Organization, OrganizationDetail, ReportFormat, Role, ScanDetail, ScanList, Target, User, VerificationMethod } from "./types";
+import type { AuditList, FindingStatus, Member, Overview, Organization, OrganizationDetail, ReportFormat, Role, ScanDetail, ScanList, Target, User, VerificationMethod } from "./types";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -121,6 +121,16 @@ export function getScan(id: string): Promise<ScanDetail> {
 
 export function listScans(limit = 25, offset = 0): Promise<ScanList> {
   return request<ScanList>(`/scans?limit=${limit}&offset=${offset}`);
+}
+
+export const cancelScan = (id: string) =>
+  request<ScanDetail>(`/scans/${encodeURIComponent(id)}/cancel`, { method: "POST" });
+export const retryScan = (id: string) =>
+  request<ScanDetail>(`/scans/${encodeURIComponent(id)}/retry`, { method: "POST" });
+
+export function listAuditEvents(limit = 25, offset = 0, eventType = ""): Promise<AuditList> {
+  const filter = eventType ? `&event_type=${encodeURIComponent(eventType)}` : "";
+  return request<AuditList>(`/audit-events?limit=${limit}&offset=${offset}${filter}`);
 }
 
 export function reportUrl(id: string, format: ReportFormat): string {

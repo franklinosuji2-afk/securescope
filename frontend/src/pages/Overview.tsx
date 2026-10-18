@@ -11,7 +11,7 @@ import { useOverviewData } from "../useOverviewData";
 import { useScan } from "../useScan";
 
 export default function Overview({ route, onStarted }: { route: Route; onStarted: (id: string) => void }) {
-  const { scan, loading, error } = useScan(route.scanId);
+  const { scan, loading, error, reload } = useScan(route.scanId);
   const { organization } = useAuth();
   const role = organization?.role;
   const allowed = role ? canScan(role) : false;
@@ -43,7 +43,7 @@ export default function Overview({ route, onStarted }: { route: Route; onStarted
       )}
       {error && <ErrorNotice message={error} />}
       {loading && !scan && <Loading label="Loading scan…" />}
-      {scan && <ScanView scan={scan} />}
+      {scan && <ScanView scan={scan} onChanged={allowed ? reload : undefined} onRetried={allowed ? onStarted : undefined} />}
       {scan?.status === "completed" && (
         <p>
           <a className="btn btn-link" href={buildHash("findings", scan.id)}>
