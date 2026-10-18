@@ -256,13 +256,11 @@ describe("scan history actions", () => {
     });
     window.location.hash = "#/history";
     renderApp();
-    await userEvent
-      .setup()
-      .click(
-        await screen.findByRole("button", {
-          name: "Cancel scan of example.org",
-        }),
-      );
+    await userEvent.setup().click(
+      await screen.findByRole("button", {
+        name: "Cancel scan of example.org",
+      }),
+    );
     expect(
       await screen.findByRole("button", { name: "Retry scan of example.org" }),
     ).toBeInTheDocument();
@@ -443,13 +441,11 @@ describe("scanning again", () => {
       overview,
     );
     renderApp();
-    await userEvent
-      .setup()
-      .click(
-        await screen.findByRole("button", {
-          name: "Scan again of example.org",
-        }),
-      );
+    await userEvent.setup().click(
+      await screen.findByRole("button", {
+        name: "Scan again of example.org",
+      }),
+    );
     await waitFor(() => expect(window.location.hash).toContain("new456"));
     expect(
       calls.some(
@@ -471,13 +467,11 @@ describe("scanning again", () => {
       overview,
     );
     renderApp();
-    await userEvent
-      .setup()
-      .click(
-        await screen.findByRole("button", {
-          name: "Scan again of example.org",
-        }),
-      );
+    await userEvent.setup().click(
+      await screen.findByRole("button", {
+        name: "Scan again of example.org",
+      }),
+    );
     expect(await screen.findByText(/too often/)).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Scan again of example.org" }),
