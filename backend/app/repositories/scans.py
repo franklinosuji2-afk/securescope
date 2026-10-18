@@ -39,7 +39,14 @@ class ScanRepository:
 
     # --- writes -----------------------------------------------------------------------
 
-    def create_scan(self, organization_id: str, requested_by: str, target_url: str, host: str) -> str:
+    def create_scan(
+        self,
+        organization_id: str,
+        requested_by: str,
+        target_url: str,
+        host: str,
+        target_id: str | None = None,
+    ) -> str:
         scan_id = uuid.uuid4().hex
         now = _now()
         with self._session.begin() as session:
@@ -48,6 +55,7 @@ class ScanRepository:
                     id=scan_id,
                     organization_id=organization_id,
                     requested_by=requested_by,
+                    target_id=target_id,
                     target_url=target_url,
                     host=host,
                     status=ScanStatus.QUEUED.value,

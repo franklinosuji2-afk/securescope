@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from app.tests.conftest import signup
+from app.tests.conftest import signup, trust_host
 
 API = "/api/v1"
 
@@ -113,6 +113,7 @@ def test_organization_details_and_management_are_hidden_from_outsiders(local_cli
 def test_scans_are_scoped_to_the_active_organization(local_client: TestClient, mock_server: str) -> None:
     second = local_client.post(f"{API}/organizations", json={"name": "Second Org"}).json()
     in_second = {"X-Organization-Id": second["id"]}
+    trust_host(local_client, "127.0.0.1", second["id"])  # verification is per organization
     scan_id = finished_scan(local_client, mock_server, in_second)
 
     assert local_client.get(f"{API}/scans", headers=in_second).json()["total"] == 1

@@ -1,6 +1,6 @@
 # SecureScope
 
-> **Status: v0.3.** Accounts, organizations, roles and tenant isolation are implemented. Domain ownership verification is **not** (scans need only a checkbox) and real email is **not** sent, so do not expose it publicly yet. See `docs/IMPLEMENTATION_PLAN.md`.
+> **Status: v0.4.** Accounts, organizations, roles, tenant isolation and domain-ownership verification (DNS TXT / HTTP file) are implemented; scans only run against verified domains. Real email is **not** sent and ownership checks have not been exercised against a live domain, so do not expose it publicly yet. See `docs/IMPLEMENTATION_PLAN.md`.
 
 A passive web-application security **posture** scanner for sites you own or are authorized to test. It checks a handful of safe, non-exploitative signals, explains each finding with evidence and a fix, keeps scan history, and exports reports.
 
@@ -28,14 +28,15 @@ Requires Docker with Compose v2. No cloud account, no paid API. Data lives in Po
 | Heuristic score and grade, severity breakdown | Implemented |
 | Scan history, retention cleanup (default 30 days) | Implemented |
 | Report export: HTML, Markdown, JSON | Implemented |
-| Dashboard: Overview, Findings, Scan History, Team | Implemented |
+| Dashboard: Overview, Targets, Findings, Scan History, Team | Implemented |
+| Domain targets with DNS TXT / HTTP-file ownership verification; scans refused for unverified hosts | Implemented (tested with mocked DNS/HTTP) |
 | Registration, login, logout, sessions (HttpOnly cookies + CSRF), Argon2id passwords | Implemented |
 | Organizations, 5 roles enforced server-side, tenant-isolated scans, audit events | Implemented |
 | Email verification / password reset flows | Implemented, but mail goes to the server log only |
 
 ## Roadmap (not implemented)
 
-- Domain ownership verification (DNS TXT or HTTP token) – **required before any public hosting**
+- Periodic re-verification of target ownership
 - Real email delivery, audit-log API, session management UI
 - PostgreSQL backend (repository layer is ready for it), scheduled rescans, trends, PDF reports
 - Outdated-software detection, TLS configuration/certificate analysis, optional OWASP ZAP integration
@@ -43,7 +44,7 @@ Requires Docker with Compose v2. No cloud account, no paid API. Data lives in Po
 
 ## Safety model (enforced server-side)
 
-- Explicit authorization acknowledgement required. It is **not** proof of ownership.
+- A scan needs a verified target for the exact host (DNS TXT or `/.well-known` file), plus an explicit authorization acknowledgement.
 - Only `http`/`https` on ports 80, 443, 8080, 8443; no embedded credentials.
 - Hostnames are resolved and every address must be globally routable; loopback, private, link-local, reserved and multicast are rejected.
 - The scanner connects to the **validated IP** (DNS pinning, with correct Host/SNI), re-validating on every redirect. Only same-site redirects are followed; HTTPS→HTTP downgrades and off-origin hops are not followed and are reported.

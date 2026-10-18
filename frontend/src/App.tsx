@@ -3,6 +3,7 @@ import { Loading } from "./components/ui";
 import type { Page } from "./router";
 import { PUBLIC_PAGES, buildHash, useRoute } from "./router";
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, VerifyEmailPage } from "./pages/AuthPages";
+import Targets from "./pages/Targets";
 import Team from "./pages/Team";
 import Findings from "./pages/Findings";
 import History from "./pages/History";
@@ -10,6 +11,7 @@ import Overview from "./pages/Overview";
 
 const NAV: { page: Page; label: string }[] = [
   { page: "overview", label: "Overview" },
+  { page: "targets", label: "Targets" },
   { page: "findings", label: "Findings" },
   { page: "history", label: "Scan History" },
   { page: "team", label: "Team" },
@@ -115,6 +117,7 @@ export default function App() {
       </aside>
       <main className="main" id="main" tabIndex={-1}>
         {route.page === "overview" && <Overview route={route} onStarted={(id) => navigate("overview", id)} />}
+        {route.page === "targets" && <Targets />}
         {route.page === "findings" && <Findings route={route} />}
         {route.page === "history" && <History onOpen={(id) => navigate("findings", id)} />}
         {route.page === "team" && <Team />}

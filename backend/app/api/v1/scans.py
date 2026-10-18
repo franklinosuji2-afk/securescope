@@ -12,7 +12,7 @@ from app.reporting import reports
 from app.scanner.runner import execute_scan
 from app.schemas.scan import ScanCreate, ScanDetail, ScanList, ScanStatus
 from app.security.permissions import Permission
-from app.security.target import TargetError, validate_target
+from app.security.target import TargetError, parse_target_url, validate_target
 
 logger = logging.getLogger("securescope.api")
 router = APIRouter(prefix="/scans", tags=["scans"])
@@ -30,6 +30,17 @@ async def create_scan(body: ScanCreate, request: Request, state: StateDep, ctx: 
         raise HTTPException(
             status_code=400,
             detail="You must confirm that you own this target or have written authorization to test it.",
+        )
+    try:
+        _, host, _, _ = parse_target_url(body.url, state.settings)
+    except TargetError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    # Ownership is checked before any DNS lookup or outbound request is made for this host.
+    verified = await asyncio.to_thread(state.targets.find_verified, ctx.organization_id, host)
+    if verified is None:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Ownership of {host} has not been verified. Add and verify it under Targets first.",
         )
     try:
         target = await validate_target(body.url, state.settings)
@@ -50,7 +61,12 @@ async def create_scan(body: ScanCreate, request: Request, state: StateDep, ctx: 
     state.target_limiter.record(target_key)
 
     scan_id = await asyncio.to_thread(
-        state.repo.create_scan, ctx.organization_id, ctx.principal.user.id, target.url, target.host
+        state.repo.create_scan,
+        ctx.organization_id,
+        ctx.principal.user.id,
+        target.url,
+        target.host,
+        verified.id,
     )
     await asyncio.to_thread(
         state.audit.record,

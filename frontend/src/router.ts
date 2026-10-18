@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export type Page =
   | "overview"
+  | "targets"
   | "findings"
   | "history"
   | "team"
@@ -12,6 +13,7 @@ export type Page =
   | "verify-email";
 
 const PAGES: readonly Page[] = [
+  "targets",
   "findings",
   "history",
   "team",

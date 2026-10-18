@@ -1,4 +1,4 @@
-# API (v0.3)
+# API (v0.4)
 
 Base path `/api/v1`. Interactive schema at `/api/docs` when the backend is reached directly. Cookie-authenticated; unsafe methods need `X-CSRF-Token`; multi-organization users select one with `X-Organization-Id`.
 
@@ -18,8 +18,13 @@ Base path `/api/v1`. Interactive schema at `/api/docs` when the backend is reach
 | GET | `/organizations/{id}` | member | 404 for non-members |
 | POST | `/organizations/{id}/members` | OWNER, ADMIN | Add an existing user |
 | PATCH / DELETE | `/organizations/{id}/members/{user_id}` | OWNER, ADMIN (members may leave) | |
-| POST | `/scans` | scan:create | 202; requires `authorization_confirmed` |
+| GET | `/targets`, `/targets/{id}` | target:read | Scoped to the active organization |
+| POST | `/targets` | target:manage | `{"hostname"}`; 201 with the challenge; 400 invalid host; 409 duplicate |
+| DELETE | `/targets/{id}` | target:manage | 204 |
+| POST | `/targets/{id}/challenge` | target:manage | New token and expiry |
+| POST | `/targets/{id}/verify` | target:manage | `{"method": "dns_txt"\|"http_file"}`; 200 with the updated target (check `status` and `last_check_error`), 409 if expired, 429 if rate limited |
+| POST | `/scans` | scan:create | 202; requires `authorization_confirmed` **and a verified target for the exact host (403 otherwise)** |
 | GET | `/scans`, `/scans/{id}` | scan:read | Scoped to the active organization |
 | GET | `/scans/{id}/report?format=json\|md\|html` | report:export | |
 
-Errors are `{"detail": "..."}`; validation errors are 422. **Not implemented:** targets, ownership verification, findings lifecycle endpoints, schedules, report storage, PDF.
+Errors are `{"detail": "..."}`; validation errors are 422. **Not implemented:** periodic re-verification, findings lifecycle endpoints, schedules, report storage, PDF.

@@ -52,3 +52,11 @@ Added users, organizations, memberships, sessions, one-time tokens and audit eve
 Verified: 158 backend tests on SQLite and on PostgreSQL 16 (including cross-tenant and escalation tests), ruff and mypy strict clean, 16 frontend tests, lint, typecheck and build. A live run of the real server on PostgreSQL from a clean pinned install: unauthenticated request 401, request without CSRF token 403, scan completes with findings, a second account gets 404 for the first account's scan, audit rows written.
 
 Known gaps: real email delivery; registration reveals whether an email is taken (409); rate limiters are per process; scans still need no target ownership proof (Phase 3); no audit-log API; sessions are not listed or individually revocable from the UI.
+
+## Phase 3 addendum (v0.4)
+
+Added: targets per organization, DNS TXT and HTTP-file ownership verification with expiring challenges, scans refused (403) unless the exact host is verified for the active organization, `targets` page in the UI, migration `0003`.
+
+Verified (commands actually run in the build environment): 217 backend tests on SQLite and on PostgreSQL 16, ruff and mypy strict clean, 21 frontend tests, ESLint, TypeScript and production build. Two of the new safeguards were mutation-checked (disabling the scan gate and loosening the DNS comparison both make tests fail). A live run of the real server on PostgreSQL confirmed: IP-literal hosts rejected at registration, a registered host stays unverified without a TXT record, the real `dnspython` lookup path returns a clear failure message, and an unverified host cannot be scanned.
+
+Not verified: ownership checks against a real domain you control (DNS TXT or file), Docker image build/run of this version, real-browser behaviour of the new page, accessibility audit of the new page (labels, `aria` and keyboard use follow the existing patterns but no axe or screen-reader run has happened).

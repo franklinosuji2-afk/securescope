@@ -17,6 +17,8 @@ class ScanRow(Base):
     # Nullable only for rows created before accounts existed (v0.1); those are invisible to everyone.
     organization_id: Mapped[str | None] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"))
     requested_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    # The verified target that authorised this scan (NULL for scans created before targets existed).
+    target_id: Mapped[str | None] = mapped_column(ForeignKey("targets.id", ondelete="SET NULL"))
     target_url: Mapped[str] = mapped_column(Text)
     host: Mapped[str] = mapped_column(String(255))
     status: Mapped[str] = mapped_column(String(16))

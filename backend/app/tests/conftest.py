@@ -146,6 +146,23 @@ def signup(client: TestClient, email: str, org: str | None = None) -> dict[str, 
     return response.json()  # type: ignore[no-any-return]
 
 
+def trust_host(client: TestClient, host: str, organization_id: str | None = None) -> str:
+    """Registers `host` as a verified target without running a real DNS/HTTP check.
+
+    The verification logic itself is covered in test_targets.py; every other test only needs a
+    verified target to exist. Returns the target id.
+    """
+    if organization_id is None:
+        organization_id = client.get("/api/v1/auth/me").json()["organizations"][0]["id"]
+    headers = {"X-Organization-Id": organization_id}
+    created = client.post("/api/v1/targets", json={"hostname": host}, headers=headers)
+    assert created.status_code == 201, created.text
+    target_id: str = created.json()["id"]
+    state = client.app.state.s  # type: ignore[attr-defined]
+    state.targets.record_check(target_id, organization_id, method="dns_txt", error=None)
+    return target_id
+
+
 @pytest.fixture
 def mailer() -> CapturingMailer:
     return CapturingMailer()
@@ -157,6 +174,7 @@ def local_client(make_settings, mailer):  # type: ignore[no-untyped-def]
     settings = make_settings(allow_private_targets=True, request_timeout_seconds=1.0)
     with TestClient(create_app(settings, mailer)) as client:
         signup(client, "alice@example.com", "Alice Org")
+        trust_host(client, "127.0.0.1")  # the mock server's address
         yield client
 
 

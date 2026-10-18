@@ -5,7 +5,7 @@ import App from "../App";
 import { AuthProvider } from "../auth";
 import FindingList from "../components/FindingList";
 import { buildHash, parseHash } from "../router";
-import type { Finding, Role, ScanDetail, User } from "../types";
+import type { Finding, Role, ScanDetail, Target, User } from "../types";
 
 const finding: Finding = {
   id: "SS-HDR-CSP-001",
@@ -253,5 +253,88 @@ describe("Team", () => {
     expect(await screen.findByText("bob@example.org")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Add a member" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Remove bob@example.org" })).not.toBeInTheDocument();
+  });
+});
+
+
+const targetBase: Target = {
+  id: "t1",
+  hostname: "example.org",
+  status: "pending",
+  challenge_token: "a".repeat(32),
+  challenge_expires_at: "2026-10-25T10:00:00Z",
+  verified_at: null,
+  verification_method: null,
+  last_check_at: null,
+  last_check_error: null,
+  created_at: "2026-10-18T10:00:00Z",
+  dns_record_name: "_securescope-challenge.example.org",
+  dns_record_value: "securescope-verification=" + "a".repeat(32),
+  http_file_url: "https://example.org/.well-known/securescope-verification.txt",
+  http_file_content: "securescope-verification=" + "a".repeat(32),
+};
+
+describe("Targets", () => {
+  it("shows exact DNS and file instructions for an unverified domain", async () => {
+    window.location.hash = "#/targets";
+    mockFetch(() => ({ items: [targetBase] }));
+    renderApp();
+    expect(await screen.findByText("_securescope-challenge.example.org")).toBeInTheDocument();
+    // The same value is shown for the DNS record and for the file content.
+    expect(screen.getAllByText("securescope-verification=" + "a".repeat(32), { selector: "dd code" })).toHaveLength(2);
+    expect(screen.getByText("Not verified")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Verify DNS record" })).toBeEnabled();
+  });
+
+  it("shows the server's reason when verification fails and never claims success", async () => {
+    window.location.hash = "#/targets";
+    // Like the real server, the list returned after a failed check carries the reason.
+    let current = targetBase;
+    const mock = mockFetch((url) => {
+      if (url.endsWith("/verify")) {
+        current = { ...targetBase, last_check_error: "No TXT record was found at _securescope-challenge.example.org." };
+        return current;
+      }
+      return { items: [current] };
+    });
+    renderApp();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Verify DNS record" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("No TXT record was found");
+    expect(screen.getByText("Not verified")).toBeInTheDocument();
+    expect(screen.queryByText("Verified")).not.toBeInTheDocument();
+    const call = mock.calls.find((c) => c.url.endsWith("/verify"));
+    expect(JSON.parse(String(call?.init?.body))).toEqual({ method: "dns_txt" });
+  });
+
+  it("requires an explicit confirmation before removing a target", async () => {
+    window.location.hash = "#/targets";
+    const mock = mockFetch(() => ({ items: [targetBase] }));
+    renderApp();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Remove" }));
+    expect(mock.calls.some((c) => c.init?.method === "DELETE")).toBe(false);
+    await user.click(screen.getByRole("button", { name: /Confirm removal of example.org/ }));
+    await waitFor(() => expect(mock.calls.some((c) => c.init?.method === "DELETE")).toBe(true));
+  });
+
+  it("hides management controls from viewers", async () => {
+    window.location.hash = "#/targets";
+    mockApi(() => ({ items: [{ ...targetBase, status: "verified", verified_at: "2026-10-18T11:00:00Z", verification_method: "dns_txt" }] }), userWith("VIEWER"));
+    renderApp();
+    expect(await screen.findByText("Verified")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Domain name")).not.toBeInTheDocument();
+  });
+
+  it("points to Targets when a scan is refused because ownership is unverified", async () => {
+    mockFetch(() => ({ detail: "Ownership of example.org has not been verified. Add and verify it under Targets first." }), 403);
+    renderApp();
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("Target URL"), "https://example.org");
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: "Start scan" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("has not been verified");
+    expect(screen.getByRole("link", { name: "Go to Targets" })).toHaveAttribute("href", "#/targets");
   });
 });

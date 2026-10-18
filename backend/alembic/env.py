@@ -10,6 +10,7 @@ from alembic import context
 from app.database.base import Base
 from app.models import account as _account  # noqa: F401  (registers tables on Base.metadata)
 from app.models import scan as _scan  # noqa: F401
+from app.models import target as _target  # noqa: F401
 
 config = context.config
 target_metadata = Base.metadata

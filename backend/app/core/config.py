@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     # Base URL used in verification/reset links written to the (development) mailer log.
     public_base_url: str = "http://localhost:8080"
 
+    target_verifications_per_target_per_hour: int = Field(10, ge=1)
+
     # Abuse protection (per client address, in memory)
     scans_per_client_per_hour: int = Field(10, ge=1)
     scans_per_target_per_hour: int = Field(3, ge=1)

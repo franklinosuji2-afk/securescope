@@ -148,3 +148,57 @@ async def validate_target(raw: str, settings: Settings) -> ValidatedTarget:
         addresses=tuple(str(a) for a in addresses),
     )
     return replace(target, url=f"{target.origin}{path}")
+
+
+_LABEL_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz0123456789-")
+
+
+def normalize_hostname(raw: str, settings: Settings) -> str:
+    """Canonical form of a domain name an organization wants to register as a target.
+
+    Accepts a bare host name or a URL, returns lower-case ASCII (IDNA/punycode) without port,
+    path or trailing dot. IP literals, single-label and internal names are rejected: ownership
+    of those cannot be proven with DNS and they are the usual SSRF vehicles.
+    """
+    candidate = (raw or "").strip()
+    if not candidate:
+        raise TargetError("A host name is required.")
+    if len(candidate) > MAX_URL_LENGTH:
+        raise TargetError("The host name is too long.")
+    if any(ord(ch) < 33 or ord(ch) == 127 for ch in candidate):
+        raise TargetError("The host name contains whitespace or control characters.")
+    if "://" in candidate:
+        try:
+            parts = urlsplit(candidate)
+            parts.port  # noqa: B018  (raises ValueError for malformed ports)
+        except ValueError as exc:
+            raise TargetError("The URL is not valid.") from exc
+        if parts.username is not None or parts.password is not None or "@" in parts.netloc:
+            raise TargetError("URLs with embedded credentials are not allowed.")
+        candidate = parts.hostname or ""
+    elif any(ch in candidate for ch in "/?#@:\\"):
+        raise TargetError("Enter a host name such as example.com (no path, port or credentials).")
+    host = candidate.lower().rstrip(".")
+    if not host:
+        raise TargetError("A host name is required.")
+    if settings.allow_private_targets:
+        return host  # test-only mode: local mock servers use IP literals
+    if _as_ip(host) is not None:
+        raise TargetError("IP addresses cannot be verified. Use a domain name you control.")
+    try:
+        ascii_host = host.encode("idna").decode("ascii")
+    except UnicodeError as exc:
+        raise TargetError("The host name is not valid.") from exc
+    if len(ascii_host) > 253:
+        raise TargetError("The host name is too long.")
+    labels = ascii_host.split(".")
+    if len(labels) < 2:
+        raise TargetError("Enter a fully qualified domain name such as example.com.")
+    for label in labels:
+        if not 1 <= len(label) <= 63 or set(label) - _LABEL_CHARS or label[0] == "-" or label[-1] == "-":
+            raise TargetError("The host name is not valid.")
+    if labels[-1].isdigit():
+        raise TargetError("The host name is not valid.")
+    if ascii_host == "localhost" or ascii_host.endswith(BLOCKED_HOSTNAME_SUFFIXES):
+        raise TargetError("Local and internal host names are not allowed.")
+    return ascii_host

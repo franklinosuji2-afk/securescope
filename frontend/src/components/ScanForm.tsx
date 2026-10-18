@@ -51,13 +51,18 @@ export default function ScanForm({ onStarted }: { onStarted: (scanId: string) =>
       <label className="check">
         <input type="checkbox" checked={authorized} onChange={(e) => setAuthorized(e.target.checked)} />
         <span>
-          I own this website or have written authorization to test it. I understand this acknowledgement does not
-          verify ownership.
+          I own this website or have written authorization to test it. Ownership of the domain must also be verified
+          under Targets before a scan can run.
         </span>
       </label>
       {error && (
         <div id="scan-error">
           <ErrorNotice message={error} />
+          {/verified/i.test(error) && (
+            <p className="small">
+              <a href="#/targets">Go to Targets</a> to add and verify this domain.
+            </p>
+          )}
         </div>
       )}
     </form>

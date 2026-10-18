@@ -1,4 +1,4 @@
-# Security design (as implemented, v0.3)
+# Security design (as implemented, v0.4)
 
 ## Authentication
 
@@ -27,13 +27,26 @@ Every scan row carries an `organization_id`. All reads go through repository met
 | Read organization, scans, findings | yes | yes | yes | yes | yes |
 | Export reports | yes | yes | yes | yes | yes |
 | Start scans | yes | yes | yes | yes | no |
+| View targets | yes | yes | yes | yes | yes |
+| Add, verify, regenerate, remove targets | yes | yes | yes | no | no |
 | Add / change / remove members | yes | yes (below ADMIN only) | no | no | no |
 
 Admins cannot grant OWNER or ADMIN, cannot change or remove admins or owners, and cannot promote themselves. An organization always keeps at least one owner. Any member can leave. The matrix lives in `app/security/permissions.py`; the frontend mirrors it for display only.
 
+## Domain ownership (targets)
+
+A scan may only run against a host that the active organization has registered **and verified**. A target is a canonical, lower-case, punycode host name (no port, path or credentials). IP literals, single-label names and internal suffixes are rejected at registration because ownership of those cannot be proven with DNS.
+
+Each target has a random 128-bit challenge that expires after 7 days (expired challenges cannot be used; a new one can be issued, which invalidates the old value). Two methods:
+
+- **DNS TXT** at `_securescope-challenge.<host>` with value `securescope-verification=<token>` (exact match; other labels and the apex do not count).
+- **HTTP file** at `/.well-known/securescope-verification.txt` containing the same value. Fetched with the SSRF-hardened scanner fetcher (public addresses only, DNS pinning, same-site redirects). The response must be HTTP 200, at most 512 bytes, and served from exactly the registered host (a redirect to `www.` does not count).
+
+Verification is exact-host: `example.com` does not authorise `www.example.com` or subdomains; register each one. Verification is per organization; another organization's verification gives you nothing. Verification attempts are rate limited per target. A failed check never marks a target verified, and the reason is shown to the user. Deleting a target immediately blocks further scans of it. Tests: `app/tests/test_targets.py`.
+
 ## Audit log
 
-`audit_events` records registration, logins (success and failure, without the email), logout, session refresh, password reset and email verification, organization creation, member add/role change/removal, scan creation and report export, each with actor, resource and request id. There is no API or UI to read it yet.
+`audit_events` records registration, logins (success and failure, without the email), logout, session refresh, password reset and email verification, organization creation, member add/role change/removal, target creation/verification/failed verification/challenge regeneration/removal, scan creation and report export, each with actor, resource and request id. There is no API or UI to read it yet.
 
 ## Scanner safety
 

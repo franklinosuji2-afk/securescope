@@ -189,3 +189,20 @@ tbody tr:last-child td { border-bottom: 0; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
   .spinner { animation: none; border-top-color: var(--border-strong); }
 }
+
+/* Targets */
+.pill-verified { color: var(--ok); }
+.pill-pending { color: var(--accent-soft); }
+.pill-expired { color: var(--danger); }
+.btn-danger { background: transparent; color: var(--danger); border: 1px solid #7a3040; border-radius: 10px; padding: 8px 14px; font: inherit; cursor: pointer; }
+.btn-danger:hover { background: #2a1520; }
+.target { display: flex; flex-direction: column; gap: 12px; }
+.target-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; }
+.target-head h3 { margin: 0; overflow-wrap: anywhere; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.howto { border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); padding: 10px 14px; }
+.howto summary { cursor: pointer; font-weight: 600; }
+.howto dl { margin: 10px 0 0; display: grid; gap: 4px 12px; grid-template-columns: max-content 1fr; }
+.howto dt { color: var(--muted); }
+.howto dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .howto dl { grid-template-columns: 1fr; } }

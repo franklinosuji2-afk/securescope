@@ -10,7 +10,9 @@
 - Rate limits are in-memory and per process; single node.
 - Email verification and password reset links are only written to the server log (development mailer). No real email is sent.
 - Registration reveals whether an email is already registered (409); mitigated by rate limiting only.
-- Scans need only a checkbox, not proof of domain ownership (Phase 3).
+- Domain ownership is verified once and stays verified until the target is deleted; there is no periodic re-verification, so a domain that changes hands stays authorised. Verification is exact-host (no wildcard/subdomain scope), and only domain names are supported (no IP targets).
+- Ownership checks have only been tested with mocked DNS and HTTP. The real DNS lookup path (`dnspython`) is unit-tested for error mapping but has not been run against a live domain.
+- DNS TXT verification trusts the resolver the server is configured with.
 - Members can only be added if they already have an account; there are no emailed invitations.
 - The audit log is write-only (no API or UI); users cannot list or revoke individual sessions.
 - Use the app only via the configured origin (`http://localhost:8080`); other origins are refused for POSTs.

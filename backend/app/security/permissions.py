@@ -19,6 +19,8 @@ class Permission(StrEnum):
     SCAN_READ = "scan:read"
     SCAN_CREATE = "scan:create"
     REPORT_EXPORT = "report:export"
+    TARGET_READ = "target:read"
+    TARGET_MANAGE = "target:manage"
 
 
 _ALL = set(Permission)
@@ -30,14 +32,22 @@ MATRIX: dict[Role, set[Permission]] = {
         Permission.SCAN_READ,
         Permission.SCAN_CREATE,
         Permission.REPORT_EXPORT,
+        Permission.TARGET_READ,
+        Permission.TARGET_MANAGE,
     },
     Role.MEMBER: {
         Permission.ORG_READ,
         Permission.SCAN_READ,
         Permission.SCAN_CREATE,
         Permission.REPORT_EXPORT,
+        Permission.TARGET_READ,
     },
-    Role.VIEWER: {Permission.ORG_READ, Permission.SCAN_READ, Permission.REPORT_EXPORT},
+    Role.VIEWER: {
+        Permission.ORG_READ,
+        Permission.SCAN_READ,
+        Permission.REPORT_EXPORT,
+        Permission.TARGET_READ,
+    },
 }
 
 # Higher number = more authority. Used to stop an admin from touching an owner.

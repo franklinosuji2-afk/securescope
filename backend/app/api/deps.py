@@ -7,6 +7,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Annotated
 
+import httpx
 from fastapi import Depends, Header, HTTPException, Request
 
 from app.core.config import Settings
@@ -14,6 +15,8 @@ from app.database.session import make_engine
 from app.middleware.ratelimit import SlidingWindowLimiter
 from app.repositories.accounts import AccountRepository, AuditRepository, SessionRecord, UserRecord
 from app.repositories.scans import ScanRepository
+from app.repositories.targets import TargetRepository
+from app.security.ownership import TxtLookup, system_txt_lookup
 from app.security.permissions import Permission, Role, can
 from app.security.tokens import constant_time_equal
 from app.services.auth import AuthService
@@ -30,6 +33,7 @@ class AppState:
         self.settings = settings
         self.engine = make_engine(settings.database_url)
         self.repo = ScanRepository(self.engine)
+        self.targets = TargetRepository(self.engine)
         self.accounts = AccountRepository(self.engine)
         self.audit = AuditRepository(self.engine)
         self.auth = AuthService(self.accounts, settings, mailer or LogMailer())
@@ -42,6 +46,10 @@ class AppState:
         )
         self.register_limiter = SlidingWindowLimiter(settings.registrations_per_ip_per_hour)
         self.reset_limiter = SlidingWindowLimiter(settings.password_reset_requests_per_ip_per_hour)
+        self.verify_limiter = SlidingWindowLimiter(settings.target_verifications_per_target_per_hour)
+        # Seams so tests never touch real DNS or the network; production keeps the defaults.
+        self.txt_lookup: TxtLookup = system_txt_lookup
+        self.verification_transport: httpx.AsyncBaseTransport | None = None
         self.tasks: set[asyncio.Task[None]] = set()
 
     @property

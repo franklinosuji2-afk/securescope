@@ -1,4 +1,4 @@
-import type { Member, Organization, OrganizationDetail, ReportFormat, Role, ScanDetail, ScanList, User } from "./types";
+import type { Member, Organization, OrganizationDetail, ReportFormat, Role, ScanDetail, ScanList, Target, User, VerificationMethod } from "./types";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -126,3 +126,14 @@ export function listScans(limit = 25, offset = 0): Promise<ScanList> {
 export function reportUrl(id: string, format: ReportFormat): string {
   return `${BASE}/scans/${encodeURIComponent(id)}/report?format=${format}`;
 }
+
+// --- targets ------------------------------------------------------------------------------------
+
+export const listTargets = () => request<{ items: Target[] }>("/targets").then((r) => r.items);
+export const createTarget = (hostname: string) =>
+  request<Target>("/targets", { method: "POST", body: JSON.stringify({ hostname }) });
+export const deleteTarget = (id: string) => request<void>(`/targets/${encodeURIComponent(id)}`, { method: "DELETE" });
+export const regenerateChallenge = (id: string) =>
+  request<Target>(`/targets/${encodeURIComponent(id)}/challenge`, { method: "POST" });
+export const verifyTarget = (id: string, method: VerificationMethod) =>
+  request<Target>(`/targets/${encodeURIComponent(id)}/verify`, { method: "POST", body: JSON.stringify({ method }) });

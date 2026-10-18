@@ -88,3 +88,27 @@ export function canScan(role: Role): boolean {
 export function canManageMembers(role: Role): boolean {
   return role === "OWNER" || role === "ADMIN";
 }
+
+export type VerificationMethod = "dns_txt" | "http_file";
+export type TargetStatus = "pending" | "verified" | "expired";
+
+export interface Target {
+  id: string;
+  hostname: string;
+  status: TargetStatus;
+  challenge_token: string;
+  challenge_expires_at: string;
+  verified_at: string | null;
+  verification_method: VerificationMethod | null;
+  last_check_at: string | null;
+  last_check_error: string | null;
+  created_at: string;
+  dns_record_name: string;
+  dns_record_value: string;
+  http_file_url: string;
+  http_file_content: string;
+}
+
+export function canManageTargets(role: Role): boolean {
+  return role === "OWNER" || role === "ADMIN" || role === "SECURITY_ANALYST";
+}
