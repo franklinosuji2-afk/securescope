@@ -1,6 +1,8 @@
 # SecureScope
 
-> **Status: v0.4.** Accounts, organizations, roles, tenant isolation and domain-ownership verification (DNS TXT / HTTP file) are implemented; scans only run against verified domains. Real email is **not** sent and ownership checks have not been exercised against a live domain, so do not expose it publicly yet. See `docs/IMPLEMENTATION_PLAN.md`.
+[![CI](https://github.com/franklinosuji2-afk/securescope/actions/workflows/ci.yml/badge.svg)](https://github.com/franklinosuji2-afk/securescope/actions/workflows/ci.yml)
+
+> **Status: v0.6.** Accounts, organizations, roles, tenant isolation and domain-ownership verification (DNS TXT / HTTP file) are implemented; scans only run against verified domains. Findings have a lifecycle (open, accepted risk, false positive, resolved) and the dashboard leads with what to fix first. Real email is **not** sent, so do not expose it publicly yet. See `docs/IMPLEMENTATION_PLAN.md`.
 
 A passive web-application security **posture** scanner for sites you own or are authorized to test. It checks a handful of safe, non-exploitative signals, explains each finding with evidence and a fix, keeps scan history, and exports reports.
 
@@ -16,7 +18,19 @@ docker compose up --build
 
 Requires Docker with Compose v2. No cloud account, no paid API. Data lives in PostgreSQL in a Docker volume; migrations run automatically on backend start.
 
-## What is implemented (v0.1)
+## Screenshots
+
+Captured from the running app against a real scan history of my own portfolio site (`cfo-dev.pages.dev`): it started at 80/B with four findings, and three were fixed and later marked **Resolved** by SecureScope when a newer scan no longer reported them. Account details are replaced with placeholders.
+
+| Overview: what to fix first, score history | Findings with lifecycle status |
+| --- | --- |
+| ![Overview, dark theme](docs/screenshots/overview-dark.png) | ![Findings list, dark theme](docs/screenshots/findings-dark.png) |
+
+| Finding detail (light theme) | Overview (light theme) |
+| --- | --- |
+| ![Resolved finding with evidence and fix, light theme](docs/screenshots/finding-detail-light.png) | ![Overview, light theme](docs/screenshots/overview-light.png) |
+
+## What is implemented
 
 | Area | Status |
 |---|---|
@@ -25,10 +39,14 @@ Requires Docker with Compose v2. No cloud account, no paid API. Data lives in Po
 | Disclosure headers: `Server` version detail, `X-Powered-By` | Implemented |
 | Cookie attributes: `Secure`, `HttpOnly`, `SameSite` | Implemented |
 | Conservative directory-index signature in the returned page | Implemented |
-| Heuristic score and grade, severity breakdown | Implemented |
+| Heuristic score and grade, severity breakdown, score history per site | Implemented |
+| Evidence on every finding (URL, HTTP status, which headers were seen) and a per-finding confidence (`high` = observed, `medium` = heuristic) | Implemented |
+| Finding lifecycle per organization and host: open, accepted risk, false positive (set by analysts, with a note), resolved (set only when a later completed scan no longer reports it). Failed scans never resolve anything | Implemented |
+| Reports state what was checked, what passed and the limits of the scan | Implemented |
 | Scan history, retention cleanup (default 30 days) | Implemented |
 | Report export: HTML, Markdown, JSON | Implemented |
-| Dashboard: Overview, Targets, Findings, Scan History, Team | Implemented |
+| Dashboard: Overview (guided setup, "fix this first", per-site posture and score history), Targets, Findings (filters, detail page with impact, evidence and fix), Scan History, Team | Implemented |
+| Accessibility: light and dark themes, severity never shown by colour alone, keyboard-operable, automated axe checks in CI, mobile navigation menu | Implemented. No manual screen-reader testing yet |
 | Domain targets with DNS TXT / HTTP-file ownership verification; scans refused for unverified hosts | Implemented. HTTP-file verification confirmed once end to end on a real domain; the DNS TXT path is tested with mocks only |
 | Registration, login, logout, sessions (HttpOnly cookies + CSRF), Argon2id passwords | Implemented |
 | Organizations, 5 roles enforced server-side, tenant-isolated scans, audit events | Implemented |
@@ -37,8 +55,8 @@ Requires Docker with Compose v2. No cloud account, no paid API. Data lives in Po
 ## Roadmap (not implemented)
 
 - Periodic re-verification of target ownership
-- Real email delivery, audit-log API, session management UI
-- PostgreSQL backend (repository layer is ready for it), scheduled rescans, trends, PDF reports
+- Real email delivery, audit-log read API, session management UI
+- Scheduled rescans, scan cancellation, PDF reports
 - Outdated-software detection, TLS configuration/certificate analysis, optional OWASP ZAP integration
 - Egress proxy for production DNS-rebinding defence
 
@@ -64,6 +82,8 @@ See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/DATA_RETENTION.md](docs/
 | GET | `/api/v1/scans?limit=&offset=` | List scans |
 | GET | `/api/v1/scans/{id}` | Scan detail with findings |
 | GET | `/api/v1/scans/{id}/report?format=json\|md\|html` | Export |
+| GET | `/api/v1/overview` | Per-site posture: latest score, change, open findings, score history, what to fix first |
+| PATCH | `/api/v1/findings/{fingerprint}` | Analyst triage: accepted risk, false positive, or reopen |
 
 Scan endpoints require a signed-in user. Authentication, organization and member endpoints are in [docs/API.md](docs/API.md).
 
