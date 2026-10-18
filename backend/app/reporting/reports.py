@@ -6,7 +6,6 @@ import html
 import re
 from io import BytesIO
 from typing import Any
-from xml.sax.saxutils import escape as xml_escape
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -200,7 +199,7 @@ def _pdf_text(value: str) -> str:
     """
     visible = "".join(ch for ch in value if ch == "\n" or (ch >= " " and ch != "\x7f"))
     latin = visible.encode("cp1252", "replace").decode("cp1252")
-    return xml_escape(latin).replace("\n", " ")
+    return html.escape(latin, quote=False).replace("\n", " ")
 
 
 def _pdf_styles() -> dict[str, ParagraphStyle]:
