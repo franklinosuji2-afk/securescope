@@ -1,4 +1,4 @@
-import type { Member, Organization, OrganizationDetail, ReportFormat, Role, ScanDetail, ScanList, Target, User, VerificationMethod } from "./types";
+import type { FindingStatus, Member, Organization, OrganizationDetail, ReportFormat, Role, ScanDetail, ScanList, Target, User, VerificationMethod } from "./types";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -137,3 +137,10 @@ export const regenerateChallenge = (id: string) =>
   request<Target>(`/targets/${encodeURIComponent(id)}/challenge`, { method: "POST" });
 export const verifyTarget = (id: string, method: VerificationMethod) =>
   request<Target>(`/targets/${encodeURIComponent(id)}/verify`, { method: "POST", body: JSON.stringify({ method }) });
+
+export function setFindingStatus(fingerprint: string, status: FindingStatus, note: string): Promise<void> {
+  return request<void>(`/findings/${encodeURIComponent(fingerprint)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, note: note.trim() || null }),
+  });
+}

@@ -3,6 +3,12 @@ export type ScanStatus = "queued" | "running" | "completed" | "failed";
 
 export const SEVERITIES: readonly Severity[] = ["critical", "high", "medium", "low", "info"];
 
+export type Confidence = "high" | "medium" | "low";
+/** `resolved` is only ever set by the scanner, when a later completed scan no longer reports the finding. */
+export type FindingStatus = "open" | "accepted_risk" | "false_positive" | "resolved";
+export const FINDING_STATUSES: readonly FindingStatus[] = ["open", "accepted_risk", "false_positive", "resolved"];
+export const ANALYST_STATUSES: readonly FindingStatus[] = ["open", "accepted_risk", "false_positive"];
+
 export interface Finding {
   id: string;
   title: string;
@@ -11,6 +17,12 @@ export interface Finding {
   description: string;
   evidence: string | null;
   remediation: string;
+  confidence: Confidence;
+  fingerprint: string | null;
+  status: FindingStatus;
+  status_note: string | null;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
 }
 
 export interface TargetMetadata {
@@ -110,5 +122,9 @@ export interface Target {
 }
 
 export function canManageTargets(role: Role): boolean {
+  return role === "OWNER" || role === "ADMIN" || role === "SECURITY_ANALYST";
+}
+
+export function canTriageFindings(role: Role): boolean {
   return role === "OWNER" || role === "ADMIN" || role === "SECURITY_ANALYST";
 }

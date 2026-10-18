@@ -17,6 +17,12 @@ const finding: Finding = {
   description: "No CSP was returned.",
   evidence: "header absent",
   remediation: "Add a CSP.",
+  confidence: "high",
+  fingerprint: "a".repeat(32),
+  status: "open",
+  status_note: null,
+  first_seen_at: "2026-10-18T10:00:00Z",
+  last_seen_at: "2026-10-18T10:00:00Z",
 };
 
 const scan: ScanDetail = {
@@ -155,11 +161,16 @@ describe("Findings", () => {
     expect(filterFindings(many, { ...base, sort: "title" })[0]?.id).toBe("SS-HDR-CSP-001");
   });
 
-  it("shows evidence as plain text and never claims a fix", () => {
+  it("shows evidence as plain text and never claims a fix", async () => {
     const hostile = { ...finding, evidence: "<img src=x onerror=alert(1)>" };
-    const { container } = render(<FindingDetail scan={{ ...scan, findings: [hostile] }} finding={hostile} />);
+    mockFetch(() => ({}));
+    const { container } = render(
+      <AuthProvider>
+        <FindingDetail scan={{ ...scan, findings: [hostile] }} finding={hostile} />
+      </AuthProvider>,
+    );
     expect(container.querySelector("img")).toBeNull();
-    expect(screen.getByText("<img src=x onerror=alert(1)>")).toBeInTheDocument();
+    expect(await screen.findByText("<img src=x onerror=alert(1)>")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Evidence" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "How to verify" })).toBeInTheDocument();
     expect(screen.getByText(/does not mark a finding as fixed/)).toBeInTheDocument();
@@ -187,6 +198,66 @@ describe("Findings", () => {
     renderApp();
     expect(await screen.findByText("Could not connect.")).toBeInTheDocument();
     expect(screen.queryByText("No findings from these checks")).not.toBeInTheDocument();
+  });
+});
+
+describe("Finding status", () => {
+  const url = "#/findings?scan=abc123&finding=SS-HDR-CSP-001";
+
+  it("lets an analyst change the status and reloads the scan", async () => {
+    window.location.hash = url;
+    let status = "open";
+    const mock = mockApi((_url, init) => {
+      if (init?.method === "PATCH") {
+        status = JSON.parse(String(init.body)).status;
+        return undefined;
+      }
+      return { ...scan, findings: [{ ...finding, status }] };
+    });
+    renderApp();
+    const user = userEvent.setup();
+    await user.selectOptions(await screen.findByLabelText("Change status"), "accepted_risk");
+    await user.type(screen.getByLabelText("Note (optional)"), "static site");
+    await user.click(screen.getByRole("button", { name: "Save status" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Status saved."));
+    const patch = mock.calls.find((c) => c.init?.method === "PATCH");
+    expect(patch?.url).toBe(`/api/v1/findings/${"a".repeat(32)}`);
+    expect(JSON.parse(String(patch?.init?.body))).toEqual({ status: "accepted_risk", note: "static site" });
+    expect(patch?.init?.headers).toHaveProperty("X-CSRF-Token");
+    await waitFor(() => expect(screen.getAllByText("Accepted risk").length).toBeGreaterThan(0));
+  });
+
+  it("offers only the statuses a person may set, never resolved", async () => {
+    window.location.hash = url;
+    mockApi(() => scan);
+    renderApp();
+    const select = await screen.findByLabelText("Change status");
+    const options = Array.from(select.querySelectorAll("option")).map((o) => o.textContent);
+    expect(options).toEqual(["Open", "Accepted risk", "False positive"]);
+  });
+
+  it("hides the control from roles that cannot triage", async () => {
+    window.location.hash = url;
+    mockApi(() => scan, userWith("VIEWER"));
+    renderApp();
+    expect(await screen.findByText(/can read statuses but not change them/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Change status")).not.toBeInTheDocument();
+  });
+
+  it("explains a resolved finding and marks heuristic findings", async () => {
+    window.location.hash = url;
+    mockApi(() => ({ ...scan, findings: [{ ...finding, status: "resolved", confidence: "medium" }] }));
+    renderApp();
+    expect(await screen.findByText(/no longer reported it/)).toBeInTheDocument();
+    expect(screen.getByText(/Heuristic match, not confirmed/)).toBeInTheDocument();
+    expect(screen.getByText(/Medium confidence/)).toBeInTheDocument();
+  });
+
+  it("filters the list by status", () => {
+    const base = { severity: "all" as const, category: "all", query: "", sort: "severity" as const };
+    const list: Finding[] = [finding, { ...finding, id: "X", status: "resolved" }];
+    expect(filterFindings(list, { ...base, status: "resolved" }).map((f) => f.id)).toEqual(["X"]);
+    expect(filterFindings(list, { ...base, status: "all" })).toHaveLength(2);
   });
 });
 

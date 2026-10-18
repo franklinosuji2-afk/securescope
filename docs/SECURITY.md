@@ -29,6 +29,7 @@ Every scan row carries an `organization_id`. All reads go through repository met
 | Start scans | yes | yes | yes | yes | no |
 | View targets | yes | yes | yes | yes | yes |
 | Add, verify, regenerate, remove targets | yes | yes | yes | no | no |
+| Change a finding's status (accepted risk, false positive, reopen) | yes | yes | yes | no | no |
 | Add / change / remove members | yes | yes (below ADMIN only) | no | no | no |
 
 Admins cannot grant OWNER or ADMIN, cannot change or remove admins or owners, and cannot promote themselves. An organization always keeps at least one owner. Any member can leave. The matrix lives in `app/security/permissions.py`; the frontend mirrors it for display only.

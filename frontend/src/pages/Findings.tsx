@@ -3,23 +3,24 @@ import FindingDetail from "../components/FindingDetail";
 import FindingRows from "../components/FindingRows";
 import { ReportButtons } from "../components/ScanView";
 import { EmptyState, ErrorNotice, Loading } from "../components/ui";
-import { severityLabel } from "../format";
+import { severityLabel, statusLabel } from "../format";
 import type { Route } from "../router";
-import type { Finding, Severity } from "../types";
-import { SEVERITIES } from "../types";
+import type { Finding, FindingStatus, Severity } from "../types";
+import { FINDING_STATUSES, SEVERITIES } from "../types";
 import { useScan } from "../useScan";
 
 type SortKey = "severity" | "title";
 
 export function filterFindings(
   findings: Finding[],
-  opts: { severity: Severity | "all"; category: string; query: string; sort: SortKey },
+  opts: { severity: Severity | "all"; category: string; query: string; sort: SortKey; status?: FindingStatus | "all" },
 ): Finding[] {
   const q = opts.query.trim().toLowerCase();
   const rank = (s: Severity) => SEVERITIES.indexOf(s);
   return findings
     .filter((f) => opts.severity === "all" || f.severity === opts.severity)
     .filter((f) => opts.category === "all" || f.category === opts.category)
+    .filter((f) => !opts.status || opts.status === "all" || f.status === opts.status)
     .filter(
       (f) => !q || [f.title, f.id, f.category, f.description].some((text) => text.toLowerCase().includes(q)),
     )
@@ -29,29 +30,31 @@ export function filterFindings(
 }
 
 export default function Findings({ route }: { route: Route }) {
-  const { scan, loading, error } = useScan(route.scanId);
+  const { scan, loading, error, reload } = useScan(route.scanId);
   const [severity, setSeverity] = useState<Severity | "all">("all");
   const [category, setCategory] = useState("all");
   const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<FindingStatus | "all">("all");
   const [sort, setSort] = useState<SortKey>("severity");
 
   const findings = useMemo(() => scan?.findings ?? [], [scan]);
   const categories = useMemo(() => [...new Set(findings.map((f) => f.category))].sort(), [findings]);
   const shown = useMemo(
-    () => filterFindings(findings, { severity, category, query, sort }),
-    [findings, severity, category, query, sort],
+    () => filterFindings(findings, { severity, category, query, sort, status }),
+    [findings, severity, category, query, sort, status],
   );
-  const filtering = severity !== "all" || category !== "all" || query !== "";
+  const filtering = severity !== "all" || category !== "all" || query !== "" || status !== "all";
   const reset = () => {
     setSeverity("all");
     setCategory("all");
     setQuery("");
+    setStatus("all");
     setSort("severity");
   };
 
   if (route.scanId && route.findingId && scan) {
     const finding = findings.find((f) => f.id === route.findingId);
-    if (finding) return <FindingDetail scan={scan} finding={finding} />;
+    if (finding) return <FindingDetail scan={scan} finding={finding} onChanged={reload} />;
   }
 
   return (
@@ -96,10 +99,21 @@ export default function Findings({ route }: { route: Route }) {
                 </select>
               </label>
               <label className="toolbar-field">
+                <span className="field-label">Status</span>
+                <select className="input" value={status} onChange={(e) => setStatus(e.target.value as FindingStatus | "all")}>
+                  <option value="all">All statuses</option>
+                  {FINDING_STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {statusLabel(s)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="toolbar-field">
                 <span className="field-label">Sort by</span>
                 <select className="input" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
-                  <option value="severity">Severity, highest first</option>
-                  <option value="title">Title, A to Z</option>
+                  <option value="severity">Severity</option>
+                  <option value="title">Title (A–Z)</option>
                 </select>
               </label>
             </form>

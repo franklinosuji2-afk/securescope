@@ -7,12 +7,16 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import Engine, delete, func, select, update
+from sqlalchemy.orm import Session
 
 from app.database.session import make_session_factory
-from app.models.scan import FindingRow, ScanRow
+from app.models.scan import FindingRow, FindingStateRow, ScanRow
+from app.scanner.fingerprint import fingerprint
 from app.scanner.scoring import count_by_severity
 from app.schemas.scan import (
+    Confidence,
     Finding,
+    FindingStatus,
     ScanDetail,
     ScanStatus,
     ScanSummary,
@@ -82,6 +86,7 @@ class ScanRepository:
         metadata: TargetMetadata,
     ) -> None:
         with self._session.begin() as session:
+            scan_row = session.get(ScanRow, scan_id)
             session.execute(
                 update(ScanRow)
                 .where(ScanRow.id == scan_id)
@@ -93,6 +98,7 @@ class ScanRepository:
                     finished_at=_now(),
                 )
             )
+            host = scan_row.host if scan_row else metadata.host
             session.add_all(
                 FindingRow(
                     scan_id=scan_id,
@@ -104,9 +110,89 @@ class ScanRepository:
                     description=f.description,
                     evidence=f.evidence,
                     remediation=f.remediation,
+                    confidence=f.confidence.value,
+                    fingerprint=fingerprint(host, f.id),
                 )
                 for position, f in enumerate(findings)
             )
+            if scan_row is not None and scan_row.organization_id is not None:
+                # A scan that stopped at a redirect to another site did not look at this host's own
+                # response, so it cannot show that anything was fixed.
+                self._record_states(
+                    session,
+                    scan_row.organization_id,
+                    host,
+                    findings,
+                    may_resolve=metadata.off_origin_redirect is None,
+                )
+
+    @staticmethod
+    def _record_states(
+        session: Session, organization_id: str, host: str, findings: list[Finding], *, may_resolve: bool
+    ) -> None:
+        """Updates what is known about each finding on this host after a completed scan."""
+        now = _now()
+        seen = {fingerprint(host, f.id): f for f in findings}
+        existing = {
+            row.fingerprint: row
+            for row in session.scalars(
+                select(FindingStateRow).where(
+                    FindingStateRow.organization_id == organization_id, FindingStateRow.host == host
+                )
+            )
+        }
+        for fp, finding in seen.items():
+            row = existing.get(fp)
+            if row is None:
+                session.add(
+                    FindingStateRow(
+                        organization_id=organization_id,
+                        host=host,
+                        fingerprint=fp,
+                        finding_id=finding.id,
+                        status=FindingStatus.OPEN.value,
+                        first_seen_at=now,
+                        last_seen_at=now,
+                        updated_at=now,
+                    )
+                )
+                continue
+            row.last_seen_at = now
+            if row.status == FindingStatus.RESOLVED.value:  # it came back
+                row.status = FindingStatus.OPEN.value
+                row.resolved_at = None
+                row.updated_at = now
+        if may_resolve:
+            for fp, row in existing.items():
+                if fp not in seen and row.status == FindingStatus.OPEN.value:
+                    row.status = FindingStatus.RESOLVED.value
+                    row.resolved_at = now
+                    row.updated_at = now
+
+    def set_finding_status(
+        self,
+        organization_id: str,
+        fingerprint_value: str,
+        status: FindingStatus,
+        note: str | None,
+        user_id: str,
+    ) -> bool:
+        """Analyst triage. Returns False when this organization has no such finding."""
+        with self._session.begin() as session:
+            row = session.scalar(
+                select(FindingStateRow).where(
+                    FindingStateRow.organization_id == organization_id,
+                    FindingStateRow.fingerprint == fingerprint_value,
+                )
+            )
+            if row is None:
+                return False
+            row.status = status.value
+            row.note = note
+            row.updated_by = user_id
+            row.updated_at = _now()
+            row.resolved_at = None
+            return True
 
     def fail_scan(self, scan_id: str, error: str) -> None:
         with self._session.begin() as session:
@@ -142,19 +228,28 @@ class ScanRepository:
     # --- reads ------------------------------------------------------------------------
 
     @staticmethod
-    def _findings(row: ScanRow) -> list[Finding]:
-        return [
-            Finding(
-                id=f.finding_id,
-                title=f.title,
-                severity=Severity(f.severity),
-                category=f.category,
-                description=f.description,
-                evidence=f.evidence,
-                remediation=f.remediation,
+    def _findings(row: ScanRow, states: dict[str, FindingStateRow] | None = None) -> list[Finding]:
+        out = []
+        for f in row.findings:
+            state = (states or {}).get(f.fingerprint or "")
+            out.append(
+                Finding(
+                    id=f.finding_id,
+                    title=f.title,
+                    severity=Severity(f.severity),
+                    category=f.category,
+                    description=f.description,
+                    evidence=f.evidence,
+                    remediation=f.remediation,
+                    confidence=Confidence(f.confidence),
+                    fingerprint=f.fingerprint,
+                    status=FindingStatus(state.status) if state else FindingStatus.OPEN,
+                    status_note=state.note if state else None,
+                    first_seen_at=_aware(state.first_seen_at) if state else None,
+                    last_seen_at=_aware(state.last_seen_at) if state else None,
+                )
             )
-            for f in row.findings
-        ]
+        return out
 
     @staticmethod
     def _summary(row: ScanRow, findings: list[Finding]) -> dict[str, object]:
@@ -176,7 +271,16 @@ class ScanRepository:
             row = session.get(ScanRow, scan_id)
             if row is None or row.organization_id != organization_id:
                 return None
-            findings = self._findings(row)
+            states = {
+                state.fingerprint: state
+                for state in session.scalars(
+                    select(FindingStateRow).where(
+                        FindingStateRow.organization_id == organization_id,
+                        FindingStateRow.host == row.host,
+                    )
+                )
+            }
+            findings = self._findings(row, states)
             metadata = TargetMetadata(**json.loads(row.metadata_json)) if row.metadata_json else None
             return ScanDetail(
                 **self._summary(row, findings),

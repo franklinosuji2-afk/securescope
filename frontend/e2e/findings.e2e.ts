@@ -12,6 +12,16 @@ const user = {
   email_verified: true,
   organizations: [{ id: "org1", name: "Example Org", slug: "example-org", role: "OWNER" }],
 };
+function lifecycle(n: string, status = "open") {
+  return {
+    confidence: "high",
+    fingerprint: n.repeat(32),
+    status,
+    status_note: null,
+    first_seen_at: "2026-10-18T10:00:00Z",
+    last_seen_at: "2026-10-18T10:00:00Z",
+  };
+}
 const scan = {
   id: "abc123",
   target_url: "https://example.org/",
@@ -46,6 +56,7 @@ const scan = {
       description: "Without HSTS, browsers may still attempt plain HTTP connections.",
       evidence: "Strict-Transport-Security was not present. Checked the HTTP 200 response from https://example.org/.",
       remediation: "Send 'Strict-Transport-Security: max-age=31536000; includeSubDomains'.",
+      ...lifecycle("1"),
     },
     {
       id: "SS-HDR-CSP-002",
@@ -55,6 +66,7 @@ const scan = {
       description: "The policy permits 'unsafe-inline'.",
       evidence: "script-src 'self' 'unsafe-inline'",
       remediation: "Use nonces or hashes instead of 'unsafe-inline'.",
+      ...lifecycle("2", "accepted_risk"),
     },
     {
       id: "SS-COOKIE-SAMESITE-001",
@@ -64,6 +76,7 @@ const scan = {
       description: "Behaviour depends on the browser default.",
       evidence: "Cookie names: sid",
       remediation: "Set SameSite=Lax.",
+      ...lifecycle("3"),
     },
     {
       id: "SS-DISC-SRV-002",
@@ -73,6 +86,7 @@ const scan = {
       description: "The server announces its software name.",
       evidence: "Server: cloudflare",
       remediation: "Consider removing the Server header.",
+      ...lifecycle("4", "resolved"),
     },
   ],
 };
@@ -130,4 +144,27 @@ test("findings are usable on a phone without sideways scrolling", async ({ page 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
   await page.screenshot({ path: "test-results/findings-mobile.png", fullPage: true });
+});
+
+test("an analyst can change a finding's status from its page", async ({ page }) => {
+  await stubApi(page);
+  const patches: unknown[] = [];
+  await page.route("**/api/v1/findings/**", async (route) => {
+    patches.push(route.request().postDataJSON());
+    await route.fulfill({ status: 204 });
+  });
+  await page.goto("/#/findings?scan=abc123&finding=SS-HDR-HSTS-001");
+  await page.getByLabel("Change status").selectOption("false_positive");
+  await page.getByLabel("Note (optional)").fill("served by the CDN");
+  await page.getByRole("button", { name: "Save status" }).click();
+  await expect(page.getByText("Status saved.")).toBeVisible();
+  expect(patches).toEqual([{ status: "false_positive", note: "served by the CDN" }]);
+});
+
+test("the status filter separates open, accepted and resolved findings", async ({ page }) => {
+  await stubApi(page);
+  await page.goto("/#/findings?scan=abc123");
+  await page.getByLabel("Status").selectOption("resolved");
+  await expect(page.getByText("Showing 1 of 4 findings.")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Server header is present/ })).toBeVisible();
 });

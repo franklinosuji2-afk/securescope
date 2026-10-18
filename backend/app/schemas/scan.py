@@ -33,6 +33,34 @@ class ScanStatus(StrEnum):
     FAILED = "failed"
 
 
+class Confidence(StrEnum):
+    """How sure the check is that the finding is real. Direct observations of a response are HIGH."""
+
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class FindingStatus(StrEnum):
+    """Per-organization, per-host state of a finding.
+
+    OPEN, ACCEPTED_RISK and FALSE_POSITIVE can be set by an analyst. RESOLVED is only ever set by the
+    system, when a later completed scan of the same host no longer reports the finding.
+    """
+
+    OPEN = "open"
+    ACCEPTED_RISK = "accepted_risk"
+    FALSE_POSITIVE = "false_positive"
+    RESOLVED = "resolved"
+
+
+ANALYST_STATUSES: tuple[FindingStatus, ...] = (
+    FindingStatus.OPEN,
+    FindingStatus.ACCEPTED_RISK,
+    FindingStatus.FALSE_POSITIVE,
+)
+
+
 class Finding(BaseModel):
     id: str = Field(description="Stable identifier, e.g. SS-HDR-CSP-001")
     title: str
@@ -41,6 +69,31 @@ class Finding(BaseModel):
     description: str
     evidence: str | None = Field(default=None, description="Safe, redacted evidence")
     remediation: str
+    confidence: Confidence = Confidence.HIGH
+    # Filled in when a scan is stored or read back; checks never set these.
+    fingerprint: str | None = Field(default=None, description="Stable id of this finding on this host")
+    status: FindingStatus = FindingStatus.OPEN
+    status_note: str | None = None
+    first_seen_at: datetime | None = None
+    last_seen_at: datetime | None = None
+
+
+class FindingStatusUpdate(BaseModel):
+    status: FindingStatus
+    note: str | None = Field(default=None, max_length=500)
+
+    @field_validator("status")
+    @classmethod
+    def analyst_status_only(cls, value: FindingStatus) -> FindingStatus:
+        if value not in ANALYST_STATUSES:
+            raise ValueError("Only the scanner can mark a finding as resolved.")
+        return value
+
+    @field_validator("note")
+    @classmethod
+    def strip_note(cls, value: str | None) -> str | None:
+        value = value.strip() if value else None
+        return value or None
 
 
 class TargetMetadata(BaseModel):

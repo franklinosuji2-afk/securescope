@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { gradeClass, severityLabel } from "../format";
-import type { ScanStatus, Severity } from "../types";
+import { gradeClass, severityLabel, statusLabel } from "../format";
+import type { FindingStatus, ScanStatus, Severity } from "../types";
 import { SEVERITIES } from "../types";
 
 /** Shape + text label, so severity never depends on colour alone. */
@@ -15,6 +15,10 @@ export function SeverityBadge({ severity }: { severity: Severity }) {
       {severityLabel(severity)}
     </span>
   );
+}
+
+export function FindingStatusTag({ status }: { status: FindingStatus }) {
+  return <span className={`tag tag-${status}`}>{statusLabel(status)}</span>;
 }
 
 export function StatusPill({ status }: { status: ScanStatus }) {

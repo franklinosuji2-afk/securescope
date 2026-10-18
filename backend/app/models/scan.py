@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -54,7 +54,33 @@ class FindingRow(Base):
     description: Mapped[str] = mapped_column(Text)
     evidence: Mapped[str | None] = mapped_column(Text)
     remediation: Mapped[str] = mapped_column(Text)
+    confidence: Mapped[str] = mapped_column(String(8), default="high", server_default="high")
+    fingerprint: Mapped[str | None] = mapped_column(String(64))
 
     scan: Mapped[ScanRow] = relationship(back_populates="findings")
 
     __table_args__ = (Index("ix_findings_scan_id_position", "scan_id", "position"),)
+
+
+class FindingStateRow(Base):
+    """What an organization has decided about one finding on one host, across scans."""
+
+    __tablename__ = "finding_states"
+
+    row_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"))
+    host: Mapped[str] = mapped_column(String(255))
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    finding_id: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16))
+    note: Mapped[str | None] = mapped_column(Text)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        UniqueConstraint("organization_id", "fingerprint", name="uq_finding_states_org_fingerprint"),
+        Index("ix_finding_states_org_host", "organization_id", "host"),
+    )

@@ -21,6 +21,7 @@ class Permission(StrEnum):
     REPORT_EXPORT = "report:export"
     TARGET_READ = "target:read"
     TARGET_MANAGE = "target:manage"
+    FINDING_TRIAGE = "finding:triage"
 
 
 _ALL = set(Permission)
@@ -34,6 +35,7 @@ MATRIX: dict[Role, set[Permission]] = {
         Permission.REPORT_EXPORT,
         Permission.TARGET_READ,
         Permission.TARGET_MANAGE,
+        Permission.FINDING_TRIAGE,
     },
     Role.MEMBER: {
         Permission.ORG_READ,

@@ -1,6 +1,6 @@
 import { buildHash } from "../router";
 import type { Finding } from "../types";
-import { SeverityBadge } from "./ui";
+import { SeverityBadge, FindingStatusTag } from "./ui";
 
 export default function FindingRows({ scanId, findings }: { scanId: string; findings: Finding[] }) {
   return (
@@ -13,8 +13,10 @@ export default function FindingRows({ scanId, findings }: { scanId: string; find
               <span className="finding-title">{finding.title}</span>
               <span className="muted small">
                 {finding.category} · <code>{finding.id}</code>
+                {finding.confidence !== "high" && " · Heuristic, not confirmed"}
               </span>
             </span>
+            <FindingStatusTag status={finding.status} />
             <span className="chev" aria-hidden="true">
               ▸
             </span>

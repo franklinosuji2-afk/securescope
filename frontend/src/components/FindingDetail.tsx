@@ -1,8 +1,12 @@
-import { formatDate } from "../format";
+import { useState, type FormEvent } from "react";
+import { ApiError, setFindingStatus } from "../api";
+import { useAuth } from "../auth";
+import { confidenceLabel, formatDate, statusExplanation, statusLabel } from "../format";
 import { guidanceFor } from "../guidance";
 import { buildHash } from "../router";
-import type { Finding, ScanDetail } from "../types";
-import { SeverityBadge } from "./ui";
+import type { Finding, FindingStatus, ScanDetail } from "../types";
+import { ANALYST_STATUSES, canTriageFindings } from "../types";
+import { FindingStatusTag, SeverityBadge } from "./ui";
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
@@ -13,7 +17,89 @@ function Section({ id, title, children }: { id: string; title: string; children:
   );
 }
 
-export default function FindingDetail({ scan, finding }: { scan: ScanDetail; finding: Finding }) {
+function StatusPanel({ finding, onChanged }: { finding: Finding; onChanged: () => void }) {
+  const { organization } = useAuth();
+  const allowed = organization ? canTriageFindings(organization.role) : false;
+  const [status, setStatus] = useState<FindingStatus>(finding.status === "resolved" ? "open" : finding.status);
+  const [note, setNote] = useState(finding.status_note ?? "");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!finding.fingerprint) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      await setFindingStatus(finding.fingerprint, status, note);
+      setMessage({ kind: "ok", text: "Status saved." });
+      onChanged();
+    } catch (err) {
+      setMessage({ kind: "error", text: err instanceof ApiError ? err.message : "The status could not be saved." });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Section id="d-status" title="Status">
+      <p>
+        <FindingStatusTag status={finding.status} /> <span className="muted">{statusExplanation(finding.status)}</span>
+      </p>
+      {finding.status_note && (
+        <p className="small">
+          <strong>Note:</strong> {finding.status_note}
+        </p>
+      )}
+      {finding.first_seen_at && (
+        <p className="muted small">
+          First seen {formatDate(finding.first_seen_at)} · last seen {formatDate(finding.last_seen_at)}
+        </p>
+      )}
+      {allowed && finding.fingerprint ? (
+        <form className="status-form" onSubmit={(e) => void submit(e)}>
+          <label className="toolbar-field">
+            <span className="field-label">Change status</span>
+            <select className="input" value={status} onChange={(e) => setStatus(e.target.value as FindingStatus)}>
+              {ANALYST_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {statusLabel(s)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="toolbar-field">
+            <span className="field-label">Note (optional)</span>
+            <input className="input" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
+          </label>
+          <div className="row">
+            <button className="btn" type="submit" disabled={saving}>
+              {saving ? "Saving…" : "Save status"}
+            </button>
+            <span role="status" className={message?.kind === "error" ? "form-error" : "muted small"}>
+              {message?.text}
+            </span>
+          </div>
+          <p className="muted small">
+            “Resolved” cannot be set by hand. SecureScope sets it when a later scan of this host no longer reports the finding.
+          </p>
+        </form>
+      ) : (
+        <p className="muted small">Your role can read statuses but not change them.</p>
+      )}
+    </Section>
+  );
+}
+
+export default function FindingDetail({
+  scan,
+  finding,
+  onChanged = () => undefined,
+}: {
+  scan: ScanDetail;
+  finding: Finding;
+  onChanged?: () => void;
+}) {
   const guidance = guidanceFor(finding.id);
   const meta = scan.metadata;
   return (
@@ -24,16 +110,18 @@ export default function FindingDetail({ scan, finding }: { scan: ScanDetail; fin
       <header className="detail-head">
         <div className="row">
           <SeverityBadge severity={finding.severity} />
+          <FindingStatusTag status={finding.status} />
           <span className="muted small">
-            {finding.category} · <code>{finding.id}</code>
+            {finding.category} · <code>{finding.id}</code> · {confidenceLabel(finding.confidence)}
           </span>
         </div>
         <h1>{finding.title}</h1>
         <p className="muted">
-          Reported in the scan of <strong>{scan.host}</strong> on {formatDate(scan.created_at)}. Not yet re-checked by a
-          later scan.
+          Reported in the scan of <strong>{scan.host}</strong> on {formatDate(scan.created_at)}.
         </p>
       </header>
+
+      <StatusPanel finding={finding} onChanged={onChanged} />
 
       <Section id="d-target" title="Affected target">
         <dl className="meta">
@@ -64,7 +152,7 @@ export default function FindingDetail({ scan, finding }: { scan: ScanDetail; fin
         {finding.evidence ? <pre className="evidence">{finding.evidence}</pre> : <p className="muted">No evidence was recorded.</p>}
         <p className="small">
           <strong>How this was detected:</strong>{" "}
-          {guidance.detection === "observed" ? "Direct observation. " : "Heuristic match, not confirmed. "}
+          {finding.confidence === "high" ? "Direct observation. " : "Heuristic match, not confirmed. "}
           {guidance.detectionNote}
         </p>
       </Section>

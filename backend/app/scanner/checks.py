@@ -10,7 +10,7 @@ import re
 from collections.abc import Callable
 
 from app.scanner.fetcher import FetchResult
-from app.schemas.scan import Finding, Severity
+from app.schemas.scan import Confidence, Finding, Severity
 
 HSTS_MIN_SECONDS = 15_552_000  # 180 days
 VERSION_IN_HEADER = re.compile(r"\d+\.\d+")
@@ -392,7 +392,10 @@ CHECK_LABELS: dict[str, tuple[str, tuple[str, ...]]] = {
         "No software version shown in the Server or X-Powered-By headers",
         ("SS-DISC-SRV-", "SS-DISC-XPB-"),
     ),
-    "cookie-attributes": ("No cookie attribute problems found (a site that sets no cookies passes this)", ("SS-COOKIE-",)),
+    "cookie-attributes": (
+        "No cookie attribute problems found (a site that sets no cookies passes this)",
+        ("SS-COOKIE-",),
+    ),
     "directory-index": ("No directory listing in the page", ("SS-DIR-",)),
     "scan-scope": ("Scan stayed on the verified site", ("SS-SCOPE-",)),
 }
@@ -413,10 +416,17 @@ CHECKS: tuple[tuple[str, Check], ...] = (
 )
 
 
+# Checks that match page markup or other signals instead of reading a header directly.
+HEURISTIC_FINDINGS: frozenset[str] = frozenset({"SS-DIR-001"})
+
+
 def run_checks(result: FetchResult) -> tuple[list[Finding], list[str]]:
     findings: list[Finding] = []
     names: list[str] = []
     for name, check in CHECKS:
         names.append(name)
-        findings.extend(check(result))
+        for finding in check(result):
+            if finding.id in HEURISTIC_FINDINGS:
+                finding = finding.model_copy(update={"confidence": Confidence.MEDIUM})
+            findings.append(finding)
     return findings, names
