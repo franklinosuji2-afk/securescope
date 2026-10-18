@@ -11,7 +11,7 @@
 - Email verification and password reset links are only written to the server log (development mailer). No real email is sent.
 - Registration reveals whether an email is already registered (409); mitigated by rate limiting only.
 - Domain ownership is verified once and stays verified until the target is deleted; there is no periodic re-verification, so a domain that changes hands stays authorised. Verification is exact-host (no wildcard/subdomain scope), and only domain names are supported (no IP targets).
-- Ownership checks have only been tested with mocked DNS and HTTP. The real DNS lookup path (`dnspython`) is unit-tested for error mapping but has not been run against a live domain.
+- Ownership verification: the HTTP-file method was confirmed once end to end on a real domain (2026-10-18, the author's own site, followed by a real scan and report). The DNS TXT method has only been tested with mocked lookups and error mapping, not against a live domain.
 - DNS TXT verification trusts the resolver the server is configured with.
 - Members can only be added if they already have an account; there are no emailed invitations.
 - The audit log is write-only (no API or UI); users cannot list or revoke individual sessions.

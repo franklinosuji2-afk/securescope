@@ -29,7 +29,7 @@ Requires Docker with Compose v2. No cloud account, no paid API. Data lives in Po
 | Scan history, retention cleanup (default 30 days) | Implemented |
 | Report export: HTML, Markdown, JSON | Implemented |
 | Dashboard: Overview, Targets, Findings, Scan History, Team | Implemented |
-| Domain targets with DNS TXT / HTTP-file ownership verification; scans refused for unverified hosts | Implemented (tested with mocked DNS/HTTP) |
+| Domain targets with DNS TXT / HTTP-file ownership verification; scans refused for unverified hosts | Implemented. HTTP-file verification confirmed once end to end on a real domain; the DNS TXT path is tested with mocks only |
 | Registration, login, logout, sessions (HttpOnly cookies + CSRF), Argon2id passwords | Implemented |
 | Organizations, 5 roles enforced server-side, tenant-isolated scans, audit events | Implemented |
 | Email verification / password reset flows | Implemented, but mail goes to the server log only |

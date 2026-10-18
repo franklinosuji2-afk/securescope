@@ -59,7 +59,7 @@ Added: targets per organization, DNS TXT and HTTP-file ownership verification wi
 
 Verified (commands actually run in the build environment): 217 backend tests on SQLite and on PostgreSQL 16, ruff and mypy strict clean, 21 frontend tests, ESLint, TypeScript and production build. Two of the new safeguards were mutation-checked (disabling the scan gate and loosening the DNS comparison both make tests fail). A live run of the real server on PostgreSQL confirmed: IP-literal hosts rejected at registration, a registered host stays unverified without a TXT record, the real `dnspython` lookup path returns a clear failure message, and an unverified host cannot be scanned.
 
-Not verified: ownership checks against a real domain you control (DNS TXT or file), Docker image build/run of this version, real-browser behaviour of the new page, accessibility audit of the new page (labels, `aria` and keyboard use follow the existing patterns but no axe or screen-reader run has happened).
+Later confirmed by hand on 2026-10-18: HTTP-file verification of a real domain, then a real scan and HTML report of it. Still not verified: DNS TXT verification against a real domain, Docker image build/run of this version, real-browser behaviour of the new page, accessibility audit of the new page (labels, `aria` and keyboard use follow the existing patterns but no axe or screen-reader run has happened).
 
 ## CI security gates and browser tests addendum
 
