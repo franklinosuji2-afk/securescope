@@ -1,53 +1,147 @@
-import { useState } from "react";
-import FindingList from "../components/FindingList";
+import { useMemo, useState } from "react";
+import FindingDetail from "../components/FindingDetail";
+import FindingRows from "../components/FindingRows";
 import { ReportButtons } from "../components/ScanView";
 import { EmptyState, ErrorNotice, Loading } from "../components/ui";
 import { severityLabel } from "../format";
 import type { Route } from "../router";
-import type { Severity } from "../types";
+import type { Finding, Severity } from "../types";
 import { SEVERITIES } from "../types";
 import { useScan } from "../useScan";
 
+type SortKey = "severity" | "title";
+
+export function filterFindings(
+  findings: Finding[],
+  opts: { severity: Severity | "all"; category: string; query: string; sort: SortKey },
+): Finding[] {
+  const q = opts.query.trim().toLowerCase();
+  const rank = (s: Severity) => SEVERITIES.indexOf(s);
+  return findings
+    .filter((f) => opts.severity === "all" || f.severity === opts.severity)
+    .filter((f) => opts.category === "all" || f.category === opts.category)
+    .filter(
+      (f) => !q || [f.title, f.id, f.category, f.description].some((text) => text.toLowerCase().includes(q)),
+    )
+    .sort((a, b) =>
+      opts.sort === "title" ? a.title.localeCompare(b.title) : rank(a.severity) - rank(b.severity) || a.title.localeCompare(b.title),
+    );
+}
+
 export default function Findings({ route }: { route: Route }) {
   const { scan, loading, error } = useScan(route.scanId);
-  const [filter, setFilter] = useState<Severity | "all">("all");
+  const [severity, setSeverity] = useState<Severity | "all">("all");
+  const [category, setCategory] = useState("all");
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<SortKey>("severity");
 
-  const findings = scan?.findings ?? [];
-  const shown = filter === "all" ? findings : findings.filter((f) => f.severity === filter);
+  const findings = useMemo(() => scan?.findings ?? [], [scan]);
+  const categories = useMemo(() => [...new Set(findings.map((f) => f.category))].sort(), [findings]);
+  const shown = useMemo(
+    () => filterFindings(findings, { severity, category, query, sort }),
+    [findings, severity, category, query, sort],
+  );
+  const filtering = severity !== "all" || category !== "all" || query !== "";
+  const reset = () => {
+    setSeverity("all");
+    setCategory("all");
+    setQuery("");
+    setSort("severity");
+  };
+
+  if (route.scanId && route.findingId && scan) {
+    const finding = findings.find((f) => f.id === route.findingId);
+    if (finding) return <FindingDetail scan={scan} finding={finding} />;
+  }
 
   return (
     <div className="stack">
       <header className="page-head">
         <h1>Findings</h1>
-        <p>Each finding lists what was observed, safe evidence and how to fix it.</p>
+        <p>What is wrong, how serious it is and how to fix it. Open a finding for the evidence and a fix you can adapt.</p>
       </header>
       {!route.scanId && (
         <EmptyState title="No scan selected">Start a scan from Overview or open one from Scan History.</EmptyState>
       )}
       {error && <ErrorNotice message={error} />}
       {loading && !scan && <Loading label="Loading findings…" />}
+      {scan && route.findingId && !findings.some((f) => f.id === route.findingId) && (
+        <ErrorNotice message="That finding is not part of this scan." />
+      )}
       {scan && (
         <>
-          <div className="chips" role="group" aria-label="Filter by severity">
-            <button className="chip" type="button" aria-pressed={filter === "all"} onClick={() => setFilter("all")}>
-              All ({findings.length})
-            </button>
-            {SEVERITIES.map((s) => {
-              const n = findings.filter((f) => f.severity === s).length;
-              return n ? (
-                <button key={s} className="chip" type="button" aria-pressed={filter === s} onClick={() => setFilter(s)}>
-                  {severityLabel(s)} ({n})
-                </button>
-              ) : null;
-            })}
-          </div>
+          {scan.status === "failed" && <ErrorNotice message={scan.error ?? "The scan failed, so there are no findings."} />}
           {scan.status !== "completed" && scan.status !== "failed" && <Loading label="Scan in progress…" />}
+          {findings.length > 0 && (
+            <form className="toolbar" role="search" aria-label="Filter findings" onSubmit={(e) => e.preventDefault()}>
+              <label className="toolbar-field">
+                <span className="field-label">Search</span>
+                <input
+                  className="input"
+                  type="search"
+                  value={query}
+                  placeholder="Title, ID or text"
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </label>
+              <label className="toolbar-field">
+                <span className="field-label">Category</span>
+                <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
+                  <option value="all">All categories</option>
+                  {categories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="toolbar-field">
+                <span className="field-label">Sort by</span>
+                <select className="input" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+                  <option value="severity">Severity, highest first</option>
+                  <option value="title">Title, A to Z</option>
+                </select>
+              </label>
+            </form>
+          )}
+          {findings.length > 0 && (
+            <div className="chips" role="group" aria-label="Filter by severity">
+              <button className="chip" type="button" aria-pressed={severity === "all"} onClick={() => setSeverity("all")}>
+                All ({findings.length})
+              </button>
+              {SEVERITIES.map((s) => {
+                const n = findings.filter((f) => f.severity === s).length;
+                return n ? (
+                  <button key={s} className="chip" type="button" aria-pressed={severity === s} onClick={() => setSeverity(s)}>
+                    {severityLabel(s)} ({n})
+                  </button>
+                ) : null;
+              })}
+            </div>
+          )}
+          {findings.length > 0 && (
+            <p className="muted small" role="status">
+              Showing {shown.length} of {findings.length} findings.{" "}
+              {filtering && (
+                <button className="link-btn" type="button" onClick={reset}>
+                  Reset filters
+                </button>
+              )}
+            </p>
+          )}
           {scan.status === "completed" && findings.length === 0 && (
             <EmptyState title="No findings from these checks">
               That is not proof the site is secure – these checks are limited and passive.
             </EmptyState>
           )}
-          {shown.length > 0 && <FindingList findings={shown} />}
+          {findings.length > 0 && shown.length === 0 && (
+            <EmptyState title="No findings match these filters">
+              <button className="btn-ghost" type="button" onClick={reset}>
+                Reset filters
+              </button>
+            </EmptyState>
+          )}
+          {shown.length > 0 && <FindingRows scanId={scan.id} findings={shown} />}
           {scan.status === "completed" && <ReportButtons scanId={scan.id} />}
         </>
       )}

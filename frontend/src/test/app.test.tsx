@@ -3,7 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import { AuthProvider } from "../auth";
-import FindingList from "../components/FindingList";
+import FindingDetail from "../components/FindingDetail";
+import FindingRows from "../components/FindingRows";
+import { filterFindings } from "../pages/Findings";
 import { buildHash, parseHash } from "../router";
 import type { Finding, Role, ScanDetail, Target, User } from "../types";
 
@@ -84,9 +86,9 @@ beforeEach(() => {
 
 describe("router", () => {
   it("parses and builds hashes", () => {
-    expect(parseHash("#/findings?scan=abc123")).toEqual({ page: "findings", scanId: "abc123", token: null });
-    expect(parseHash("#/findings?scan=../x")).toEqual({ page: "findings", scanId: null, token: null });
-    expect(parseHash("")).toEqual({ page: "overview", scanId: null, token: null });
+    expect(parseHash("#/findings?scan=abc123")).toEqual({ page: "findings", scanId: "abc123", findingId: null, token: null });
+    expect(parseHash("#/findings?scan=../x")).toEqual({ page: "findings", scanId: null, findingId: null, token: null });
+    expect(parseHash("")).toEqual({ page: "overview", scanId: null, findingId: null, token: null });
     expect(buildHash("history", null)).toBe("#/history");
   });
 });
@@ -130,16 +132,73 @@ describe("Overview", () => {
   });
 });
 
-describe("FindingList", () => {
-  it("expands details and exposes aria-expanded", async () => {
-    render(<FindingList findings={[finding]} />);
-    const toggle = screen.getByRole("button", { name: /Content-Security-Policy/ });
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("Add a CSP.")).not.toBeInTheDocument();
+describe("Findings", () => {
+  const many: Finding[] = [
+    finding,
+    { ...finding, id: "SS-HDR-HSTS-001", title: "Strict-Transport-Security header is missing", severity: "high", category: "Security headers" },
+    { ...finding, id: "SS-DISC-SRV-002", title: "Server header is present", severity: "info", category: "Information disclosure" },
+  ];
+
+  it("links each row to its finding with a text severity label", () => {
+    render(<FindingRows scanId="abc123" findings={[finding]} />);
+    const link = screen.getByRole("link", { name: /Content-Security-Policy header missing/ });
+    expect(link).toHaveAttribute("href", "#/findings?scan=abc123&finding=SS-HDR-CSP-001");
+    expect(screen.getByText("Medium")).toBeInTheDocument();
+  });
+
+  it("filters, searches and sorts", () => {
+    const base = { severity: "all" as const, category: "all", query: "", sort: "severity" as const };
+    expect(filterFindings(many, base).map((f) => f.id)).toEqual(["SS-HDR-HSTS-001", "SS-HDR-CSP-001", "SS-DISC-SRV-002"]);
+    expect(filterFindings(many, { ...base, severity: "info" }).map((f) => f.id)).toEqual(["SS-DISC-SRV-002"]);
+    expect(filterFindings(many, { ...base, category: "Security headers" })).toHaveLength(1);
+    expect(filterFindings(many, { ...base, query: "server" }).map((f) => f.id)).toEqual(["SS-DISC-SRV-002"]);
+    expect(filterFindings(many, { ...base, sort: "title" })[0]?.id).toBe("SS-HDR-CSP-001");
+  });
+
+  it("shows evidence as plain text and never claims a fix", () => {
+    const hostile = { ...finding, evidence: "<img src=x onerror=alert(1)>" };
+    const { container } = render(<FindingDetail scan={{ ...scan, findings: [hostile] }} finding={hostile} />);
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("<img src=x onerror=alert(1)>")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Evidence" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "How to verify" })).toBeInTheDocument();
+    expect(screen.getByText(/does not mark a finding as fixed/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Content-Security-Policy/ })).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("opens a finding from the URL and filters the list", async () => {
+    window.location.hash = "#/findings?scan=abc123&finding=SS-HDR-CSP-001";
+    mockFetch(() => scan);
+    renderApp();
+    expect(await screen.findByRole("heading", { name: "Content-Security-Policy header missing" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /All findings/ })).toBeInTheDocument();
+  });
+
+  it("explains when a finding id is not in the scan", async () => {
+    window.location.hash = "#/findings?scan=abc123&finding=SS-NOPE-1";
+    mockFetch(() => scan);
+    renderApp();
+    expect(await screen.findByText("That finding is not part of this scan.")).toBeInTheDocument();
+  });
+
+  it("shows a failed scan as failed, not as zero findings", async () => {
+    window.location.hash = "#/findings?scan=abc123";
+    mockFetch(() => ({ ...scan, status: "failed", error: "Could not connect.", findings: [], counts: {} }));
+    renderApp();
+    expect(await screen.findByText("Could not connect.")).toBeInTheDocument();
+    expect(screen.queryByText("No findings from these checks")).not.toBeInTheDocument();
+  });
+});
+
+describe("Theme", () => {
+  it("switches between dark and light", async () => {
+    window.location.hash = "#/";
+    mockFetch(() => scan);
+    renderApp();
+    const toggle = await screen.findByRole("button", { name: /Switch to (light|dark) theme/ });
+    const before = document.documentElement.getAttribute("data-theme");
     fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText("Add a CSP.")).toBeInTheDocument();
-    expect(screen.getByText("header absent")).toBeInTheDocument();
+    expect(document.documentElement.getAttribute("data-theme")).not.toBe(before);
   });
 });
 

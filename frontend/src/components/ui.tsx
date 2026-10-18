@@ -3,8 +3,18 @@ import { gradeClass, severityLabel } from "../format";
 import type { ScanStatus, Severity } from "../types";
 import { SEVERITIES } from "../types";
 
+/** Shape + text label, so severity never depends on colour alone. */
+const SEVERITY_GLYPH: Record<Severity, string> = { critical: "◆", high: "▲", medium: "■", low: "●", info: "○" };
+
 export function SeverityBadge({ severity }: { severity: Severity }) {
-  return <span className={`sev sev-${severity}`}>{severityLabel(severity)}</span>;
+  return (
+    <span className={`sev sev-${severity}`}>
+      <span className="sev-glyph" aria-hidden="true">
+        {SEVERITY_GLYPH[severity]}
+      </span>
+      {severityLabel(severity)}
+    </span>
+  );
 }
 
 export function StatusPill({ status }: { status: ScanStatus }) {

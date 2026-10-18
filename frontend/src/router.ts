@@ -33,6 +33,7 @@ export const PUBLIC_PAGES: readonly Page[] = [
 export interface Route {
   page: Page;
   scanId: string | null;
+  findingId: string | null;
   token: string | null;
 }
 
@@ -43,14 +44,17 @@ export function parseHash(hash: string): Route {
   const scanId = raw && /^[A-Za-z0-9]{1,64}$/.test(raw) ? raw : null;
   const name = path.replace(/^\//, "");
   const page: Page = (PAGES as readonly string[]).includes(name) ? (name as Page) : "overview";
+  const rawFinding = params.get("finding");
+  const findingId = rawFinding && /^[A-Za-z0-9-]{1,64}$/.test(rawFinding) ? rawFinding : null;
   const rawToken = params.get("token");
   const token = rawToken && /^[A-Za-z0-9_-]{10,200}$/.test(rawToken) ? rawToken : null;
-  return { page, scanId, token };
+  return { page, scanId, findingId, token };
 }
 
-export function buildHash(page: Page, scanId: string | null): string {
+export function buildHash(page: Page, scanId: string | null, findingId: string | null = null): string {
   const path = page === "overview" ? "/" : `/${page}`;
-  return scanId ? `#${path}?scan=${scanId}` : `#${path}`;
+  if (!scanId) return `#${path}`;
+  return findingId ? `#${path}?scan=${scanId}&finding=${findingId}` : `#${path}?scan=${scanId}`;
 }
 
 export function useRoute(): [Route, (page: Page, scanId?: string | null) => void] {

@@ -18,13 +18,24 @@ test("public pages have no serious or critical accessibility violations", async 
   }
 });
 
-test("signed-in pages have no serious or critical accessibility violations", async ({ page }) => {
-  await register(page, uniqueEmail("a11y"));
-  for (const route of ["#/", "#/targets", "#/findings", "#/history", "#/team"]) {
-    await page.goto(`/${route}`);
-    await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
-    expect(await seriousViolations(page), route).toEqual([]);
-  }
+for (const scheme of ["dark", "light"] as const) {
+  test(`signed-in pages have no serious or critical accessibility violations (${scheme} theme)`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await register(page, uniqueEmail(`a11y-${scheme}`));
+    await expect(page.locator("html")).toHaveAttribute("data-theme", scheme);
+    for (const route of ["#/", "#/targets", "#/findings", "#/history", "#/team"]) {
+      await page.goto(`/${route}`);
+      await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
+      expect(await seriousViolations(page), `${scheme} ${route}`).toEqual([]);
+    }
+  });
+}
+
+test("the theme can be switched by the user", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await register(page, uniqueEmail("toggle"));
+  await page.getByRole("button", { name: "Switch to light theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 });
 
 test("keyboard users get a skip link and visible focus", async ({ page }) => {
@@ -32,3 +43,4 @@ test("keyboard users get a skip link and visible focus", async ({ page }) => {
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Skip to content" })).toBeFocused();
 });
+

@@ -1,4 +1,5 @@
 import { useAuth } from "./auth";
+import { useTheme } from "./theme";
 import { Loading } from "./components/ui";
 import type { Page } from "./router";
 import { PUBLIC_PAGES, buildHash, useRoute } from "./router";
@@ -20,6 +21,7 @@ const NAV: { page: Page; label: string }[] = [
 export default function App() {
   const [route, navigate] = useRoute();
   const { user, loading, organization, setOrganizationId, signOut } = useAuth();
+  const { theme, toggle } = useTheme();
 
   if (loading) {
     return (
@@ -71,8 +73,8 @@ export default function App() {
       <aside className="rail">
         <div className="brand">
           <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
-            <path d="M16 3 5 7v8c0 7 4.6 11.7 11 14 6.4-2.3 11-7 11-14V7L16 3Z" fill="none" stroke="#6d4aff" strokeWidth="2.2" />
-            <path d="m11 16 4 4 6-8" fill="none" stroke="#2dd4bf" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M16 3 5 7v8c0 7 4.6 11.7 11 14 6.4-2.3 11-7 11-14V7L16 3Z" fill="none" strokeWidth="2.2" style={{ stroke: "var(--accent)" }} />
+            <path d="m11 16 4 4 6-8" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: "var(--ok)" }} />
           </svg>
           SecureScope
         </div>
@@ -109,6 +111,9 @@ export default function App() {
             {organization ? ` · ${organization.role}` : ""}
           </div>
           {!user.email_verified && <div className="small">Email not confirmed</div>}
+          <button className="btn-ghost" type="button" onClick={toggle} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
+            {theme === "dark" ? "Light theme" : "Dark theme"}
+          </button>
           <button className="btn-ghost" type="button" onClick={() => void signOut().then(() => navigate("login"))}>
             Sign out
           </button>
