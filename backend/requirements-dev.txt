@@ -1,0 +1,13 @@
+-r requirements.txt
+iniconfig==2.3.1
+librt==0.16.0
+mypy==2.4.0
+mypy_extensions==1.1.0
+packaging==26.3
+pathspec==1.1.1
+pluggy==1.7.0
+Pygments==2.21.0
+pytest==9.1.1
+pytest-timeout==2.4.0
+ruff==0.17.1
+httpx2==2.13.1

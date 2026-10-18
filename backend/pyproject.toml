@@ -1,0 +1,26 @@
+[project]
+name = "securescope-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "ASYNC"]
+ignore = ["S101", "E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"app/tests/*" = ["S", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["app"]
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+testpaths = ["app/tests"]
+timeout = 60
+addopts = "-q -W ignore::DeprecationWarning"
