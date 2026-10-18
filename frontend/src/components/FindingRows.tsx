@@ -2,12 +2,21 @@ import { buildHash } from "../router";
 import type { Finding } from "../types";
 import { SeverityBadge, FindingStatusTag } from "./ui";
 
-export default function FindingRows({ scanId, findings }: { scanId: string; findings: Finding[] }) {
+export default function FindingRows({
+  scanId,
+  findings,
+}: {
+  scanId: string;
+  findings: Finding[];
+}) {
   return (
     <ul className="finding-list">
       {findings.map((finding) => (
         <li key={finding.id} className="finding-row">
-          <a className="finding-link" href={buildHash("findings", scanId, finding.id)}>
+          <a
+            className="finding-link"
+            href={buildHash("findings", scanId, finding.id)}
+          >
             <SeverityBadge severity={finding.severity} />
             <span className="finding-main">
               <span className="finding-title">{finding.title}</span>

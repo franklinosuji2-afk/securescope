@@ -1,4 +1,18 @@
-import type { AuditList, FindingStatus, Member, Overview, Organization, OrganizationDetail, ReportFormat, Role, ScanDetail, ScanList, Target, User, VerificationMethod } from "./types";
+import type {
+  AuditList,
+  FindingStatus,
+  Member,
+  Overview,
+  Organization,
+  OrganizationDetail,
+  ReportFormat,
+  Role,
+  ScanDetail,
+  ScanList,
+  Target,
+  User,
+  VerificationMethod,
+} from "./types";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -22,7 +36,9 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
 }
 
 function readCookie(name: string): string {
-  const match = document.cookie.split("; ").find((part) => part.startsWith(`${name}=`));
+  const match = document.cookie
+    .split("; ")
+    .find((part) => part.startsWith(`${name}=`));
   return match ? decodeURIComponent(match.slice(name.length + 1)) : "";
 }
 
@@ -30,18 +46,28 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const method = (init.method ?? "GET").toUpperCase();
   const headers: Record<string, string> = { Accept: "application/json" };
   if (init.body) headers["Content-Type"] = "application/json";
-  if (method !== "GET" && method !== "HEAD") headers["X-CSRF-Token"] = readCookie("ss_csrf");
+  if (method !== "GET" && method !== "HEAD")
+    headers["X-CSRF-Token"] = readCookie("ss_csrf");
   if (activeOrganizationId) headers["X-Organization-Id"] = activeOrganizationId;
 
   let response: Response;
   try {
-    response = await fetch(`${BASE}${path}`, { ...init, method, headers, credentials: "same-origin" });
+    response = await fetch(`${BASE}${path}`, {
+      ...init,
+      method,
+      headers,
+      credentials: "same-origin",
+    });
   } catch {
-    throw new ApiError("Could not reach the SecureScope service. Is the backend running?", 0);
+    throw new ApiError(
+      "Could not reach the SecureScope service. Is the backend running?",
+      0,
+    );
   }
   if (!response.ok) {
     // A 401 on /auth/login is a wrong password, not an expired session.
-    if (response.status === 401 && !path.startsWith("/auth/login")) onUnauthorized?.();
+    if (response.status === 401 && !path.startsWith("/auth/login"))
+      onUnauthorized?.();
     throw new ApiError(await describeError(response), response.status);
   }
   if (response.status === 204) return undefined as T;
@@ -57,7 +83,10 @@ async function describeError(response: Response): Promise<string> {
       if (Array.isArray(detail)) {
         const first: unknown = detail[0];
         if (first && typeof first === "object" && "msg" in first) {
-          return String((first as { msg: unknown }).msg).replace(/^Value error, /, "");
+          return String((first as { msg: unknown }).msg).replace(
+            /^Value error, /,
+            "",
+          );
         }
         return "The request was not valid. Check the fields and try again.";
       }
@@ -70,48 +99,84 @@ async function describeError(response: Response): Promise<string> {
 
 // --- auth ---------------------------------------------------------------------------------------
 
-export const register = (email: string, password: string, organizationName?: string) =>
+export const register = (
+  email: string,
+  password: string,
+  organizationName?: string,
+) =>
   request<User>("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ email, password, ...(organizationName ? { organization_name: organizationName } : {}) }),
+    body: JSON.stringify({
+      email,
+      password,
+      ...(organizationName ? { organization_name: organizationName } : {}),
+    }),
   });
 export const login = (email: string, password: string) =>
-  request<User>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+  request<User>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
 export const logout = () => request<void>("/auth/logout", { method: "POST" });
 export const fetchMe = () => request<User>("/auth/me");
 export const forgotPassword = (email: string) =>
-  request<{ detail: string }>("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) });
+  request<{ detail: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
 export const resetPassword = (token: string, password: string) =>
-  request<{ detail: string }>("/auth/reset-password", { method: "POST", body: JSON.stringify({ token, password }) });
+  request<{ detail: string }>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
 export const verifyEmail = (token: string) =>
-  request<{ detail: string }>("/auth/verify-email", { method: "POST", body: JSON.stringify({ token }) });
+  request<{ detail: string }>("/auth/verify-email", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
 
 // --- organizations ------------------------------------------------------------------------------
 
 export const createOrganization = (name: string) =>
-  request<Organization>("/organizations", { method: "POST", body: JSON.stringify({ name }) });
-export const getOrganization = (id: string) => request<OrganizationDetail>(`/organizations/${encodeURIComponent(id)}`);
+  request<Organization>("/organizations", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+export const getOrganization = (id: string) =>
+  request<OrganizationDetail>(`/organizations/${encodeURIComponent(id)}`);
 export const addMember = (orgId: string, email: string, role: Role) =>
   request<Member>(`/organizations/${encodeURIComponent(orgId)}/members`, {
     method: "POST",
     body: JSON.stringify({ email, role }),
   });
 export const updateMember = (orgId: string, userId: string, role: Role) =>
-  request<Member>(`/organizations/${encodeURIComponent(orgId)}/members/${encodeURIComponent(userId)}`, {
-    method: "PATCH",
-    body: JSON.stringify({ role }),
-  });
+  request<Member>(
+    `/organizations/${encodeURIComponent(orgId)}/members/${encodeURIComponent(userId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    },
+  );
 export const removeMember = (orgId: string, userId: string) =>
-  request<void>(`/organizations/${encodeURIComponent(orgId)}/members/${encodeURIComponent(userId)}`, {
-    method: "DELETE",
-  });
+  request<void>(
+    `/organizations/${encodeURIComponent(orgId)}/members/${encodeURIComponent(userId)}`,
+    {
+      method: "DELETE",
+    },
+  );
 
 // --- scans --------------------------------------------------------------------------------------
 
-export function createScan(url: string, authorizationConfirmed: boolean): Promise<ScanDetail> {
+export function createScan(
+  url: string,
+  authorizationConfirmed: boolean,
+): Promise<ScanDetail> {
   return request<ScanDetail>("/scans", {
     method: "POST",
-    body: JSON.stringify({ url, authorization_confirmed: authorizationConfirmed }),
+    body: JSON.stringify({
+      url,
+      authorization_confirmed: authorizationConfirmed,
+    }),
   });
 }
 
@@ -124,13 +189,25 @@ export function listScans(limit = 25, offset = 0): Promise<ScanList> {
 }
 
 export const cancelScan = (id: string) =>
-  request<ScanDetail>(`/scans/${encodeURIComponent(id)}/cancel`, { method: "POST" });
+  request<ScanDetail>(`/scans/${encodeURIComponent(id)}/cancel`, {
+    method: "POST",
+  });
 export const retryScan = (id: string) =>
-  request<ScanDetail>(`/scans/${encodeURIComponent(id)}/retry`, { method: "POST" });
+  request<ScanDetail>(`/scans/${encodeURIComponent(id)}/retry`, {
+    method: "POST",
+  });
 
-export function listAuditEvents(limit = 25, offset = 0, eventType = ""): Promise<AuditList> {
-  const filter = eventType ? `&event_type=${encodeURIComponent(eventType)}` : "";
-  return request<AuditList>(`/audit-events?limit=${limit}&offset=${offset}${filter}`);
+export function listAuditEvents(
+  limit = 25,
+  offset = 0,
+  eventType = "",
+): Promise<AuditList> {
+  const filter = eventType
+    ? `&event_type=${encodeURIComponent(eventType)}`
+    : "";
+  return request<AuditList>(
+    `/audit-events?limit=${limit}&offset=${offset}${filter}`,
+  );
 }
 
 export function reportUrl(id: string, format: ReportFormat): string {
@@ -139,16 +216,30 @@ export function reportUrl(id: string, format: ReportFormat): string {
 
 // --- targets ------------------------------------------------------------------------------------
 
-export const listTargets = () => request<{ items: Target[] }>("/targets").then((r) => r.items);
+export const listTargets = () =>
+  request<{ items: Target[] }>("/targets").then((r) => r.items);
 export const createTarget = (hostname: string) =>
-  request<Target>("/targets", { method: "POST", body: JSON.stringify({ hostname }) });
-export const deleteTarget = (id: string) => request<void>(`/targets/${encodeURIComponent(id)}`, { method: "DELETE" });
+  request<Target>("/targets", {
+    method: "POST",
+    body: JSON.stringify({ hostname }),
+  });
+export const deleteTarget = (id: string) =>
+  request<void>(`/targets/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const regenerateChallenge = (id: string) =>
-  request<Target>(`/targets/${encodeURIComponent(id)}/challenge`, { method: "POST" });
+  request<Target>(`/targets/${encodeURIComponent(id)}/challenge`, {
+    method: "POST",
+  });
 export const verifyTarget = (id: string, method: VerificationMethod) =>
-  request<Target>(`/targets/${encodeURIComponent(id)}/verify`, { method: "POST", body: JSON.stringify({ method }) });
+  request<Target>(`/targets/${encodeURIComponent(id)}/verify`, {
+    method: "POST",
+    body: JSON.stringify({ method }),
+  });
 
-export function setFindingStatus(fingerprint: string, status: FindingStatus, note: string): Promise<void> {
+export function setFindingStatus(
+  fingerprint: string,
+  status: FindingStatus,
+  note: string,
+): Promise<void> {
   return request<void>(`/findings/${encodeURIComponent(fingerprint)}`, {
     method: "PATCH",
     body: JSON.stringify({ status, note: note.trim() || null }),
@@ -156,4 +247,3 @@ export function setFindingStatus(fingerprint: string, status: FindingStatus, not
 }
 
 export const getOverview = () => request<Overview>("/overview");
-

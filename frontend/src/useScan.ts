@@ -39,7 +39,10 @@ export function useScan(scanId: string | null): ScanState {
         }
       } catch (err) {
         if (cancelled) return;
-        const message = err instanceof ApiError ? err.message : "Something went wrong loading this scan.";
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : "Something went wrong loading this scan.";
         setResult({ id: scanId, scan: null, error: message });
       }
     };
@@ -51,6 +54,7 @@ export function useScan(scanId: string | null): ScanState {
   }, [scanId, version]);
 
   if (!scanId) return { scan: null, loading: false, error: null, reload };
-  if (!result || result.id !== scanId) return { scan: null, loading: true, error: null, reload };
+  if (!result || result.id !== scanId)
+    return { scan: null, loading: true, error: null, reload };
   return { scan: result.scan, loading: false, error: result.error, reload };
 }

@@ -34,19 +34,28 @@ function TargetCard({
     <li className="card target" aria-label={target.hostname}>
       <div className="target-head">
         <h3>{target.hostname}</h3>
-        <span className={`pill pill-${target.status}`}>{STATUS_LABEL[target.status]}</span>
+        <span className={`pill pill-${target.status}`}>
+          {STATUS_LABEL[target.status]}
+        </span>
       </div>
       {verified ? (
         <p className="muted small">
           Verified {target.verified_at ? formatDate(target.verified_at) : ""} by{" "}
-          {target.verification_method === "dns_txt" ? "DNS TXT record" : "HTTP file"}. Scans of exactly{" "}
-          <code>{target.hostname}</code> are allowed. Subdomains and <code>www.</code> variants need their own entry.
+          {target.verification_method === "dns_txt"
+            ? "DNS TXT record"
+            : "HTTP file"}
+          . Scans of exactly <code>{target.hostname}</code> are allowed.
+          Subdomains and <code>www.</code> variants need their own entry.
         </p>
       ) : (
-        <details className="howto" open={target.status === "pending" && !target.last_check_error}>
+        <details
+          className="howto"
+          open={target.status === "pending" && !target.last_check_error}
+        >
           <summary>How to prove you control this domain</summary>
           <p className="small muted">
-            Publish <em>one</em> of the following, then press the matching verify button. The challenge expires on{" "}
+            Publish <em>one</em> of the following, then press the matching
+            verify button. The challenge expires on{" "}
             {formatDate(target.challenge_expires_at)}.
           </p>
           <h4 className="small">Option A: DNS TXT record</h4>
@@ -75,33 +84,64 @@ function TargetCard({
           </dl>
         </details>
       )}
-      {target.last_check_error && !verified && <ErrorNotice message={target.last_check_error} />}
+      {target.last_check_error && !verified && (
+        <ErrorNotice message={target.last_check_error} />
+      )}
       {manage && (
         <div className="actions">
           {!verified && target.status === "pending" && (
             <>
-              <button className="btn" type="button" disabled={busy} onClick={() => onVerify("dns_txt")}>
+              <button
+                className="btn"
+                type="button"
+                disabled={busy}
+                onClick={() => onVerify("dns_txt")}
+              >
                 Verify DNS record
               </button>
-              <button className="btn-ghost" type="button" disabled={busy} onClick={() => onVerify("http_file")}>
+              <button
+                className="btn-ghost"
+                type="button"
+                disabled={busy}
+                onClick={() => onVerify("http_file")}
+              >
                 Verify HTTP file
               </button>
             </>
           )}
-          <button className="btn-ghost" type="button" disabled={busy} onClick={onRegenerate}>
+          <button
+            className="btn-ghost"
+            type="button"
+            disabled={busy}
+            onClick={onRegenerate}
+          >
             New challenge
           </button>
           {confirming ? (
             <>
-              <button className="btn-danger" type="button" disabled={busy} onClick={onDelete}>
+              <button
+                className="btn-danger"
+                type="button"
+                disabled={busy}
+                onClick={onDelete}
+              >
                 Confirm removal of {target.hostname}
               </button>
-              <button className="btn-ghost" type="button" onClick={() => setConfirming(false)}>
+              <button
+                className="btn-ghost"
+                type="button"
+                onClick={() => setConfirming(false)}
+              >
                 Cancel
               </button>
             </>
           ) : (
-            <button className="btn-ghost" type="button" disabled={busy} onClick={() => setConfirming(true)}>
+            <button
+              className="btn-ghost"
+              type="button"
+              disabled={busy}
+              onClick={() => setConfirming(true)}
+            >
               Remove
             </button>
           )}
@@ -127,7 +167,9 @@ export default function Targets() {
       setTargets(await api.listTargets());
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not load targets.");
+      setError(
+        err instanceof ApiError ? err.message : "Could not load targets.",
+      );
     }
   }, []);
 
@@ -137,7 +179,13 @@ export default function Targets() {
       api
         .listTargets()
         .then((items) => !cancelled && setTargets(items))
-        .catch((err: unknown) => !cancelled && setError(err instanceof ApiError ? err.message : "Could not load targets."));
+        .catch(
+          (err: unknown) =>
+            !cancelled &&
+            setError(
+              err instanceof ApiError ? err.message : "Could not load targets.",
+            ),
+        );
     }
     return () => {
       cancelled = true;
@@ -152,16 +200,24 @@ export default function Targets() {
     try {
       const created = await api.createTarget(hostname.trim());
       setHostname("");
-      setNotice(`${created.hostname} was added. Publish the challenge below, then verify it.`);
+      setNotice(
+        `${created.hostname} was added. Publish the challenge below, then verify it.`,
+      );
       await reload();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not add the target.");
+      setError(
+        err instanceof ApiError ? err.message : "Could not add the target.",
+      );
     } finally {
       setAdding(false);
     }
   }
 
-  async function act(id: string, action: () => Promise<Target | void>, success?: (t: Target) => string) {
+  async function act(
+    id: string,
+    action: () => Promise<Target | void>,
+    success?: (t: Target) => string,
+  ) {
     setBusyId(id);
     setError(null);
     setNotice(null);
@@ -181,8 +237,10 @@ export default function Targets() {
       <header className="page-head">
         <h1>Targets</h1>
         <p>
-          SecureScope only scans domains your organization has proven it controls. Add a domain, publish a DNS TXT
-          record or a small file, and verify it. Verification is checked by the server; nothing here is assumed.
+          SecureScope only scans domains your organization has proven it
+          controls. Add a domain, publish a DNS TXT record or a small file, and
+          verify it. Verification is checked by the server; nothing here is
+          assumed.
         </p>
       </header>
       {error && <ErrorNotice message={error} />}
@@ -192,7 +250,11 @@ export default function Targets() {
         </div>
       )}
       {manage ? (
-        <form className="card scan-form" onSubmit={add} aria-labelledby="target-form-title">
+        <form
+          className="card scan-form"
+          onSubmit={add}
+          aria-labelledby="target-form-title"
+        >
           <h2 id="target-form-title">Add a domain</h2>
           <div className="input-row">
             <input
@@ -205,21 +267,34 @@ export default function Targets() {
               autoComplete="off"
               required
             />
-            <button className="btn" type="submit" disabled={adding || hostname.trim() === ""}>
+            <button
+              className="btn"
+              type="submit"
+              disabled={adding || hostname.trim() === ""}
+            >
               {adding ? "Adding…" : "Add domain"}
             </button>
           </div>
-          <p className="muted small">Domain names only: no IP addresses, ports or paths.</p>
+          <p className="muted small">
+            Domain names only: no IP addresses, ports or paths.
+          </p>
         </form>
       ) : (
-        <div className="notice notice-info">Your role can view targets but not add or verify them.</div>
+        <div className="notice notice-info">
+          Your role can view targets but not add or verify them.
+        </div>
       )}
       {targets === null && !error && <Loading label="Loading targets…" />}
       {targets?.length === 0 && (
-        <EmptyState title="No targets yet">Add a domain you control to enable scanning.</EmptyState>
+        <EmptyState title="No targets yet">
+          Add a domain you control to enable scanning.
+        </EmptyState>
       )}
       {targets && targets.length > 0 && (
-        <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+        <ul
+          className="stack"
+          style={{ listStyle: "none", padding: 0, margin: 0 }}
+        >
           {targets.map((t) => (
             <TargetCard
               key={t.id}
@@ -227,11 +302,22 @@ export default function Targets() {
               manage={manage}
               busy={busyId === t.id}
               onVerify={(method) =>
-                void act(t.id, () => api.verifyTarget(t.id, method), (r) =>
-                  r.status === "verified" ? `${r.hostname} is verified.` : `${r.hostname} is not verified yet. See the message below.`,
+                void act(
+                  t.id,
+                  () => api.verifyTarget(t.id, method),
+                  (r) =>
+                    r.status === "verified"
+                      ? `${r.hostname} is verified.`
+                      : `${r.hostname} is not verified yet. See the message below.`,
                 )
               }
-              onRegenerate={() => void act(t.id, () => api.regenerateChallenge(t.id), (r) => `New challenge issued for ${r.hostname}.`)}
+              onRegenerate={() =>
+                void act(
+                  t.id,
+                  () => api.regenerateChallenge(t.id),
+                  (r) => `New challenge issued for ${r.hostname}.`,
+                )
+              }
               onDelete={() => void act(t.id, () => api.deleteTarget(t.id))}
             />
           ))}

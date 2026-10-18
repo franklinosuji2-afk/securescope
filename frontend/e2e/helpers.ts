@@ -11,6 +11,8 @@ export async function register(page: Page, email: string): Promise<void> {
   await page.goto("/#/register");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel(/^Password/).fill(PASSWORD);
-  await page.getByRole("button", { name: /create account|register|sign up/i }).click();
+  await page
+    .getByRole("button", { name: /create account|register|sign up/i })
+    .click();
   await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
 }

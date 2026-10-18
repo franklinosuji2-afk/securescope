@@ -6,7 +6,9 @@ const user = {
   id: "u1",
   email: "owner@example.org",
   email_verified: true,
-  organizations: [{ id: "org1", name: "Example Org", slug: "example-org", role: "OWNER" }],
+  organizations: [
+    { id: "org1", name: "Example Org", slug: "example-org", role: "OWNER" },
+  ],
 };
 
 const target = (hostname: string, status: "pending" | "verified") => ({
@@ -26,11 +28,34 @@ const target = (hostname: string, status: "pending" | "verified") => ({
   http_file_content: "securescope-verification=" + "a".repeat(32),
 });
 
-function summary(id: string, host: string, created: string, score: number, grade: string, counts: object) {
-  return { id, target_url: `https://${host}/`, host, status: "completed", score, grade, created_at: created, finished_at: created, counts };
+function summary(
+  id: string,
+  host: string,
+  created: string,
+  score: number,
+  grade: string,
+  counts: object,
+) {
+  return {
+    id,
+    target_url: `https://${host}/`,
+    host,
+    status: "completed",
+    score,
+    grade,
+    created_at: created,
+    finished_at: created,
+    counts,
+  };
 }
 
-const finding = (id: string, title: string, severity: string, n: string, status = "open") => ({
+const finding = (
+  id: string,
+  title: string,
+  severity: string,
+  n: string,
+  status = "open",
+) => ({
   id,
   title,
   severity,
@@ -53,7 +78,8 @@ const topFinding = {
   title: "Strict-Transport-Security header is missing",
   severity: "high",
   confidence: "high",
-  remediation: "Send 'Strict-Transport-Security: max-age=31536000; includeSubDomains'.",
+  remediation:
+    "Send 'Strict-Transport-Security: max-age=31536000; includeSubDomains'.",
 };
 
 const overview = {
@@ -81,13 +107,26 @@ const overview = {
 };
 
 const findingsScan = {
-  ...summary("s2", "example.org", "2026-10-18T12:00:00Z", 84, "B", { high: 1, low: 1 }),
+  ...summary("s2", "example.org", "2026-10-18T12:00:00Z", 84, "B", {
+    high: 1,
+    low: 1,
+  }),
   error: null,
   metadata: null,
   score_note: "Heuristic score.",
   findings: [
-    finding("SS-HDR-HSTS-001", "Strict-Transport-Security header is missing", "high", "1"),
-    finding("SS-COOKIE-SAMESITE-001", "Cookies set without an explicit SameSite attribute", "low", "2"),
+    finding(
+      "SS-HDR-HSTS-001",
+      "Strict-Transport-Security header is missing",
+      "high",
+      "1",
+    ),
+    finding(
+      "SS-COOKIE-SAMESITE-001",
+      "Cookies set without an explicit SameSite attribute",
+      "low",
+      "2",
+    ),
   ],
 };
 
@@ -99,69 +138,124 @@ async function stub(page: Page, state: "new" | "verified" | "scanned") {
     else if (url.includes("/targets")) {
       body = {
         items:
-          state === "new" ? [] : state === "verified" ? [target("example.org", "verified")] : [target("example.org", "verified"), target("staging.example.org", "pending")],
+          state === "new"
+            ? []
+            : state === "verified"
+              ? [target("example.org", "verified")]
+              : [
+                  target("example.org", "verified"),
+                  target("staging.example.org", "pending"),
+                ],
       };
-    } else if (url.includes("/overview")) body = state === "scanned" ? overview : { sites: [], fix_first: null, other_open: 0 };
+    } else if (url.includes("/overview"))
+      body =
+        state === "scanned"
+          ? overview
+          : { sites: [], fix_first: null, other_open: 0 };
     else if (url.includes("/scans/s2")) body = findingsScan;
     await route.fulfill({ json: body });
   });
 }
 
 async function serious(page: Page) {
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
   expect(results.passes.length).toBeGreaterThan(10);
   return results.violations
     .filter((v) => v.impact === "serious" || v.impact === "critical")
-    .map((v) => ({ id: v.id, nodes: v.nodes.slice(0, 3).map((n) => n.target.join(" ")) }));
+    .map((v) => ({
+      id: v.id,
+      nodes: v.nodes.slice(0, 3).map((n) => n.target.join(" ")),
+    }));
 }
 
 for (const scheme of ["dark", "light"] as const) {
-  test(`new account: guided setup is clear and accessible (${scheme} theme)`, async ({ page }) => {
+  test(`new account: guided setup is clear and accessible (${scheme} theme)`, async ({
+    page,
+  }) => {
     await page.emulateMedia({ colorScheme: scheme });
     await stub(page, "new");
     await page.goto("/#/");
-    await expect(page.getByRole("heading", { name: "Get your first result" })).toBeVisible();
-    await expect(page.locator("li[aria-current=step]")).toContainText("Add the site you want to check");
+    await expect(
+      page.getByRole("heading", { name: "Get your first result" }),
+    ).toBeVisible();
+    await expect(page.locator("li[aria-current=step]")).toContainText(
+      "Add the site you want to check",
+    );
     expect(await serious(page), `${scheme} guide`).toEqual([]);
-    await page.screenshot({ path: `test-results/overview-new-${scheme}.png`, fullPage: true });
+    await page.screenshot({
+      path: `test-results/overview-new-${scheme}.png`,
+      fullPage: true,
+    });
   });
 
-  test(`scanned account: fix-first and site cards are accurate and accessible (${scheme} theme)`, async ({ page }) => {
+  test(`scanned account: fix-first and site cards are accurate and accessible (${scheme} theme)`, async ({
+    page,
+  }) => {
     await page.emulateMedia({ colorScheme: scheme });
     await stub(page, "scanned");
     await page.goto("/#/");
-    await expect(page.getByRole("heading", { name: "Fix this first" })).toBeVisible();
-    await expect(page.getByText("Strict-Transport-Security header is missing").first()).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Get your first result" })).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "Fix this first" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Strict-Transport-Security header is missing").first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Get your first result" }),
+    ).toHaveCount(0);
     const card = page.getByRole("listitem", { name: "example.org" });
     await expect(card).toContainText("84");
     await expect(card).toContainText("Up 8 since the previous scan");
     await expect(card).toContainText("2 open");
-    await expect(card.getByRole("img", { name: /Score history over 3 scans: 60, 76, 84/ })).toBeVisible();
+    await expect(
+      card.getByRole("img", { name: /Score history over 3 scans: 60, 76, 84/ }),
+    ).toBeVisible();
     expect(await serious(page), `${scheme} posture`).toEqual([]);
-    await page.screenshot({ path: `test-results/overview-scanned-${scheme}.png`, fullPage: true });
+    await page.screenshot({
+      path: `test-results/overview-scanned-${scheme}.png`,
+      fullPage: true,
+    });
   });
 }
 
-test("verified sites fill the scan form, and the fix link opens the finding", async ({ page }) => {
+test("verified sites fill the scan form, and the fix link opens the finding", async ({
+  page,
+}) => {
   await stub(page, "scanned");
   await page.goto("/#/");
-  await page.getByRole("button", { name: "example.org" }).click();
-  await expect(page.getByLabel("Target URL")).toHaveValue("https://example.org/");
+  await page.getByRole("button", { name: "example.org", exact: true }).click();
+  await expect(page.getByLabel("Target URL")).toHaveValue(
+    "https://example.org/",
+  );
   await page.getByRole("link", { name: "See the evidence and fix" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Strict-Transport-Security header is missing" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: "Strict-Transport-Security header is missing",
+    }),
+  ).toBeVisible();
 });
 
 test("overview does not scroll sideways on a phone", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await stub(page, "scanned");
   await page.goto("/#/");
-  await expect(page.getByRole("heading", { name: "Fix this first" })).toBeVisible();
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  await expect(
+    page.getByRole("heading", { name: "Fix this first" }),
+  ).toBeVisible();
+  const overflow = await page.evaluate(
+    () =>
+      document.documentElement.scrollWidth -
+      document.documentElement.clientWidth,
+  );
   expect(overflow).toBeLessThanOrEqual(1);
 });
 
-test("on a phone the navigation is a menu that works by keyboard and passes accessibility checks", async ({ page }) => {
+test("on a phone the navigation is a menu that works by keyboard and passes accessibility checks", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await stub(page, "scanned");
   await page.goto("/#/");
@@ -178,13 +272,21 @@ test("on a phone the navigation is a menu that works by keyboard and passes acce
   await expect(menu).toBeFocused();
   await menu.click();
   await page.getByRole("link", { name: "Targets" }).click();
-  await expect(page.getByRole("heading", { name: "Targets", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Targets", exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Primary" })).toBeHidden();
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  const overflow = await page.evaluate(
+    () =>
+      document.documentElement.scrollWidth -
+      document.documentElement.clientWidth,
+  );
   expect(overflow).toBeLessThanOrEqual(1);
 });
 
-test("on a desktop there is no Menu button and navigation is always visible", async ({ page }) => {
+test("on a desktop there is no Menu button and navigation is always visible", async ({
+  page,
+}) => {
   await stub(page, "scanned");
   await page.goto("/#/");
   await expect(page.getByRole("button", { name: "Menu" })).toBeHidden();

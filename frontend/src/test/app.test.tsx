@@ -56,7 +56,11 @@ interface Mock {
 }
 
 /** Routes fetch by URL. `/auth/me` answers with `me` (null means signed out, i.e. 401). */
-function mockApi(handler: Handler, me: User | null = userWith("OWNER"), status: number | ((url: string, init?: RequestInit) => number) = 200): Mock {
+function mockApi(
+  handler: Handler,
+  me: User | null = userWith("OWNER"),
+  status: number | ((url: string, init?: RequestInit) => number) = 200,
+): Mock {
   const mock: Mock = { calls: [] };
   vi.stubGlobal(
     "fetch",
@@ -65,16 +69,27 @@ function mockApi(handler: Handler, me: User | null = userWith("OWNER"), status: 
       if (url.endsWith("/auth/me")) {
         return me
           ? { ok: true, status: 200, json: async () => me }
-          : { ok: false, status: 401, json: async () => ({ detail: "Authentication required." }) };
+          : {
+              ok: false,
+              status: 401,
+              json: async () => ({ detail: "Authentication required." }),
+            };
       }
       const code = typeof status === "function" ? status(url, init) : status;
-      return { ok: code < 400, status: code, json: async () => handler(url, init) };
+      return {
+        ok: code < 400,
+        status: code,
+        json: async () => handler(url, init),
+      };
     }),
   );
   return mock;
 }
 
-function mockFetch(handler: Handler, status: number | ((url: string, init?: RequestInit) => number) = 200) {
+function mockFetch(
+  handler: Handler,
+  status: number | ((url: string, init?: RequestInit) => number) = 200,
+) {
   return mockApi(handler, userWith("OWNER"), status);
 }
 
@@ -93,9 +108,24 @@ beforeEach(() => {
 
 describe("router", () => {
   it("parses and builds hashes", () => {
-    expect(parseHash("#/findings?scan=abc123")).toEqual({ page: "findings", scanId: "abc123", findingId: null, token: null });
-    expect(parseHash("#/findings?scan=../x")).toEqual({ page: "findings", scanId: null, findingId: null, token: null });
-    expect(parseHash("")).toEqual({ page: "overview", scanId: null, findingId: null, token: null });
+    expect(parseHash("#/findings?scan=abc123")).toEqual({
+      page: "findings",
+      scanId: "abc123",
+      findingId: null,
+      token: null,
+    });
+    expect(parseHash("#/findings?scan=../x")).toEqual({
+      page: "findings",
+      scanId: null,
+      findingId: null,
+      token: null,
+    });
+    expect(parseHash("")).toEqual({
+      page: "overview",
+      scanId: null,
+      findingId: null,
+      token: null,
+    });
     expect(buildHash("history", null)).toBe("#/history");
   });
 });
@@ -112,7 +142,10 @@ describe("Overview", () => {
     mockFetch(() => ({}));
     renderApp();
     const user = userEvent.setup();
-    await user.type(await screen.findByLabelText("Target URL"), "https://example.org");
+    await user.type(
+      await screen.findByLabelText("Target URL"),
+      "https://example.org",
+    );
     const button = screen.getByRole("button", { name: "Start scan" });
     expect(button).toBeDisabled();
     await user.click(screen.getByRole("checkbox"));
@@ -120,13 +153,21 @@ describe("Overview", () => {
   });
 
   it("shows the server error when a target is rejected", async () => {
-    mockFetch(() => ({ detail: "Target resolves to a private address." }), (_url, init) => (init?.method === "POST" ? 422 : 200));
+    mockFetch(
+      () => ({ detail: "Target resolves to a private address." }),
+      (_url, init) => (init?.method === "POST" ? 422 : 200),
+    );
     renderApp();
     const user = userEvent.setup();
-    await user.type(await screen.findByLabelText("Target URL"), "http://internal.test");
+    await user.type(
+      await screen.findByLabelText("Target URL"),
+      "http://internal.test",
+    );
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: "Start scan" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("private address");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "private address",
+    );
   });
 
   it("renders a completed scan loaded from the URL", async () => {
@@ -135,31 +176,68 @@ describe("Overview", () => {
     renderApp();
     expect(await screen.findByText("Grade B")).toBeInTheDocument();
     expect(screen.getByText("Heuristic score.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "JSON" })).toHaveAttribute("href", "/api/v1/scans/abc123/report?format=json");
+    expect(screen.getByRole("link", { name: "JSON" })).toHaveAttribute(
+      "href",
+      "/api/v1/scans/abc123/report?format=json",
+    );
   });
 });
 
 describe("Findings", () => {
   const many: Finding[] = [
     finding,
-    { ...finding, id: "SS-HDR-HSTS-001", title: "Strict-Transport-Security header is missing", severity: "high", category: "Security headers" },
-    { ...finding, id: "SS-DISC-SRV-002", title: "Server header is present", severity: "info", category: "Information disclosure" },
+    {
+      ...finding,
+      id: "SS-HDR-HSTS-001",
+      title: "Strict-Transport-Security header is missing",
+      severity: "high",
+      category: "Security headers",
+    },
+    {
+      ...finding,
+      id: "SS-DISC-SRV-002",
+      title: "Server header is present",
+      severity: "info",
+      category: "Information disclosure",
+    },
   ];
 
   it("links each row to its finding with a text severity label", () => {
     render(<FindingRows scanId="abc123" findings={[finding]} />);
-    const link = screen.getByRole("link", { name: /Content-Security-Policy header missing/ });
-    expect(link).toHaveAttribute("href", "#/findings?scan=abc123&finding=SS-HDR-CSP-001");
+    const link = screen.getByRole("link", {
+      name: /Content-Security-Policy header missing/,
+    });
+    expect(link).toHaveAttribute(
+      "href",
+      "#/findings?scan=abc123&finding=SS-HDR-CSP-001",
+    );
     expect(screen.getByText("Medium")).toBeInTheDocument();
   });
 
   it("filters, searches and sorts", () => {
-    const base = { severity: "all" as const, category: "all", query: "", sort: "severity" as const };
-    expect(filterFindings(many, base).map((f) => f.id)).toEqual(["SS-HDR-HSTS-001", "SS-HDR-CSP-001", "SS-DISC-SRV-002"]);
-    expect(filterFindings(many, { ...base, severity: "info" }).map((f) => f.id)).toEqual(["SS-DISC-SRV-002"]);
-    expect(filterFindings(many, { ...base, category: "Security headers" })).toHaveLength(1);
-    expect(filterFindings(many, { ...base, query: "server" }).map((f) => f.id)).toEqual(["SS-DISC-SRV-002"]);
-    expect(filterFindings(many, { ...base, sort: "title" })[0]?.id).toBe("SS-HDR-CSP-001");
+    const base = {
+      severity: "all" as const,
+      category: "all",
+      query: "",
+      sort: "severity" as const,
+    };
+    expect(filterFindings(many, base).map((f) => f.id)).toEqual([
+      "SS-HDR-HSTS-001",
+      "SS-HDR-CSP-001",
+      "SS-DISC-SRV-002",
+    ]);
+    expect(
+      filterFindings(many, { ...base, severity: "info" }).map((f) => f.id),
+    ).toEqual(["SS-DISC-SRV-002"]);
+    expect(
+      filterFindings(many, { ...base, category: "Security headers" }),
+    ).toHaveLength(1);
+    expect(
+      filterFindings(many, { ...base, query: "server" }).map((f) => f.id),
+    ).toEqual(["SS-DISC-SRV-002"]);
+    expect(filterFindings(many, { ...base, sort: "title" })[0]?.id).toBe(
+      "SS-HDR-CSP-001",
+    );
   });
 
   it("shows evidence as plain text and never claims a fix", async () => {
@@ -167,38 +245,67 @@ describe("Findings", () => {
     mockFetch(() => ({}));
     const { container } = render(
       <AuthProvider>
-        <FindingDetail scan={{ ...scan, findings: [hostile] }} finding={hostile} />
+        <FindingDetail
+          scan={{ ...scan, findings: [hostile] }}
+          finding={hostile}
+        />
       </AuthProvider>,
     );
     expect(container.querySelector("img")).toBeNull();
-    expect(await screen.findByText("<img src=x onerror=alert(1)>")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Evidence" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "How to verify" })).toBeInTheDocument();
-    expect(screen.getByText(/does not mark a finding as fixed/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Content-Security-Policy/ })).toHaveAttribute("rel", "noopener noreferrer");
+    expect(
+      await screen.findByText("<img src=x onerror=alert(1)>"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Evidence" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "How to verify" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/does not mark a finding as fixed/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Content-Security-Policy/ }),
+    ).toHaveAttribute("rel", "noopener noreferrer");
   });
 
   it("opens a finding from the URL and filters the list", async () => {
     window.location.hash = "#/findings?scan=abc123&finding=SS-HDR-CSP-001";
     mockFetch(() => scan);
     renderApp();
-    expect(await screen.findByRole("heading", { name: "Content-Security-Policy header missing" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /All findings/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", {
+        name: "Content-Security-Policy header missing",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /All findings/ }),
+    ).toBeInTheDocument();
   });
 
   it("explains when a finding id is not in the scan", async () => {
     window.location.hash = "#/findings?scan=abc123&finding=SS-NOPE-1";
     mockFetch(() => scan);
     renderApp();
-    expect(await screen.findByText("That finding is not part of this scan.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("That finding is not part of this scan."),
+    ).toBeInTheDocument();
   });
 
   it("shows a failed scan as failed, not as zero findings", async () => {
     window.location.hash = "#/findings?scan=abc123";
-    mockFetch(() => ({ ...scan, status: "failed", error: "Could not connect.", findings: [], counts: {} }));
+    mockFetch(() => ({
+      ...scan,
+      status: "failed",
+      error: "Could not connect.",
+      findings: [],
+      counts: {},
+    }));
     renderApp();
     expect(await screen.findByText("Could not connect.")).toBeInTheDocument();
-    expect(screen.queryByText("No findings from these checks")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("No findings from these checks"),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -217,15 +324,25 @@ describe("Finding status", () => {
     });
     renderApp();
     const user = userEvent.setup();
-    await user.selectOptions(await screen.findByLabelText("Change status"), "accepted_risk");
+    await user.selectOptions(
+      await screen.findByLabelText("Change status"),
+      "accepted_risk",
+    );
     await user.type(screen.getByLabelText("Note (optional)"), "static site");
     await user.click(screen.getByRole("button", { name: "Save status" }));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Status saved."));
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("Status saved."),
+    );
     const patch = mock.calls.find((c) => c.init?.method === "PATCH");
     expect(patch?.url).toBe(`/api/v1/findings/${"a".repeat(32)}`);
-    expect(JSON.parse(String(patch?.init?.body))).toEqual({ status: "accepted_risk", note: "static site" });
+    expect(JSON.parse(String(patch?.init?.body))).toEqual({
+      status: "accepted_risk",
+      note: "static site",
+    });
     expect(patch?.init?.headers).toHaveProperty("X-CSRF-Token");
-    await waitFor(() => expect(screen.getAllByText("Accepted risk").length).toBeGreaterThan(0));
+    await waitFor(() =>
+      expect(screen.getAllByText("Accepted risk").length).toBeGreaterThan(0),
+    );
   });
 
   it("offers only the statuses a person may set, never resolved", async () => {
@@ -233,7 +350,9 @@ describe("Finding status", () => {
     mockApi(() => scan);
     renderApp();
     const select = await screen.findByLabelText("Change status");
-    const options = Array.from(select.querySelectorAll("option")).map((o) => o.textContent);
+    const options = Array.from(select.querySelectorAll("option")).map(
+      (o) => o.textContent,
+    );
     expect(options).toEqual(["Open", "Accepted risk", "False positive"]);
   });
 
@@ -241,23 +360,42 @@ describe("Finding status", () => {
     window.location.hash = url;
     mockApi(() => scan, userWith("VIEWER"));
     renderApp();
-    expect(await screen.findByText(/can read statuses but not change them/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/can read statuses but not change them/),
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText("Change status")).not.toBeInTheDocument();
   });
 
   it("explains a resolved finding and marks heuristic findings", async () => {
     window.location.hash = url;
-    mockApi(() => ({ ...scan, findings: [{ ...finding, status: "resolved", confidence: "medium" }] }));
+    mockApi(() => ({
+      ...scan,
+      findings: [{ ...finding, status: "resolved", confidence: "medium" }],
+    }));
     renderApp();
-    expect(await screen.findByText(/no longer reported it/)).toBeInTheDocument();
-    expect(screen.getByText(/Heuristic match, not confirmed/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/no longer reported it/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Heuristic match, not confirmed/),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Medium confidence/)).toBeInTheDocument();
   });
 
   it("filters the list by status", () => {
-    const base = { severity: "all" as const, category: "all", query: "", sort: "severity" as const };
-    const list: Finding[] = [finding, { ...finding, id: "X", status: "resolved" }];
-    expect(filterFindings(list, { ...base, status: "resolved" }).map((f) => f.id)).toEqual(["X"]);
+    const base = {
+      severity: "all" as const,
+      category: "all",
+      query: "",
+      sort: "severity" as const,
+    };
+    const list: Finding[] = [
+      finding,
+      { ...finding, id: "X", status: "resolved" },
+    ];
+    expect(
+      filterFindings(list, { ...base, status: "resolved" }).map((f) => f.id),
+    ).toEqual(["X"]);
     expect(filterFindings(list, { ...base, status: "all" })).toHaveLength(2);
   });
 });
@@ -267,10 +405,14 @@ describe("Theme", () => {
     window.location.hash = "#/";
     mockFetch(() => scan);
     renderApp();
-    const toggle = await screen.findByRole("button", { name: /Switch to (light|dark) theme/ });
+    const toggle = await screen.findByRole("button", {
+      name: /Switch to (light|dark) theme/,
+    });
     const before = document.documentElement.getAttribute("data-theme");
     fireEvent.click(toggle);
-    expect(document.documentElement.getAttribute("data-theme")).not.toBe(before);
+    expect(document.documentElement.getAttribute("data-theme")).not.toBe(
+      before,
+    );
   });
 });
 
@@ -279,8 +421,12 @@ describe("History", () => {
     window.location.hash = "#/history";
     mockFetch(() => ({ items: [scan], total: 1 }));
     renderApp();
-    await waitFor(() => expect(screen.getByText("example.org")).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "Open scan of example.org" })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText("example.org")).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole("button", { name: "Open scan of example.org" }),
+    ).toBeInTheDocument();
   });
 
   it("shows an empty state", async () => {
@@ -291,12 +437,13 @@ describe("History", () => {
   });
 });
 
-
 describe("Authentication", () => {
   it("shows the sign-in page when there is no session", async () => {
     mockApi(() => ({}), null);
     renderApp();
-    expect(await screen.findByRole("heading", { name: "Sign in required" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Sign in required" }),
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText("Target URL")).not.toBeInTheDocument();
   });
 
@@ -308,7 +455,9 @@ describe("Authentication", () => {
     await user.type(await screen.findByLabelText("Email"), "a@b.co");
     await user.type(screen.getByLabelText("Password"), "wrong-password-123");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid email or password.");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Invalid email or password.",
+    );
     expect(screen.queryByText("Overview")).not.toBeInTheDocument();
   });
 
@@ -324,7 +473,9 @@ describe("Authentication", () => {
     expect(await screen.findByLabelText("Target URL")).toBeInTheDocument();
     const post = mock.calls.find((c) => c.url.endsWith("/auth/register"));
     expect(post?.init?.method).toBe("POST");
-    expect(JSON.parse(String(post?.init?.body))).toMatchObject({ email: "alice@example.org" });
+    expect(JSON.parse(String(post?.init?.body))).toMatchObject({
+      email: "alice@example.org",
+    });
   });
 
   it("sends the CSRF header and organization header on state-changing requests", async () => {
@@ -332,11 +483,22 @@ describe("Authentication", () => {
     const mock = mockFetch(() => ({}), 202);
     renderApp();
     const user = userEvent.setup();
-    await user.type(await screen.findByLabelText("Target URL"), "https://example.org");
+    await user.type(
+      await screen.findByLabelText("Target URL"),
+      "https://example.org",
+    );
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: "Start scan" }));
-    await waitFor(() => expect(mock.calls.some((c) => c.url.endsWith("/scans") && c.init?.method === "POST")).toBe(true));
-    const call = mock.calls.find((c) => c.url.endsWith("/scans") && c.init?.method === "POST");
+    await waitFor(() =>
+      expect(
+        mock.calls.some(
+          (c) => c.url.endsWith("/scans") && c.init?.method === "POST",
+        ),
+      ).toBe(true),
+    );
+    const call = mock.calls.find(
+      (c) => c.url.endsWith("/scans") && c.init?.method === "POST",
+    );
     const headers = call?.init?.headers as Record<string, string>;
     expect(headers["X-CSRF-Token"]).toBe("csrf-token-value");
     expect(headers["X-Organization-Id"]).toBe("org1");
@@ -354,8 +516,12 @@ describe("Authentication", () => {
     renderApp();
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "Sign out" }));
-    await waitFor(() => expect(mock.calls.some((c) => c.url.endsWith("/auth/logout"))).toBe(true));
-    expect(await screen.findByRole("heading", { name: "Sign in" })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(mock.calls.some((c) => c.url.endsWith("/auth/logout"))).toBe(true),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "Sign in" }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -363,8 +529,18 @@ describe("Team", () => {
   const detail = {
     ...userWith("OWNER").organizations[0],
     members: [
-      { user_id: "u1", email: "alice@example.org", role: "OWNER", joined_at: "2026-10-18T10:00:00Z" },
-      { user_id: "u2", email: "bob@example.org", role: "VIEWER", joined_at: "2026-10-18T11:00:00Z" },
+      {
+        user_id: "u1",
+        email: "alice@example.org",
+        role: "OWNER",
+        joined_at: "2026-10-18T10:00:00Z",
+      },
+      {
+        user_id: "u2",
+        email: "bob@example.org",
+        role: "VIEWER",
+        joined_at: "2026-10-18T11:00:00Z",
+      },
     ],
   };
 
@@ -373,8 +549,12 @@ describe("Team", () => {
     mockApi(() => detail, userWith("OWNER"));
     renderApp();
     expect(await screen.findByText("bob@example.org")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Remove bob@example.org" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Add a member" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Remove bob@example.org" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Add a member" }),
+    ).toBeInTheDocument();
   });
 
   it("is read-only for members", async () => {
@@ -382,11 +562,14 @@ describe("Team", () => {
     mockApi(() => detail, userWith("MEMBER"));
     renderApp();
     expect(await screen.findByText("bob@example.org")).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Add a member" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Remove bob@example.org" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Add a member" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Remove bob@example.org" }),
+    ).not.toBeInTheDocument();
   });
 });
-
 
 const targetBase: Target = {
   id: "t1",
@@ -410,11 +593,19 @@ describe("Targets", () => {
     window.location.hash = "#/targets";
     mockFetch(() => ({ items: [targetBase] }));
     renderApp();
-    expect(await screen.findByText("_securescope-challenge.example.org")).toBeInTheDocument();
+    expect(
+      await screen.findByText("_securescope-challenge.example.org"),
+    ).toBeInTheDocument();
     // The same value is shown for the DNS record and for the file content.
-    expect(screen.getAllByText("securescope-verification=" + "a".repeat(32), { selector: "dd code" })).toHaveLength(2);
+    expect(
+      screen.getAllByText("securescope-verification=" + "a".repeat(32), {
+        selector: "dd code",
+      }),
+    ).toHaveLength(2);
     expect(screen.getByText("Not verified")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Verify DNS record" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Verify DNS record" }),
+    ).toBeEnabled();
   });
 
   it("shows the server's reason when verification fails and never claims success", async () => {
@@ -423,15 +614,23 @@ describe("Targets", () => {
     let current = targetBase;
     const mock = mockFetch((url) => {
       if (url.endsWith("/verify")) {
-        current = { ...targetBase, last_check_error: "No TXT record was found at _securescope-challenge.example.org." };
+        current = {
+          ...targetBase,
+          last_check_error:
+            "No TXT record was found at _securescope-challenge.example.org.",
+        };
         return current;
       }
       return { items: [current] };
     });
     renderApp();
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Verify DNS record" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("No TXT record was found");
+    await user.click(
+      await screen.findByRole("button", { name: "Verify DNS record" }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "No TXT record was found",
+    );
     expect(screen.getByText("Not verified")).toBeInTheDocument();
     expect(screen.queryByText("Verified")).not.toBeInTheDocument();
     const call = mock.calls.find((c) => c.url.endsWith("/verify"));
@@ -445,31 +644,60 @@ describe("Targets", () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "Remove" }));
     expect(mock.calls.some((c) => c.init?.method === "DELETE")).toBe(false);
-    await user.click(screen.getByRole("button", { name: /Confirm removal of example.org/ }));
-    await waitFor(() => expect(mock.calls.some((c) => c.init?.method === "DELETE")).toBe(true));
+    await user.click(
+      screen.getByRole("button", { name: /Confirm removal of example.org/ }),
+    );
+    await waitFor(() =>
+      expect(mock.calls.some((c) => c.init?.method === "DELETE")).toBe(true),
+    );
   });
 
   it("hides management controls from viewers", async () => {
     window.location.hash = "#/targets";
-    mockApi(() => ({ items: [{ ...targetBase, status: "verified", verified_at: "2026-10-18T11:00:00Z", verification_method: "dns_txt" }] }), userWith("VIEWER"));
+    mockApi(
+      () => ({
+        items: [
+          {
+            ...targetBase,
+            status: "verified",
+            verified_at: "2026-10-18T11:00:00Z",
+            verification_method: "dns_txt",
+          },
+        ],
+      }),
+      userWith("VIEWER"),
+    );
     renderApp();
     expect(await screen.findByText("Verified")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Remove" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Domain name")).not.toBeInTheDocument();
   });
 
   it("points to Targets when a scan is refused because ownership is unverified", async () => {
     mockFetch(
-      () => ({ detail: "Ownership of example.org has not been verified. Add and verify it under Targets first." }),
+      () => ({
+        detail:
+          "Ownership of example.org has not been verified. Add and verify it under Targets first.",
+      }),
       (_url, init) => (init?.method === "POST" ? 403 : 200),
     );
     renderApp();
     const user = userEvent.setup();
-    await user.type(await screen.findByLabelText("Target URL"), "https://example.org");
+    await user.type(
+      await screen.findByLabelText("Target URL"),
+      "https://example.org",
+    );
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: "Start scan" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("has not been verified");
-    expect(screen.getByRole("link", { name: "Go to Targets" })).toHaveAttribute("href", "#/targets");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "has not been verified",
+    );
+    expect(screen.getByRole("link", { name: "Go to Targets" })).toHaveAttribute(
+      "href",
+      "#/targets",
+    );
   });
 });
 
@@ -501,7 +729,9 @@ describe("Overview guidance and posture", () => {
     open_counts: { medium: 1 },
     open_total: 1,
     top_finding: null,
-    history: [{ scan_id: "abc123", score: 84, scanned_at: "2026-10-18T12:00:00Z" }],
+    history: [
+      { scan_id: "abc123", score: 84, scanned_at: "2026-10-18T12:00:00Z" },
+    ],
   };
   const topFinding = {
     host: "example.org",
@@ -513,7 +743,11 @@ describe("Overview guidance and posture", () => {
     remediation: "Add a CSP.",
   };
   const empty = { sites: [], fix_first: null, other_open: 0 };
-  const scanned = { sites: [{ ...site, top_finding: topFinding }], fix_first: topFinding, other_open: 0 };
+  const scanned = {
+    sites: [{ ...site, top_finding: topFinding }],
+    fix_first: topFinding,
+    other_open: 0,
+  };
 
   function route(targets: Target[], overview: unknown): Handler {
     return (url) => {
@@ -527,10 +761,15 @@ describe("Overview guidance and posture", () => {
   it("walks a new user through the first step", async () => {
     mockFetch(route([], empty));
     renderApp();
-    expect(await screen.findByRole("heading", { name: "Get your first result" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Get your first result" }),
+    ).toBeInTheDocument();
     const current = screen.getByRole("listitem", { current: "step" });
     expect(current).toHaveTextContent("Add the site you want to check");
-    expect(screen.getByRole("link", { name: "Add a site" })).toHaveAttribute("href", "#/targets");
+    expect(screen.getByRole("link", { name: "Add a site" })).toHaveAttribute(
+      "href",
+      "#/targets",
+    );
     expect(screen.queryByText("Fix this first")).not.toBeInTheDocument();
   });
 
@@ -538,20 +777,29 @@ describe("Overview guidance and posture", () => {
     mockFetch(route([verified], empty));
     renderApp();
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "example.org" }));
-    expect(screen.getByLabelText("Target URL")).toHaveValue("https://example.org/");
-    expect(screen.getByRole("listitem", { current: "step" })).toHaveTextContent("Run your first scan");
+    await user.click(
+      await screen.findByRole("button", { name: "example.org" }),
+    );
+    expect(screen.getByLabelText("Target URL")).toHaveValue(
+      "https://example.org/",
+    );
+    expect(screen.getByRole("listitem", { current: "step" })).toHaveTextContent(
+      "Run your first scan",
+    );
   });
 
   it("shows what to fix first, and drops the setup guide, once a scan has completed", async () => {
     mockFetch(route([verified], scanned));
     renderApp();
-    expect(await screen.findByRole("heading", { name: "Fix this first" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Get your first result" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "See the evidence and fix" })).toHaveAttribute(
-      "href",
-      "#/findings?scan=abc123&finding=SS-HDR-CSP-001",
-    );
+    expect(
+      await screen.findByRole("heading", { name: "Fix this first" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Get your first result" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "See the evidence and fix" }),
+    ).toHaveAttribute("href", "#/findings?scan=abc123&finding=SS-HDR-CSP-001");
     const card = screen.getByRole("listitem", { name: "example.org" });
     expect(card).toHaveTextContent("Grade B");
     expect(card).toHaveTextContent("First scan of this site");
@@ -559,11 +807,17 @@ describe("Overview guidance and posture", () => {
   });
 
   it("says nothing is open when the server reports no open findings", async () => {
-    const clean = { sites: [{ ...site, open_counts: {}, open_total: 0 }], fix_first: null, other_open: 0 };
+    const clean = {
+      sites: [{ ...site, open_counts: {}, open_total: 0 }],
+      fix_first: null,
+      other_open: 0,
+    };
     mockFetch(route([verified], clean));
     renderApp();
     expect(await screen.findByText(/Nothing open/)).toBeInTheDocument();
-    expect(screen.getByRole("listitem", { name: "example.org" })).toHaveTextContent("No open findings.");
+    expect(
+      screen.getByRole("listitem", { name: "example.org" }),
+    ).toHaveTextContent("No open findings.");
   });
 
   it("shows the score change and a text alternative for the score history", async () => {
@@ -571,20 +825,32 @@ describe("Overview guidance and posture", () => {
       { scan_id: "a", score: 76, scanned_at: "2026-10-18T10:00:00Z" },
       { scan_id: "b", score: 84, scanned_at: "2026-10-18T12:00:00Z" },
     ];
-    const rising = { sites: [{ ...site, previous_score: 76, score_change: 8, history }], fix_first: null, other_open: 0 };
+    const rising = {
+      sites: [{ ...site, previous_score: 76, score_change: 8, history }],
+      fix_first: null,
+      other_open: 0,
+    };
     mockFetch(route([verified], rising));
     renderApp();
     const card = await screen.findByRole("listitem", { name: "example.org" });
     expect(card).toHaveTextContent("▲ Up 8 since the previous scan");
-    expect(screen.getByRole("img", { name: /Score history over 2 scans: 76, 84. Now 84, up from 76./ })).toBeInTheDocument();
-    expect(screen.getByRole("table", { name: /Score of each completed scan/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", {
+        name: /Score history over 2 scans: 76, 84. Now 84, up from 76./,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("table", { name: /Score of each completed scan/ }),
+    ).toBeInTheDocument();
   });
 
   it("tells viewers they cannot scan and offers no setup buttons", async () => {
     mockApi(route([], empty), userWith("VIEWER"));
     renderApp();
     expect(await screen.findByText(/cannot start scans/)).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Add a site" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Add a site" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Target URL")).not.toBeInTheDocument();
   });
 
@@ -592,7 +858,9 @@ describe("Overview guidance and posture", () => {
     window.location.hash = "#/?scan=abc123";
     mockFetch(route([verified], scanned));
     renderApp();
-    expect(await screen.findByRole("link", { name: "Review 1 finding" })).toHaveAttribute("href", "#/findings?scan=abc123");
+    expect(
+      await screen.findByRole("link", { name: "Review 1 finding" }),
+    ).toHaveAttribute("href", "#/findings?scan=abc123");
   });
 });
 
@@ -605,9 +873,15 @@ describe("Navigation menu (narrow screens)", () => {
     expect(button).toHaveAttribute("aria-expanded", "false");
     expect(button).toHaveAttribute("aria-controls", "rail-menu");
     await user.click(button);
-    expect(screen.getByRole("button", { name: "Close menu" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Close menu" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
     await user.keyboard("{Escape}");
-    expect(screen.getByRole("button", { name: "Menu" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: "Menu" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
     expect(screen.getByRole("button", { name: "Menu" })).toHaveFocus();
   });
 
@@ -617,7 +891,11 @@ describe("Navigation menu (narrow screens)", () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "Menu" }));
     await user.click(screen.getByRole("link", { name: "Targets" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Menu" })).toHaveAttribute("aria-expanded", "false"));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Menu" })).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      ),
+    );
   });
 });
-

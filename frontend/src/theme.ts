@@ -5,7 +5,9 @@ const KEY = "securescope-theme";
 
 function systemTheme(): Theme {
   try {
-    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    return window.matchMedia("(prefers-color-scheme: light)").matches
+      ? "light"
+      : "dark";
   } catch {
     return "dark";
   }

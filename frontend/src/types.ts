@@ -1,13 +1,30 @@
 export type Severity = "critical" | "high" | "medium" | "low" | "info";
-export type ScanStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
+export type ScanStatus =
+  "queued" | "running" | "completed" | "failed" | "cancelled";
 
-export const SEVERITIES: readonly Severity[] = ["critical", "high", "medium", "low", "info"];
+export const SEVERITIES: readonly Severity[] = [
+  "critical",
+  "high",
+  "medium",
+  "low",
+  "info",
+];
 
 export type Confidence = "high" | "medium" | "low";
 /** `resolved` is only ever set by the scanner, when a later completed scan no longer reports the finding. */
-export type FindingStatus = "open" | "accepted_risk" | "false_positive" | "resolved";
-export const FINDING_STATUSES: readonly FindingStatus[] = ["open", "accepted_risk", "false_positive", "resolved"];
-export const ANALYST_STATUSES: readonly FindingStatus[] = ["open", "accepted_risk", "false_positive"];
+export type FindingStatus =
+  "open" | "accepted_risk" | "false_positive" | "resolved";
+export const FINDING_STATUSES: readonly FindingStatus[] = [
+  "open",
+  "accepted_risk",
+  "false_positive",
+  "resolved",
+];
+export const ANALYST_STATUSES: readonly FindingStatus[] = [
+  "open",
+  "accepted_risk",
+  "false_positive",
+];
 
 export interface Finding {
   id: string;
@@ -66,7 +83,13 @@ export interface ScanList {
 export type ReportFormat = "json" | "md" | "html" | "pdf";
 
 export type Role = "OWNER" | "ADMIN" | "SECURITY_ANALYST" | "MEMBER" | "VIEWER";
-export const ROLES: readonly Role[] = ["OWNER", "ADMIN", "SECURITY_ANALYST", "MEMBER", "VIEWER"];
+export const ROLES: readonly Role[] = [
+  "OWNER",
+  "ADMIN",
+  "SECURITY_ANALYST",
+  "MEMBER",
+  "VIEWER",
+];
 
 export interface Organization {
   id: string;
@@ -189,4 +212,3 @@ export interface Overview {
   fix_first: TopFinding | null;
   other_open: number;
 }
-

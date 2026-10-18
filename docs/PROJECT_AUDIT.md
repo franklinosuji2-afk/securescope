@@ -4,15 +4,15 @@ Date: 2026-10-18. Scope: the repository as it stood at the start of Phase 1 (Sec
 
 ## What existed (v0.1)
 
-| Area | State |
-|---|---|
-| Frontend | React 19 + TypeScript (strict) + Vite, hand-written CSS, hash routing. Overview / Findings / Scan History. Vitest + Testing Library (8 tests). |
-| Backend | FastAPI, anonymous API (no authentication, no organizations). 5 endpoints. |
-| Scanner | DNS-pinned `httpx` fetcher, same-site-only redirects, size/time/request caps; passive checks for HTTPS, security headers, disclosure headers, cookie flags, directory-index signature; heuristic score. |
-| Storage | SQLite with hand-rolled migrations. |
-| Tests | 110 backend tests (target validation, SSRF/private IP rejection, redirects, checks, scoring, API, reports) using a local mock target; no internet needed. |
-| Containers | Dockerfiles, Compose with SQLite volume. |
-| CI | GitHub Actions: ruff, mypy, pytest, frontend lint/typecheck/test/build, docker build. |
+| Area       | State                                                                                                                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend   | React 19 + TypeScript (strict) + Vite, hand-written CSS, hash routing. Overview / Findings / Scan History. Vitest + Testing Library (8 tests).                                                          |
+| Backend    | FastAPI, anonymous API (no authentication, no organizations). 5 endpoints.                                                                                                                              |
+| Scanner    | DNS-pinned `httpx` fetcher, same-site-only redirects, size/time/request caps; passive checks for HTTPS, security headers, disclosure headers, cookie flags, directory-index signature; heuristic score. |
+| Storage    | SQLite with hand-rolled migrations.                                                                                                                                                                     |
+| Tests      | 110 backend tests (target validation, SSRF/private IP rejection, redirects, checks, scoring, API, reports) using a local mock target; no internet needed.                                               |
+| Containers | Dockerfiles, Compose with SQLite volume.                                                                                                                                                                |
+| CI         | GitHub Actions: ruff, mypy, pytest, frontend lint/typecheck/test/build, docker build.                                                                                                                   |
 
 ## What works
 
@@ -43,7 +43,6 @@ Restructured into the target layout (`core`, `security`, `scanner`, `reporting`,
 ## Not verified in Phase 1
 
 Docker image builds and `docker compose up` (Docker is unavailable in the authoring environment; the Compose file only passes `docker compose config`).
-
 
 ## Phase 2 addendum (v0.3)
 

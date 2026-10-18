@@ -17,7 +17,9 @@ function Shell({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function message(err: unknown): string {
-  return err instanceof ApiError ? err.message : "Something went wrong. Please try again.";
+  return err instanceof ApiError
+    ? err.message
+    : "Something went wrong. Please try again.";
 }
 
 function Field(props: {
@@ -47,7 +49,11 @@ function Field(props: {
         aria-describedby={props.hint ? `${props.id}-hint` : undefined}
       />
       {props.hint && (
-        <p id={`${props.id}-hint`} className="muted small" style={{ marginTop: 4 }}>
+        <p
+          id={`${props.id}-hint`}
+          className="muted small"
+          style={{ marginTop: 4 }}
+        >
           {props.hint}
         </p>
       )}
@@ -79,15 +85,29 @@ export function LoginPage({ onDone }: { onDone: () => void }) {
   return (
     <Shell title="Sign in">
       <form className="scan-form" onSubmit={submit}>
-        <Field id="email" label="Email" type="email" value={email} onChange={setEmail} autoComplete="username" />
-        <Field id="password" label="Password" type="password" value={password} onChange={setPassword} autoComplete="current-password" />
+        <Field
+          id="email"
+          label="Email"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          autoComplete="username"
+        />
+        <Field
+          id="password"
+          label="Password"
+          type="password"
+          value={password}
+          onChange={setPassword}
+          autoComplete="current-password"
+        />
         {error && <ErrorNotice message={error} />}
         <button className="btn" type="submit" disabled={busy}>
           {busy ? "Signing in…" : "Sign in"}
         </button>
         <p className="small">
-          <a href={buildHash("forgot-password", null)}>Forgot your password?</a> ·{" "}
-          <a href={buildHash("register", null)}>Create an account</a>
+          <a href={buildHash("forgot-password", null)}>Forgot your password?</a>{" "}
+          · <a href={buildHash("register", null)}>Create an account</a>
         </p>
       </form>
     </Shell>
@@ -119,7 +139,14 @@ export function RegisterPage({ onDone }: { onDone: () => void }) {
   return (
     <Shell title="Create your account">
       <form className="scan-form" onSubmit={submit}>
-        <Field id="email" label="Email" type="email" value={email} onChange={setEmail} autoComplete="username" />
+        <Field
+          id="email"
+          label="Email"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          autoComplete="username"
+        />
         <Field
           id="password"
           label="Password"
@@ -129,7 +156,13 @@ export function RegisterPage({ onDone }: { onDone: () => void }) {
           autoComplete="new-password"
           hint="At least 12 characters. A passphrase works well."
         />
-        <Field id="org" label="Workspace name (optional)" value={org} onChange={setOrg} required={false} />
+        <Field
+          id="org"
+          label="Workspace name (optional)"
+          value={org}
+          onChange={setOrg}
+          required={false}
+        />
         {error && <ErrorNotice message={error} />}
         <button className="btn" type="submit" disabled={busy}>
           {busy ? "Creating…" : "Create account"}
@@ -160,7 +193,14 @@ export function ForgotPasswordPage() {
   return (
     <Shell title="Reset your password">
       <form className="scan-form" onSubmit={submit}>
-        <Field id="email" label="Email" type="email" value={email} onChange={setEmail} autoComplete="username" />
+        <Field
+          id="email"
+          label="Email"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          autoComplete="username"
+        />
         {error && <ErrorNotice message={error} />}
         {done && (
           <div className="notice notice-info" role="status">
@@ -171,7 +211,8 @@ export function ForgotPasswordPage() {
           Send reset link
         </button>
         <p className="muted small">
-          This development build does not send real email; the link is written to the server log.
+          This development build does not send real email; the link is written
+          to the server log.
         </p>
         <a className="small" href={buildHash("login", null)}>
           Back to sign in
@@ -212,7 +253,15 @@ export function ResetPasswordPage({ token }: { token: string | null }) {
         </div>
       ) : (
         <form className="scan-form" onSubmit={submit}>
-          <Field id="password" label="New password" type="password" value={password} onChange={setPassword} autoComplete="new-password" hint="At least 12 characters." />
+          <Field
+            id="password"
+            label="New password"
+            type="password"
+            value={password}
+            onChange={setPassword}
+            autoComplete="new-password"
+            hint="At least 12 characters."
+          />
           {error && <ErrorNotice message={error} />}
           <button className="btn" type="submit">
             Update password

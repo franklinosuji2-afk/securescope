@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { rescanLabel } from "./RescanButton";
 import { ApiError, cancelScan, reportUrl, retryScan } from "../api";
 import { formatDate } from "../format";
 import type { ScanDetail } from "../types";
@@ -32,7 +33,10 @@ export function ScanStatusCard({ scan }: { scan: ScanDetail }) {
       <div className="stat-value" style={{ fontSize: "1.2rem" }}>
         <StatusPill status={scan.status} />
       </div>
-      <p className="muted small" style={{ marginTop: 8, overflowWrap: "anywhere" }}>
+      <p
+        className="muted small"
+        style={{ marginTop: 8, overflowWrap: "anywhere" }}
+      >
         {scan.target_url}
       </p>
       <p className="muted small">Started {formatDate(scan.created_at)}</p>
@@ -48,7 +52,9 @@ export function TargetMeta({ scan }: { scan: ScanDetail }) {
         <h2>Target metadata</h2>
       </div>
       {!m ? (
-        <p className="muted">Metadata appears once the first response has been received.</p>
+        <p className="muted">
+          Metadata appears once the first response has been received.
+        </p>
       ) : (
         <dl className="meta">
           <dt>Host</dt>
@@ -62,7 +68,9 @@ export function TargetMeta({ scan }: { scan: ScanDetail }) {
           <dt>Content type</dt>
           <dd>{m.content_type ?? "–"}</dd>
           <dt>Response time</dt>
-          <dd>{m.response_time_ms != null ? `${m.response_time_ms} ms` : "–"}</dd>
+          <dd>
+            {m.response_time_ms != null ? `${m.response_time_ms} ms` : "–"}
+          </dd>
           <dt>Requests made</dt>
           <dd>{m.requests_made}</dd>
           <dt>Redirects</dt>
@@ -95,7 +103,9 @@ export function ScanActions({
     try {
       await action();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "That did not work. Try again.");
+      setError(
+        err instanceof ApiError ? err.message : "That did not work. Try again.",
+      );
     } finally {
       setBusy(false);
     }
@@ -117,13 +127,23 @@ export function ScanActions({
     <div className="stack-sm">
       <div className="row">
         {isActive(scan.status) && (
-          <button className="btn-ghost" type="button" disabled={busy} onClick={() => void cancel()}>
+          <button
+            className="btn-ghost"
+            type="button"
+            disabled={busy}
+            onClick={() => void cancel()}
+          >
             {busy ? "Cancelling…" : "Cancel scan"}
           </button>
         )}
-        {(scan.status === "failed" || scan.status === "cancelled") && (
-          <button className="btn-ghost" type="button" disabled={busy} onClick={() => void retry()}>
-            {busy ? "Starting…" : "Retry scan"}
+        {!isActive(scan.status) && (
+          <button
+            className="btn-ghost"
+            type="button"
+            disabled={busy}
+            onClick={() => void retry()}
+          >
+            {busy ? "Starting…" : rescanLabel(scan.status)}
           </button>
         )}
       </div>
@@ -146,17 +166,25 @@ export default function ScanView({
 }) {
   return (
     <div className="stack">
-      {scan.status === "failed" && <ErrorNotice message={scan.error ?? "The scan failed."} />}
+      {scan.status === "failed" && (
+        <ErrorNotice message={scan.error ?? "The scan failed."} />
+      )}
       {scan.status === "cancelled" && (
         <div className="notice notice-info" role="note">
-          This scan was cancelled before it finished. No findings or score were recorded, and earlier results are
-          unchanged.
+          This scan was cancelled before it finished. No findings or score were
+          recorded, and earlier results are unchanged.
         </div>
       )}
-      {onChanged && onRetried && <ScanActions scan={scan} onChanged={onChanged} onRetried={onRetried} />}
+      {onChanged && onRetried && (
+        <ScanActions scan={scan} onChanged={onChanged} onRetried={onRetried} />
+      )}
       <div className="grid grid-3">
         <ScanStatusCard scan={scan} />
-        <ScoreCard score={scan.score} grade={scan.grade} note={scan.score_note} />
+        <ScoreCard
+          score={scan.score}
+          grade={scan.grade}
+          note={scan.score_note}
+        />
         <SeverityBreakdown counts={scan.counts} />
       </div>
       <TargetMeta scan={scan} />

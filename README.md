@@ -22,37 +22,37 @@ Requires Docker with Compose v2. No cloud account, no paid API. Data lives in Po
 
 Captured from the running app against a real scan history of my own portfolio site (`cfo-dev.pages.dev`): it started at 80/B with four findings, and three were fixed and later marked **Resolved** by SecureScope when a newer scan no longer reported them. Account details are replaced with placeholders.
 
-| Overview: what to fix first, score history | Findings with lifecycle status |
-| --- | --- |
+| Overview: what to fix first, score history                  | Findings with lifecycle status                                   |
+| ----------------------------------------------------------- | ---------------------------------------------------------------- |
 | ![Overview, dark theme](docs/screenshots/overview-dark.png) | ![Findings list, dark theme](docs/screenshots/findings-dark.png) |
 
-| Finding detail (light theme) | Overview (light theme) |
-| --- | --- |
+| Finding detail (light theme)                                                                      | Overview (light theme)                                        |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | ![Resolved finding with evidence and fix, light theme](docs/screenshots/finding-detail-light.png) | ![Overview, light theme](docs/screenshots/overview-light.png) |
 
 ## What is implemented
 
-| Area | Status |
-|---|---|
-| HTTPS usage and response metadata (status, content type, redirects, timing) | Implemented |
-| Security headers: HSTS (HTTPS only), CSP, X-Content-Type-Options, Referrer-Policy, Permissions-Policy | Implemented |
-| Disclosure headers: `Server` version detail, `X-Powered-By` | Implemented |
-| Cookie attributes: `Secure`, `HttpOnly`, `SameSite` | Implemented |
-| Conservative directory-index signature in the returned page | Implemented |
-| Heuristic score and grade, severity breakdown, score history per site | Implemented |
-| Evidence on every finding (URL, HTTP status, which headers were seen) and a per-finding confidence (`high` = observed, `medium` = heuristic) | Implemented |
-| Finding lifecycle per organization and host: open, accepted risk, false positive (set by analysts, with a note), resolved (set only when a later completed scan no longer reports it). Failed scans never resolve anything | Implemented |
-| Reports state what was checked, what passed and the limits of the scan | Implemented |
-| Scan history, retention cleanup (default 30 days) | Implemented |
-| Report export: PDF, HTML, Markdown, JSON | Implemented |
-| Scan control: cancel a queued or running scan, retry a failed or cancelled one (ownership and rate limits are checked again) | Implemented |
-| Audit log for owners and admins: API and page with filter and paging | Implemented |
-| Dashboard: Overview (guided setup, "fix this first", per-site posture and score history), Targets, Findings (filters, detail page with impact, evidence and fix), Scan History, Team, Audit log | Implemented |
-| Accessibility: light and dark themes, severity never shown by colour alone, keyboard-operable, automated axe checks in CI, mobile navigation menu | Implemented. No manual screen-reader testing yet |
-| Domain targets with DNS TXT / HTTP-file ownership verification; scans refused for unverified hosts | Implemented. HTTP-file verification confirmed once end to end on a real domain; the DNS TXT path is tested with mocks only |
-| Registration, login, logout, sessions (HttpOnly cookies + CSRF), Argon2id passwords | Implemented |
-| Organizations, 5 roles enforced server-side, tenant-isolated scans, audit events | Implemented |
-| Email verification / password reset flows | Implemented, but mail goes to the server log only |
+| Area                                                                                                                                                                                                                       | Status                                                                                                                     |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| HTTPS usage and response metadata (status, content type, redirects, timing)                                                                                                                                                | Implemented                                                                                                                |
+| Security headers: HSTS (HTTPS only), CSP, X-Content-Type-Options, Referrer-Policy, Permissions-Policy                                                                                                                      | Implemented                                                                                                                |
+| Disclosure headers: `Server` version detail, `X-Powered-By`                                                                                                                                                                | Implemented                                                                                                                |
+| Cookie attributes: `Secure`, `HttpOnly`, `SameSite`                                                                                                                                                                        | Implemented                                                                                                                |
+| Conservative directory-index signature in the returned page                                                                                                                                                                | Implemented                                                                                                                |
+| Heuristic score and grade, severity breakdown, score history per site                                                                                                                                                      | Implemented                                                                                                                |
+| Evidence on every finding (URL, HTTP status, which headers were seen) and a per-finding confidence (`high` = observed, `medium` = heuristic)                                                                               | Implemented                                                                                                                |
+| Finding lifecycle per organization and host: open, accepted risk, false positive (set by analysts, with a note), resolved (set only when a later completed scan no longer reports it). Failed scans never resolve anything | Implemented                                                                                                                |
+| Reports state what was checked, what passed and the limits of the scan                                                                                                                                                     | Implemented                                                                                                                |
+| Scan history, retention cleanup (default 30 days)                                                                                                                                                                          | Implemented                                                                                                                |
+| Report export: PDF, HTML, Markdown, JSON                                                                                                                                                                                   | Implemented                                                                                                                |
+| Scan control: cancel a queued or running scan, scan any finished site again with one click (ownership and rate limits are checked again)                                                                                   | Implemented                                                                                                                |
+| Audit log for owners and admins: API and page with filter and paging                                                                                                                                                       | Implemented                                                                                                                |
+| Dashboard: Overview (guided setup, "fix this first", per-site posture and score history), Targets, Findings (filters, detail page with impact, evidence and fix), Scan History, Team, Audit log                            | Implemented                                                                                                                |
+| Accessibility: light and dark themes, severity never shown by colour alone, keyboard-operable, automated axe checks in CI, mobile navigation menu                                                                          | Implemented. No manual screen-reader testing yet                                                                           |
+| Domain targets with DNS TXT / HTTP-file ownership verification; scans refused for unverified hosts                                                                                                                         | Implemented. HTTP-file verification confirmed once end to end on a real domain; the DNS TXT path is tested with mocks only |
+| Registration, login, logout, sessions (HttpOnly cookies + CSRF), Argon2id passwords                                                                                                                                        | Implemented                                                                                                                |
+| Organizations, 5 roles enforced server-side, tenant-isolated scans, audit events                                                                                                                                           | Implemented                                                                                                                |
+| Email verification / password reset flows                                                                                                                                                                                  | Implemented, but mail goes to the server log only                                                                          |
 
 ## Roadmap (not implemented)
 
@@ -76,19 +76,19 @@ See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/DATA_RETENTION.md](docs/
 
 ## API
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/api/v1/health` | Liveness |
-| GET | `/api/v1/ready` | Readiness (database reachable) |
-| POST | `/api/v1/scans` | Start a scan: `{"url": "...", "authorization_confirmed": true}` → 202 |
-| GET | `/api/v1/scans?limit=&offset=` | List scans |
-| GET | `/api/v1/scans/{id}` | Scan detail with findings |
-| POST | `/api/v1/scans/{id}/cancel` | Cancel a queued or running scan |
-| POST | `/api/v1/scans/{id}/retry` | Run a failed or cancelled scan again (new scan) → 202 |
-| GET | `/api/v1/scans/{id}/report?format=json\|md\|html\|pdf` | Export |
-| GET | `/api/v1/audit-events?limit=&offset=&event_type=` | Audit log (owners and admins) |
-| GET | `/api/v1/overview` | Per-site posture: latest score, change, open findings, score history, what to fix first |
-| PATCH | `/api/v1/findings/{fingerprint}` | Analyst triage: accepted risk, false positive, or reopen |
+| Method | Path                                                   | Purpose                                                                                 |
+| ------ | ------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/health`                                       | Liveness                                                                                |
+| GET    | `/api/v1/ready`                                        | Readiness (database reachable)                                                          |
+| POST   | `/api/v1/scans`                                        | Start a scan: `{"url": "...", "authorization_confirmed": true}` → 202                   |
+| GET    | `/api/v1/scans?limit=&offset=`                         | List scans                                                                              |
+| GET    | `/api/v1/scans/{id}`                                   | Scan detail with findings                                                               |
+| POST   | `/api/v1/scans/{id}/cancel`                            | Cancel a queued or running scan                                                         |
+| POST   | `/api/v1/scans/{id}/retry`                             | Scan the same address again after a scan has finished (new scan) → 202                  |
+| GET    | `/api/v1/scans/{id}/report?format=json\|md\|html\|pdf` | Export                                                                                  |
+| GET    | `/api/v1/audit-events?limit=&offset=&event_type=`      | Audit log (owners and admins)                                                           |
+| GET    | `/api/v1/overview`                                     | Per-site posture: latest score, change, open findings, score history, what to fix first |
+| PATCH  | `/api/v1/findings/{fingerprint}`                       | Analyst triage: accepted risk, false positive, or reopen                                |
 
 Scan endpoints require a signed-in user. Authentication, organization and member endpoints are in [docs/API.md](docs/API.md).
 

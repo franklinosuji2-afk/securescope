@@ -10,12 +10,16 @@ import { canReadAudit } from "../types";
 const PAGE = 25;
 
 function Resource({ entry }: { entry: AuditEntry }) {
-  if (!entry.resource_type || !entry.resource_id) return <span className="muted">–</span>;
+  if (!entry.resource_type || !entry.resource_id)
+    return <span className="muted">–</span>;
   const short = entry.resource_id.slice(0, 8);
   const label = `${entry.resource_type} ${short}`;
   if (entry.resource_type === "scan") {
     return (
-      <a href={buildHash("findings", entry.resource_id)} aria-label={`Open scan ${short}`}>
+      <a
+        href={buildHash("findings", entry.resource_id)}
+        aria-label={`Open scan ${short}`}
+      >
         scan <code>{short}</code>
       </a>
     );
@@ -50,7 +54,12 @@ export default function Audit() {
         setError(null);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "Could not load the audit log.");
+        if (!cancelled)
+          setError(
+            err instanceof ApiError
+              ? err.message
+              : "Could not load the audit log.",
+          );
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -74,7 +83,9 @@ export default function Audit() {
       setTotal(page.total);
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not load more events.");
+      setError(
+        err instanceof ApiError ? err.message : "Could not load more events.",
+      );
     } finally {
       setLoading(false);
     }
@@ -84,18 +95,30 @@ export default function Audit() {
     <div className="stack">
       <header className="page-head">
         <h1>Audit log</h1>
-        <p>Who did what in this organization, newest first. Only owners and admins can see it.</p>
+        <p>
+          Who did what in this organization, newest first. Only owners and
+          admins can see it.
+        </p>
       </header>
       {!allowed ? (
         <div className="notice notice-info" role="note">
-          Your role ({organization?.role ?? "none"}) cannot view the audit log. Ask an owner or admin.
+          Your role ({organization?.role ?? "none"}) cannot view the audit log.
+          Ask an owner or admin.
         </div>
       ) : (
         <>
-          <form className="toolbar" aria-label="Filter the audit log" onSubmit={(e) => e.preventDefault()}>
+          <form
+            className="toolbar"
+            aria-label="Filter the audit log"
+            onSubmit={(e) => e.preventDefault()}
+          >
             <label className="toolbar-field">
               <span className="field-label">Event</span>
-              <select className="input" value={eventType} onChange={(e) => choose(e.target.value)}>
+              <select
+                className="input"
+                value={eventType}
+                onChange={(e) => choose(e.target.value)}
+              >
                 <option value="">All events</option>
                 {types.map((t) => (
                   <option key={t} value={t}>
@@ -106,9 +129,13 @@ export default function Audit() {
             </label>
           </form>
           {error && <ErrorNotice message={error} />}
-          {loading && items.length === 0 && <Loading label="Loading the audit log…" />}
+          {loading && items.length === 0 && (
+            <Loading label="Loading the audit log…" />
+          )}
           {!loading && !error && items.length === 0 && (
-            <EmptyState title="No events">Nothing matches this filter yet.</EmptyState>
+            <EmptyState title="No events">
+              Nothing matches this filter yet.
+            </EmptyState>
           )}
           {items.length > 0 && (
             <>
@@ -117,7 +144,9 @@ export default function Audit() {
               </p>
               <div className="card table-wrap">
                 <table>
-                  <caption className="visually-hidden">Audit events, newest first</caption>
+                  <caption className="visually-hidden">
+                    Audit events, newest first
+                  </caption>
                   <thead>
                     <tr>
                       <th scope="col">When</th>
@@ -133,14 +162,18 @@ export default function Audit() {
                         <td>{formatDate(e.timestamp)}</td>
                         <td>{auditLabel(e.event_type)}</td>
                         <td style={{ overflowWrap: "anywhere" }}>
-                          {e.actor_email ?? <span className="muted">No user recorded</span>}
+                          {e.actor_email ?? (
+                            <span className="muted">No user recorded</span>
+                          )}
                         </td>
                         <td>
                           <Resource entry={e} />
                         </td>
                         <td>
                           {e.request_id ? (
-                            <code title={e.request_id}>{e.request_id.slice(0, 8)}</code>
+                            <code title={e.request_id}>
+                              {e.request_id.slice(0, 8)}
+                            </code>
                           ) : (
                             <span className="muted">–</span>
                           )}
@@ -153,7 +186,12 @@ export default function Audit() {
             </>
           )}
           {items.length < total && (
-            <button className="btn-ghost" type="button" disabled={loading} onClick={() => void loadMore()}>
+            <button
+              className="btn-ghost"
+              type="button"
+              disabled={loading}
+              onClick={() => void loadMore()}
+            >
               Load more
             </button>
           )}

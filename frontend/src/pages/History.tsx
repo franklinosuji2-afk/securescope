@@ -4,6 +4,7 @@ import { useAuth } from "../auth";
 import { EmptyState, ErrorNotice, Loading, StatusPill } from "../components/ui";
 import { formatDate } from "../format";
 import type { ScanSummary } from "../types";
+import { rescanLabel } from "../components/RescanButton";
 import { canScan, isActive } from "../types";
 
 const PAGE = 25;
@@ -29,7 +30,9 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
       }
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "That did not work. Try again.");
+      setError(
+        err instanceof ApiError ? err.message : "That did not work. Try again.",
+      );
     } finally {
       setBusyId(null);
     }
@@ -42,7 +45,9 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
       setTotal(page.total);
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not load scan history.");
+      setError(
+        err instanceof ApiError ? err.message : "Could not load scan history.",
+      );
     } finally {
       setLoading(false);
     }
@@ -57,7 +62,12 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
         setTotal(page.total);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "Could not load scan history.");
+        if (!cancelled)
+          setError(
+            err instanceof ApiError
+              ? err.message
+              : "Could not load scan history.",
+          );
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -71,12 +81,17 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
     <div className="stack">
       <header className="page-head">
         <h1>Scan history</h1>
-        <p>Saved scans include the target, score and finding details – never page bodies.</p>
+        <p>
+          Saved scans include the target, score and finding details – never page
+          bodies.
+        </p>
       </header>
       {error && <ErrorNotice message={error} />}
       {loading && items.length === 0 && <Loading label="Loading history…" />}
       {!loading && !error && items.length === 0 && (
-        <EmptyState title="No scans yet">Completed scans will be listed here.</EmptyState>
+        <EmptyState title="No scans yet">
+          Completed scans will be listed here.
+        </EmptyState>
       )}
       {items.length > 0 && (
         <div className="card table-wrap">
@@ -101,11 +116,18 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
                     <StatusPill status={s.status} />
                   </td>
                   <td>{s.score != null ? `${s.score} (${s.grade})` : "–"}</td>
-                  <td>{Object.values(s.counts).reduce((a, b) => a + (b ?? 0), 0)}</td>
+                  <td>
+                    {Object.values(s.counts).reduce((a, b) => a + (b ?? 0), 0)}
+                  </td>
                   <td>{formatDate(s.created_at)}</td>
                   <td>
                     <div className="row">
-                      <button className="btn-ghost" type="button" onClick={() => onOpen(s.id)} aria-label={`Open scan of ${s.host}`}>
+                      <button
+                        className="btn-ghost"
+                        type="button"
+                        onClick={() => onOpen(s.id)}
+                        aria-label={`Open scan of ${s.host}`}
+                      >
                         Open
                       </button>
                       {mayControl && isActive(s.status) && (
@@ -119,15 +141,17 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
                           Cancel
                         </button>
                       )}
-                      {mayControl && (s.status === "failed" || s.status === "cancelled") && (
+                      {mayControl && !isActive(s.status) && (
                         <button
                           className="btn-ghost"
                           type="button"
                           disabled={busyId === s.id}
                           onClick={() => void control(s, "retry")}
-                          aria-label={`Retry scan of ${s.host}`}
+                          aria-label={`${rescanLabel(s.status)} of ${s.host}`}
                         >
-                          Retry
+                          {s.status === "failed" || s.status === "cancelled"
+                            ? "Retry"
+                            : "Scan again"}
                         </button>
                       )}
                     </div>
@@ -139,10 +163,15 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
         </div>
       )}
       {items.length < total && (
-        <button className="btn-ghost" type="button" disabled={loading} onClick={() => {
+        <button
+          className="btn-ghost"
+          type="button"
+          disabled={loading}
+          onClick={() => {
             setLoading(true);
             void loadMore(items.length);
-          }}>
+          }}
+        >
           Load more
         </button>
       )}

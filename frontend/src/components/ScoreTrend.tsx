@@ -11,14 +11,32 @@ const HEIGHT = 44;
  */
 export default function ScoreTrend({ history }: { history: ScorePoint[] }) {
   const scores = history.map((p) => p.score);
-  if (scores.length < 2) return <p className="muted small">{historySummary(scores)}</p>;
+  if (scores.length < 2)
+    return <p className="muted small">{historySummary(scores)}</p>;
   const points = chartPoints(scores, WIDTH, HEIGHT);
   const last = points[points.length - 1]!;
   return (
     <div className="trend">
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width={WIDTH} height={HEIGHT} role="img" aria-label={historySummary(scores)} className="trend-svg">
-        <line x1="0" x2={WIDTH} y1={HEIGHT - 4} y2={HEIGHT - 4} className="trend-base" />
-        <polyline points={points.map((p) => `${p.x},${p.y}`).join(" ")} className="trend-line" fill="none" />
+      <svg
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        width={WIDTH}
+        height={HEIGHT}
+        role="img"
+        aria-label={historySummary(scores)}
+        className="trend-svg"
+      >
+        <line
+          x1="0"
+          x2={WIDTH}
+          y1={HEIGHT - 4}
+          y2={HEIGHT - 4}
+          className="trend-base"
+        />
+        <polyline
+          points={points.map((p) => `${p.x},${p.y}`).join(" ")}
+          className="trend-line"
+          fill="none"
+        />
         {points.slice(0, -1).map((p, i) => (
           <circle key={i} cx={p.x} cy={p.y} r="2" className="trend-dot" />
         ))}
@@ -27,7 +45,9 @@ export default function ScoreTrend({ history }: { history: ScorePoint[] }) {
       <details className="trend-table">
         <summary className="small">Score history</summary>
         <table className="small">
-          <caption className="visually-hidden">Score of each completed scan, oldest first</caption>
+          <caption className="visually-hidden">
+            Score of each completed scan, oldest first
+          </caption>
           <thead>
             <tr>
               <th scope="col">Scanned</th>

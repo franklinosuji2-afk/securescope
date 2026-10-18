@@ -147,10 +147,13 @@ async def cancel_scan(scan_id: str, request: Request, state: StateDep, ctx: CanC
 
 @router.post("/{scan_id}/retry", response_model=ScanDetail, status_code=202)
 async def retry_scan(scan_id: str, request: Request, state: StateDep, ctx: CanCreate) -> ScanDetail:
-    """Starts a new scan of the same address. Ownership, target rules and rate limits apply again."""
+    """Starts a new scan of the same address as a finished one ("scan again" / "retry").
+
+    Ownership, target rules and rate limits apply again, exactly as for a new scan.
+    """
     detail = await _load(state, ctx, scan_id)
-    if detail.status not in (ScanStatus.FAILED, ScanStatus.CANCELLED):
-        raise HTTPException(status_code=409, detail="Only a failed or cancelled scan can be retried.")
+    if detail.status in (ScanStatus.QUEUED, ScanStatus.RUNNING):
+        raise HTTPException(status_code=409, detail="This scan is still running, so it cannot be run again yet.")
     created = await _start_scan(state, request, ctx, detail.target_url)
     await _audit(state, request, ctx, "scan.retried", scan_id)
     return created

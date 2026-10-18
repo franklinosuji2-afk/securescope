@@ -4,7 +4,13 @@ import type { FindingStatus, ScanStatus, Severity } from "../types";
 import { SEVERITIES } from "../types";
 
 /** Shape + text label, so severity never depends on colour alone. */
-const SEVERITY_GLYPH: Record<Severity, string> = { critical: "◆", high: "▲", medium: "■", low: "●", info: "○" };
+const SEVERITY_GLYPH: Record<Severity, string> = {
+  critical: "◆",
+  high: "▲",
+  medium: "■",
+  low: "●",
+  info: "○",
+};
 
 export function SeverityBadge({ severity }: { severity: Severity }) {
   return (
@@ -25,7 +31,9 @@ export function StatusPill({ status }: { status: ScanStatus }) {
   const label = status.charAt(0).toUpperCase() + status.slice(1);
   return (
     <span className={`pill pill-${status}`}>
-      {(status === "running" || status === "queued") && <span className="spinner" aria-hidden="true" />}
+      {(status === "running" || status === "queued") && (
+        <span className="spinner" aria-hidden="true" />
+      )}
       {label}
     </span>
   );
@@ -39,7 +47,13 @@ export function ErrorNotice({ message }: { message: string }) {
   );
 }
 
-export function EmptyState({ title, children }: { title: string; children: ReactNode }) {
+export function EmptyState({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <div className="card empty">
       <h2>{title}</h2>
@@ -56,7 +70,15 @@ export function Loading({ label }: { label: string }) {
   );
 }
 
-export function ScoreCard({ score, grade, note }: { score: number | null; grade: string | null; note: string }) {
+export function ScoreCard({
+  score,
+  grade,
+  note,
+}: {
+  score: number | null;
+  grade: string | null;
+  note: string;
+}) {
   return (
     <div className="card">
       <div className="stat-label">Heuristic score</div>
@@ -69,7 +91,11 @@ export function ScoreCard({ score, grade, note }: { score: number | null; grade:
   );
 }
 
-export function SeverityBreakdown({ counts }: { counts: Partial<Record<Severity, number>> }) {
+export function SeverityBreakdown({
+  counts,
+}: {
+  counts: Partial<Record<Severity, number>>;
+}) {
   const max = Math.max(1, ...SEVERITIES.map((s) => counts[s] ?? 0));
   return (
     <div className="card">
@@ -83,7 +109,10 @@ export function SeverityBreakdown({ counts }: { counts: Partial<Record<Severity,
             <li key={s} className={`bar-row sev-${s}`}>
               <span>{severityLabel(s)}</span>
               <div className="bar-track" aria-hidden="true">
-                <div className="bar-fill" style={{ width: `${(n / max) * 100}%` }} />
+                <div
+                  className="bar-fill"
+                  style={{ width: `${(n / max) * 100}%` }}
+                />
               </div>
               <span className="bar-count" style={{ color: "var(--text)" }}>
                 {n}

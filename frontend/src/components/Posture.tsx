@@ -2,6 +2,7 @@ import { gradeClass, formatDate, severityLabel } from "../format";
 import { guidanceFor } from "../guidance";
 import { deltaText } from "../overview";
 import { buildHash } from "../router";
+import RescanButton from "./RescanButton";
 import type { Overview, SitePosture } from "../types";
 import { SEVERITIES } from "../types";
 import ScoreTrend from "./ScoreTrend";
@@ -14,8 +15,8 @@ export function FixFirstPanel({ overview }: { overview: Overview }) {
       <section className="card fix-first" aria-labelledby="fix-title">
         <h2 id="fix-title">Fix this first</h2>
         <p>
-          Nothing open. The latest scans report no open findings. That means these passive checks found nothing, not
-          that the sites are secure.
+          Nothing open. The latest scans report no open findings. That means
+          these passive checks found nothing, not that the sites are secure.
         </p>
       </section>
     );
@@ -34,12 +35,16 @@ export function FixFirstPanel({ overview }: { overview: Overview }) {
         <strong>What to do:</strong> {fix.remediation}
       </p>
       <div className="row">
-        <a className="btn btn-link" href={buildHash("findings", fix.scan_id, fix.finding_id)}>
+        <a
+          className="btn btn-link"
+          href={buildHash("findings", fix.scan_id, fix.finding_id)}
+        >
           See the evidence and fix
         </a>
         {overview.other_open > 0 && (
           <span className="muted small">
-            {overview.other_open} other open finding{overview.other_open === 1 ? "" : "s"} across your sites
+            {overview.other_open} other open finding
+            {overview.other_open === 1 ? "" : "s"} across your sites
           </span>
         )}
       </div>
@@ -47,15 +52,28 @@ export function FixFirstPanel({ overview }: { overview: Overview }) {
   );
 }
 
-export function SiteCard({ site }: { site: SitePosture }) {
-  const trendClass = site.score_change === null || site.score_change === 0 ? "muted" : site.score_change > 0 ? "trend-up" : "trend-down";
+export function SiteCard({
+  site,
+  onScanAgain,
+}: {
+  site: SitePosture;
+  onScanAgain?: (scanId: string) => void;
+}) {
+  const trendClass =
+    site.score_change === null || site.score_change === 0
+      ? "muted"
+      : site.score_change > 0
+        ? "trend-up"
+        : "trend-down";
   return (
     <li className="card site-card" aria-label={site.host}>
       <div className="site-head">
         <h3>{site.host}</h3>
         <span className="stat-value site-score">
           {site.score ?? "–"}
-          {site.grade && <span className={gradeClass(site.grade)}>Grade {site.grade}</span>}
+          {site.grade && (
+            <span className={gradeClass(site.grade)}>Grade {site.grade}</span>
+          )}
         </span>
       </div>
       <p className={`small ${trendClass}`}>{deltaText(site.score_change)}</p>
@@ -76,20 +94,37 @@ export function SiteCard({ site }: { site: SitePosture }) {
         </p>
       )}
       <p className="muted small">Last scanned {formatDate(site.scanned_at)}</p>
-      <a className="btn-ghost" href={buildHash("findings", site.latest_scan_id)}>
+      <a
+        className="btn-ghost"
+        href={buildHash("findings", site.latest_scan_id)}
+      >
         View findings
       </a>
+      {onScanAgain && (
+        <RescanButton
+          scanId={site.latest_scan_id}
+          host={site.host}
+          status="completed"
+          onStarted={onScanAgain}
+        />
+      )}
     </li>
   );
 }
 
-export default function Posture({ overview }: { overview: Overview }) {
+export default function Posture({
+  overview,
+  onScanAgain,
+}: {
+  overview: Overview;
+  onScanAgain?: (scanId: string) => void;
+}) {
   return (
     <div className="stack">
       <FixFirstPanel overview={overview} />
       <ul className="site-grid" aria-label="Your sites">
         {overview.sites.map((site) => (
-          <SiteCard key={site.host} site={site} />
+          <SiteCard key={site.host} site={site} onScanAgain={onScanAgain} />
         ))}
       </ul>
     </div>

@@ -21,7 +21,9 @@ export default function Team() {
       setDetail(await api.getOrganization(orgId));
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not load the team.");
+      setError(
+        err instanceof ApiError ? err.message : "Could not load the team.",
+      );
     }
   }, [orgId]);
 
@@ -31,7 +33,15 @@ export default function Team() {
       api
         .getOrganization(orgId)
         .then((d) => !cancelled && setDetail(d))
-        .catch((err: unknown) => !cancelled && setError(err instanceof ApiError ? err.message : "Could not load the team."));
+        .catch(
+          (err: unknown) =>
+            !cancelled &&
+            setError(
+              err instanceof ApiError
+                ? err.message
+                : "Could not load the team.",
+            ),
+        );
     }
     return () => {
       cancelled = true;
@@ -62,8 +72,10 @@ export default function Team() {
       <header className="page-head">
         <h1>Team</h1>
         <p>
-          {organization ? `Members of ${organization.name}. Your role: ${organization.role}.` : "No organization."} Roles are
-          enforced by the server.
+          {organization
+            ? `Members of ${organization.name}. Your role: ${organization.role}.`
+            : "No organization."}{" "}
+          Roles are enforced by the server.
         </p>
       </header>
       {error && <ErrorNotice message={error} />}
@@ -86,7 +98,9 @@ export default function Team() {
                 <tr key={m.user_id}>
                   <td style={{ overflowWrap: "anywhere" }}>
                     {m.email}
-                    {m.user_id === user?.id && <span className="muted"> (you)</span>}
+                    {m.user_id === user?.id && (
+                      <span className="muted"> (you)</span>
+                    )}
                   </td>
                   <td>
                     {manage ? (
@@ -95,7 +109,15 @@ export default function Team() {
                         style={{ flex: "none", padding: "6px 8px" }}
                         aria-label={`Role for ${m.email}`}
                         value={m.role}
-                        onChange={(e) => void run(() => api.updateMember(detail.id, m.user_id, e.target.value as Role))}
+                        onChange={(e) =>
+                          void run(() =>
+                            api.updateMember(
+                              detail.id,
+                              m.user_id,
+                              e.target.value as Role,
+                            ),
+                          )
+                        }
                       >
                         {ROLES.map((r) => (
                           <option key={r} value={r}>
@@ -113,8 +135,14 @@ export default function Team() {
                       <button
                         className="btn-ghost"
                         type="button"
-                        onClick={() => void run(() => api.removeMember(detail.id, m.user_id))}
-                        aria-label={m.user_id === user?.id ? "Leave organization" : `Remove ${m.email}`}
+                        onClick={() =>
+                          void run(() => api.removeMember(detail.id, m.user_id))
+                        }
+                        aria-label={
+                          m.user_id === user?.id
+                            ? "Leave organization"
+                            : `Remove ${m.email}`
+                        }
                       >
                         {m.user_id === user?.id ? "Leave" : "Remove"}
                       </button>
@@ -129,10 +157,27 @@ export default function Team() {
       {manage && (
         <form className="card scan-form" onSubmit={add}>
           <h2>Add a member</h2>
-          <p className="muted small">The person must already have a SecureScope account. Email invitations are not implemented yet.</p>
+          <p className="muted small">
+            The person must already have a SecureScope account. Email
+            invitations are not implemented yet.
+          </p>
           <div className="input-row">
-            <input className="input" type="email" placeholder="colleague@example.com" aria-label="Member email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <select className="input" style={{ flex: "none" }} aria-label="Role" value={role} onChange={(e) => setRole(e.target.value as Role)}>
+            <input
+              className="input"
+              type="email"
+              placeholder="colleague@example.com"
+              aria-label="Member email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <select
+              className="input"
+              style={{ flex: "none" }}
+              aria-label="Role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as Role)}
+            >
               {ROLES.map((r) => (
                 <option key={r} value={r}>
                   {r}

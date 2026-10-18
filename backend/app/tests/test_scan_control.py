@@ -124,14 +124,49 @@ def test_retry_runs_a_new_scan_of_the_same_address(local_client: TestClient, moc
     assert "scan.retried" in types and types.count("scan.created") == 2
 
 
-def test_only_failed_or_cancelled_scans_can_be_retried(local_client: TestClient, mock_server: str) -> None:
+def test_a_finished_scan_can_be_run_again_but_a_running_one_cannot(
+    local_client: TestClient, mock_server: str
+) -> None:
+    limiter = local_client.app.state.s  # type: ignore[attr-defined]
+    limiter.target_limiter.limit = limiter.client_limiter.limit = 50  # this test makes several scans
     done = run_scan(local_client, mock_server)
-    assert local_client.post(f"{API}/scans/{done['id']}/retry").status_code == 409
+    again = local_client.post(f"{API}/scans/{done['id']}/retry")
+    assert again.status_code == 202, again.text
+    new = again.json()
+    assert new["id"] != done["id"] and new["target_url"] == done["target_url"]
+    assert wait_for(local_client, new["id"], "completed")["score"] == done["score"]
+    assert local_client.get(f"{API}/scans/{done['id']}").json()["status"] == "completed"  # untouched
+
     local_client.app.state.s.settings.request_timeout_seconds = 8  # type: ignore[attr-defined]
     running = start(local_client, mock_server, "slow")
-    assert local_client.post(f"{API}/scans/{running}/retry").status_code == 409
+    refused = local_client.post(f"{API}/scans/{running}/retry")
+    assert refused.status_code == 409 and "still running" in refused.json()["detail"]
     assert local_client.post(f"{API}/scans/{running}/cancel").status_code == 200
     assert local_client.post(f"{API}/scans/{running}/retry").status_code == 202
+
+
+def test_running_a_scan_again_is_rate_limited_like_any_other_scan(
+    local_client: TestClient, mock_server: str
+) -> None:
+    done = run_scan(local_client, mock_server)  # the default allows 3 scans of one site per hour
+    for _ in range(2):
+        assert local_client.post(f"{API}/scans/{done['id']}/retry").status_code == 202
+    blocked = local_client.post(f"{API}/scans/{done['id']}/retry")
+    assert blocked.status_code == 429 and "too often" in blocked.json()["detail"]
+
+
+def test_running_a_completed_scan_again_updates_the_finding_lifecycle(
+    local_client: TestClient, mock_server: str
+) -> None:
+    first = run_scan(local_client, mock_server)
+    second = local_client.post(f"{API}/scans/{first['id']}/retry").json()
+    detail = wait_for(local_client, second["id"], "completed")
+    # The same findings are seen again: still open, with the original first-seen time kept.
+    by_id = {f["id"]: f for f in detail["findings"]}
+    for old in first["findings"]:
+        assert by_id[old["id"]]["status"] == "open"
+        assert by_id[old["id"]]["first_seen_at"] == old["first_seen_at"]
+        assert by_id[old["id"]]["last_seen_at"] >= old["last_seen_at"]
 
 
 def test_retry_checks_ownership_again(local_client: TestClient, mock_server: str) -> None:

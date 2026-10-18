@@ -23,20 +23,31 @@ export default function ScanForm({
       const scan = await createScan(url.trim(), authorized);
       onStarted(scan.id);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not start the scan.");
+      setError(
+        err instanceof ApiError ? err.message : "Could not start the scan.",
+      );
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <form className="card scan-form" onSubmit={submit} aria-labelledby="scan-form-title">
+    <form
+      className="card scan-form"
+      onSubmit={submit}
+      aria-labelledby="scan-form-title"
+    >
       <h2 id="scan-form-title">Start a scan</h2>
       {verifiedHosts.length > 0 && (
         <div className="row" role="group" aria-label="Your verified sites">
           <span className="muted small">Verified sites:</span>
           {verifiedHosts.map((host) => (
-            <button key={host} type="button" className="chip" onClick={() => setUrl(`https://${host}/`)}>
+            <button
+              key={host}
+              type="button"
+              className="chip"
+              onClick={() => setUrl(`https://${host}/`)}
+            >
               {host}
             </button>
           ))}
@@ -60,16 +71,25 @@ export default function ScanForm({
             aria-describedby={error ? "scan-error" : undefined}
             autoComplete="off"
           />
-          <button className="btn" type="submit" disabled={busy || !authorized || url.trim() === ""}>
+          <button
+            className="btn"
+            type="submit"
+            disabled={busy || !authorized || url.trim() === ""}
+          >
             {busy ? "Starting…" : "Start scan"}
           </button>
         </div>
       </div>
       <label className="check">
-        <input type="checkbox" checked={authorized} onChange={(e) => setAuthorized(e.target.checked)} />
+        <input
+          type="checkbox"
+          checked={authorized}
+          onChange={(e) => setAuthorized(e.target.checked)}
+        />
         <span>
-          I own this website or have written authorization to test it. Ownership of the domain must also be verified
-          under Targets before a scan can run.
+          I own this website or have written authorization to test it. Ownership
+          of the domain must also be verified under Targets before a scan can
+          run.
         </span>
       </label>
       {error && (
@@ -77,7 +97,8 @@ export default function ScanForm({
           <ErrorNotice message={error} />
           {/verified/i.test(error) && (
             <p className="small">
-              <a href="#/targets">Go to Targets</a> to add and verify this domain.
+              <a href="#/targets">Go to Targets</a> to add and verify this
+              domain.
             </p>
           )}
         </div>

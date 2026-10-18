@@ -10,7 +10,13 @@ import { canManageTargets, canScan } from "../types";
 import { useOverviewData } from "../useOverviewData";
 import { useScan } from "../useScan";
 
-export default function Overview({ route, onStarted }: { route: Route; onStarted: (id: string) => void }) {
+export default function Overview({
+  route,
+  onStarted,
+}: {
+  route: Route;
+  onStarted: (id: string) => void;
+}) {
   const { scan, loading, error, reload } = useScan(route.scanId);
   const { organization } = useAuth();
   const role = organization?.role;
@@ -19,31 +25,54 @@ export default function Overview({ route, onStarted }: { route: Route; onStarted
 
   const scanned = data.overview.sites.length > 0;
   const showGuide = !data.loading && !data.error && !scanned && !route.scanId;
-  const verifiedHosts = data.targets.filter((t) => t.status === "verified").map((t) => t.hostname);
+  const verifiedHosts = data.targets
+    .filter((t) => t.status === "verified")
+    .map((t) => t.hostname);
 
   return (
     <div className="stack">
       <header className="page-head">
         <h1>Overview</h1>
         <p>
-          Where your sites stand and what to do next. Passive, non-exploitative checks of headers, cookies and basic
-          exposure for sites you own or are authorized to test. This is not a penetration test.
+          Where your sites stand and what to do next. Passive, non-exploitative
+          checks of headers, cookies and basic exposure for sites you own or are
+          authorized to test. This is not a penetration test.
         </p>
       </header>
       {data.loading && <Loading label="Loading your sites…" />}
       {data.error && <ErrorNotice message={data.error} />}
-      {showGuide && <SetupGuide steps={setupSteps(data.targets, scanned, role ? canManageTargets(role) : false)} />}
-      {scanned && <Posture overview={data.overview} />}
+      {showGuide && (
+        <SetupGuide
+          steps={setupSteps(
+            data.targets,
+            scanned,
+            role ? canManageTargets(role) : false,
+          )}
+        />
+      )}
+      {scanned && (
+        <Posture
+          overview={data.overview}
+          onScanAgain={allowed ? onStarted : undefined}
+        />
+      )}
       {allowed ? (
         <ScanForm onStarted={onStarted} verifiedHosts={verifiedHosts} />
       ) : (
         <div className="notice notice-info" role="note">
-          Your role ({role ?? "none"}) can view scans and export reports but cannot start scans.
+          Your role ({role ?? "none"}) can view scans and export reports but
+          cannot start scans.
         </div>
       )}
       {error && <ErrorNotice message={error} />}
       {loading && !scan && <Loading label="Loading scan…" />}
-      {scan && <ScanView scan={scan} onChanged={allowed ? reload : undefined} onRetried={allowed ? onStarted : undefined} />}
+      {scan && (
+        <ScanView
+          scan={scan}
+          onChanged={allowed ? reload : undefined}
+          onRetried={allowed ? onStarted : undefined}
+        />
+      )}
       {scan?.status === "completed" && (
         <p>
           <a className="btn btn-link" href={buildHash("findings", scan.id)}>

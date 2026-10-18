@@ -8,17 +8,17 @@ Browser ──► nginx (frontend, :8080) ──/api/──► FastAPI (backend,
 
 ## Backend layout (`backend/app`)
 
-| Package | Responsibility |
-|---|---|
-| `main.py` | App factory, middleware, lifespan, `/api/v1` router |
-| `core/` | Settings (`SECURESCOPE_*`), structured JSON logging |
-| `security/` | Target URL parsing, DNS resolution and public-address validation (SSRF defence) |
-| `scanner/` | DNS-pinned fetcher, passive checks (pure functions), scoring, scan runner |
-| `schemas/` | Pydantic request/response models |
+| Package                                 | Responsibility                                                                    |
+| --------------------------------------- | --------------------------------------------------------------------------------- |
+| `main.py`                               | App factory, middleware, lifespan, `/api/v1` router                               |
+| `core/`                                 | Settings (`SECURESCOPE_*`), structured JSON logging                               |
+| `security/`                             | Target URL parsing, DNS resolution and public-address validation (SSRF defence)   |
+| `scanner/`                              | DNS-pinned fetcher, passive checks (pure functions), scoring, scan runner         |
+| `schemas/`                              | Pydantic request/response models                                                  |
 | `models/`, `database/`, `repositories/` | SQLAlchemy models, engine/session, repository layer; Alembic in `backend/alembic` |
-| `reporting/` | JSON, Markdown and HTML (escaped) reports |
-| `middleware/` | Sliding-window rate limiter |
-| `tests/` | 112 tests; local mock target, no internet |
+| `reporting/`                            | JSON, Markdown and HTML (escaped) reports                                         |
+| `middleware/`                           | Sliding-window rate limiter                                                       |
+| `tests/`                                | 112 tests; local mock target, no internet                                         |
 
 ## Data
 

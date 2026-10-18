@@ -4,7 +4,13 @@ import { useTheme } from "./theme";
 import { Loading } from "./components/ui";
 import type { Page } from "./router";
 import { PUBLIC_PAGES, buildHash, useRoute } from "./router";
-import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, VerifyEmailPage } from "./pages/AuthPages";
+import {
+  ForgotPasswordPage,
+  LoginPage,
+  RegisterPage,
+  ResetPasswordPage,
+  VerifyEmailPage,
+} from "./pages/AuthPages";
 import Targets from "./pages/Targets";
 import Team from "./pages/Team";
 import Findings from "./pages/Findings";
@@ -59,7 +65,11 @@ export default function App() {
         <div className="card auth-card">
           <h1>Sign in required</h1>
           <p className="muted">Please sign in to use SecureScope.</p>
-          <a className="btn" style={{ textAlign: "center", textDecoration: "none" }} href={buildHash("login", null)}>
+          <a
+            className="btn"
+            style={{ textAlign: "center", textDecoration: "none" }}
+            href={buildHash("login", null)}
+          >
             Sign in
           </a>
         </div>
@@ -93,73 +103,112 @@ export default function App() {
       </a>
       <aside className={`rail${menuOpen ? " rail-open" : ""}`}>
         <div className="rail-top">
-        <div className="brand">
-          <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
-            <path d="M16 3 5 7v8c0 7 4.6 11.7 11 14 6.4-2.3 11-7 11-14V7L16 3Z" fill="none" strokeWidth="2.2" style={{ stroke: "var(--accent)" }} />
-            <path d="m11 16 4 4 6-8" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: "var(--ok)" }} />
-          </svg>
-          SecureScope
-        </div>
-        <button
-          ref={menuButton}
-          type="button"
-          className="btn-ghost menu-btn"
-          aria-expanded={menuOpen}
-          aria-controls="rail-menu"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          {menuOpen ? "Close menu" : "Menu"}
-        </button>
+          <div className="brand">
+            <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+              <path
+                d="M16 3 5 7v8c0 7 4.6 11.7 11 14 6.4-2.3 11-7 11-14V7L16 3Z"
+                fill="none"
+                strokeWidth="2.2"
+                style={{ stroke: "var(--accent)" }}
+              />
+              <path
+                d="m11 16 4 4 6-8"
+                fill="none"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ stroke: "var(--ok)" }}
+              />
+            </svg>
+            SecureScope
+          </div>
+          <button
+            ref={menuButton}
+            type="button"
+            className="btn-ghost menu-btn"
+            aria-expanded={menuOpen}
+            aria-controls="rail-menu"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            {menuOpen ? "Close menu" : "Menu"}
+          </button>
         </div>
         <div className="rail-menu" id="rail-menu">
-        <nav className="nav" aria-label="Primary">
-          {NAV.filter((n) => n.page !== "audit" || (organization ? canReadAudit(organization.role) : false)).map((n) => (
-            <a
-              key={n.page}
-              href={buildHash(n.page, n.page === "history" ? null : route.scanId)}
-              aria-current={route.page === n.page ? "page" : undefined}
+          <nav className="nav" aria-label="Primary">
+            {NAV.filter(
+              (n) =>
+                n.page !== "audit" ||
+                (organization ? canReadAudit(organization.role) : false),
+            ).map((n) => (
+              <a
+                key={n.page}
+                href={buildHash(
+                  n.page,
+                  n.page === "history" ? null : route.scanId,
+                )}
+                aria-current={route.page === n.page ? "page" : undefined}
+              >
+                {n.label}
+              </a>
+            ))}
+          </nav>
+          <div className="rail-user">
+            {user.organizations.length > 1 ? (
+              <select
+                className="input"
+                aria-label="Active organization"
+                value={organization?.id ?? ""}
+                onChange={(e) => setOrganizationId(e.target.value)}
+              >
+                {user.organizations.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="small">{organization?.name}</div>
+            )}
+            <div className="muted small" style={{ overflowWrap: "anywhere" }}>
+              {user.email}
+              {organization ? ` · ${organization.role}` : ""}
+            </div>
+            {!user.email_verified && (
+              <div className="small">Email not confirmed</div>
+            )}
+            <button
+              className="btn-ghost"
+              type="button"
+              onClick={toggle}
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
             >
-              {n.label}
-            </a>
-          ))}
-        </nav>
-        <div className="rail-user">
-          {user.organizations.length > 1 ? (
-            <select
-              className="input"
-              aria-label="Active organization"
-              value={organization?.id ?? ""}
-              onChange={(e) => setOrganizationId(e.target.value)}
+              {theme === "dark" ? "Light theme" : "Dark theme"}
+            </button>
+            <button
+              className="btn-ghost"
+              type="button"
+              onClick={() => void signOut().then(() => navigate("login"))}
             >
-              {user.organizations.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <div className="small">{organization?.name}</div>
-          )}
-          <div className="muted small" style={{ overflowWrap: "anywhere" }}>
-            {user.email}
-            {organization ? ` · ${organization.role}` : ""}
+              Sign out
+            </button>
           </div>
-          {!user.email_verified && <div className="small">Email not confirmed</div>}
-          <button className="btn-ghost" type="button" onClick={toggle} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
-            {theme === "dark" ? "Light theme" : "Dark theme"}
-          </button>
-          <button className="btn-ghost" type="button" onClick={() => void signOut().then(() => navigate("login"))}>
-            Sign out
-          </button>
-        </div>
-        <p className="rail-note">Heuristic, passive checks only. Not a penetration test.</p>
+          <p className="rail-note">
+            Heuristic, passive checks only. Not a penetration test.
+          </p>
         </div>
       </aside>
       <main className="main" id="main" tabIndex={-1}>
-        {route.page === "overview" && <Overview route={route} onStarted={(id) => navigate("overview", id)} />}
+        {route.page === "overview" && (
+          <Overview
+            route={route}
+            onStarted={(id) => navigate("overview", id)}
+          />
+        )}
         {route.page === "targets" && <Targets />}
         {route.page === "findings" && <Findings route={route} />}
-        {route.page === "history" && <History onOpen={(id) => navigate("findings", id)} />}
+        {route.page === "history" && (
+          <History onOpen={(id) => navigate("findings", id)} />
+        )}
         {route.page === "team" && <Team />}
         {route.page === "audit" && <Audit />}
       </main>

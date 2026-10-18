@@ -1,8 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { chartPoints, deltaText, historySummary, setupSteps } from "../overview";
+import {
+  chartPoints,
+  deltaText,
+  historySummary,
+  setupSteps,
+} from "../overview";
 import type { Target } from "../types";
 
-function target(hostname: string, status: Target["status"] = "pending"): Target {
+function target(
+  hostname: string,
+  status: Target["status"] = "pending",
+): Target {
   return {
     id: hostname,
     hostname,
@@ -24,25 +32,42 @@ function target(hostname: string, status: Target["status"] = "pending"): Target 
 describe("setupSteps", () => {
   it("starts with adding a site when there is nothing yet", () => {
     const steps = setupSteps([], false, true);
-    expect(steps.map((s) => s.state)).toEqual(["current", "waiting", "waiting", "waiting"]);
+    expect(steps.map((s) => s.state)).toEqual([
+      "current",
+      "waiting",
+      "waiting",
+      "waiting",
+    ]);
     expect(steps[0]!.action?.href).toBe("#/targets");
   });
 
   it("moves to verification once a site is added, naming the site", () => {
     const steps = setupSteps([target("example.org")], false, true);
-    expect(steps.map((s) => s.state)).toEqual(["done", "current", "waiting", "waiting"]);
+    expect(steps.map((s) => s.state)).toEqual([
+      "done",
+      "current",
+      "waiting",
+      "waiting",
+    ]);
     expect(steps[1]!.action?.label).toBe("Verify example.org");
     expect(steps[1]!.detail).toContain("example.org");
   });
 
   it("moves to scanning once a site is verified, with no button because the form is on the page", () => {
     const steps = setupSteps([target("example.org", "verified")], false, true);
-    expect(steps.map((s) => s.state)).toEqual(["done", "done", "current", "waiting"]);
+    expect(steps.map((s) => s.state)).toEqual([
+      "done",
+      "done",
+      "current",
+      "waiting",
+    ]);
     expect(steps[2]!.action).toBeNull();
   });
 
   it("offers no buttons to roles that cannot manage targets", () => {
-    expect(setupSteps([], false, false).every((s) => s.action === null)).toBe(true);
+    expect(setupSteps([], false, false).every((s) => s.action === null)).toBe(
+      true,
+    );
   });
 });
 
@@ -72,8 +97,12 @@ describe("score history chart", () => {
   it("gives the same information as text", () => {
     expect(historySummary([])).toBe("No score history yet.");
     expect(historySummary([90])).toBe("One scan so far, score 90.");
-    expect(historySummary([76, 84, 100])).toBe("Score history over 3 scans: 76, 84, 100. Now 100, up from 76.");
-    expect(historySummary([100, 90])).toBe("Score history over 2 scans: 100, 90. Now 90, down from 100.");
+    expect(historySummary([76, 84, 100])).toBe(
+      "Score history over 3 scans: 76, 84, 100. Now 100, up from 76.",
+    );
+    expect(historySummary([100, 90])).toBe(
+      "Score history over 2 scans: 100, 90. Now 90, down from 100.",
+    );
     expect(historySummary([80, 85, 80])).toContain("unchanged from 80");
   });
 });

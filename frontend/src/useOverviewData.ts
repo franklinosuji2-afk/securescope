@@ -10,7 +10,12 @@ export interface OverviewData {
 }
 
 const EMPTY_OVERVIEW: Overview = { sites: [], fix_first: null, other_open: 0 };
-const EMPTY: OverviewData = { loading: true, error: null, targets: [], overview: EMPTY_OVERVIEW };
+const EMPTY: OverviewData = {
+  loading: true,
+  error: null,
+  targets: [],
+  overview: EMPTY_OVERVIEW,
+};
 
 /** Loads what the Overview needs in two requests. `refreshKey` changes when a scan starts or finishes. */
 export function useOverviewData(refreshKey: string): OverviewData {
@@ -20,11 +25,23 @@ export function useOverviewData(refreshKey: string): OverviewData {
     let cancelled = false;
     void (async () => {
       try {
-        const [targets, overview] = await Promise.all([listTargets(), getOverview()]);
-        if (!cancelled) setState({ loading: false, error: null, targets: targets ?? [], overview: overview?.sites ? overview : EMPTY_OVERVIEW });
+        const [targets, overview] = await Promise.all([
+          listTargets(),
+          getOverview(),
+        ]);
+        if (!cancelled)
+          setState({
+            loading: false,
+            error: null,
+            targets: targets ?? [],
+            overview: overview?.sites ? overview : EMPTY_OVERVIEW,
+          });
       } catch (err) {
         if (cancelled) return;
-        const message = err instanceof ApiError ? err.message : "Could not load the overview.";
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : "Could not load the overview.";
         setState((prev) => ({ ...prev, loading: false, error: message }));
       }
     })();

@@ -1,7 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const python = process.env.E2E_PYTHON ?? "python";
-const database = process.env.E2E_DATABASE_URL ?? "sqlite:////tmp/securescope-e2e.db";
+const database =
+  process.env.E2E_DATABASE_URL ?? "sqlite:////tmp/securescope-e2e.db";
 const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
 
 /**

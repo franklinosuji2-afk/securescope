@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import * as api from "./api";
 import type { Organization, User } from "./types";
 
@@ -8,7 +16,11 @@ interface AuthValue {
   organization: Organization | null;
   setOrganizationId: (id: string) => void;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, organizationName?: string) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    organizationName?: string,
+  ) => Promise<void>;
   signOut: () => Promise<void>;
   reload: () => Promise<void>;
 }
@@ -39,7 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const organization = useMemo(() => {
     if (!user || user.organizations.length === 0) return null;
-    return user.organizations.find((o) => o.id === orgId) ?? user.organizations[0] ?? null;
+    return (
+      user.organizations.find((o) => o.id === orgId) ??
+      user.organizations[0] ??
+      null
+    );
   }, [user, orgId]);
 
   useEffect(() => {
@@ -87,8 +103,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setOrgId(id);
         storeOrg(id);
       },
-      signIn: async (email, password) => setUser(await api.login(email, password)),
-      signUp: async (email, password, organizationName) => setUser(await api.register(email, password, organizationName)),
+      signIn: async (email, password) =>
+        setUser(await api.login(email, password)),
+      signUp: async (email, password, organizationName) =>
+        setUser(await api.register(email, password, organizationName)),
       signOut: async () => {
         try {
           await api.logout();

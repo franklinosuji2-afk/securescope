@@ -10,7 +10,9 @@ const user = {
   id: "u1",
   email: "analyst@example.org",
   email_verified: true,
-  organizations: [{ id: "org1", name: "Example Org", slug: "example-org", role: "OWNER" }],
+  organizations: [
+    { id: "org1", name: "Example Org", slug: "example-org", role: "OWNER" },
+  ],
 };
 function lifecycle(n: string, status = "open") {
   return {
@@ -53,9 +55,12 @@ const scan = {
       title: "Strict-Transport-Security header is missing",
       severity: "high",
       category: "Security headers",
-      description: "Without HSTS, browsers may still attempt plain HTTP connections.",
-      evidence: "Strict-Transport-Security was not present. Checked the HTTP 200 response from https://example.org/.",
-      remediation: "Send 'Strict-Transport-Security: max-age=31536000; includeSubDomains'.",
+      description:
+        "Without HSTS, browsers may still attempt plain HTTP connections.",
+      evidence:
+        "Strict-Transport-Security was not present. Checked the HTTP 200 response from https://example.org/.",
+      remediation:
+        "Send 'Strict-Transport-Security: max-age=31536000; includeSubDomains'.",
       ...lifecycle("1"),
     },
     {
@@ -94,34 +99,62 @@ const scan = {
 async function stubApi(page: Page) {
   await page.route("**/api/v1/**", async (route) => {
     const url = route.request().url();
-    const body = url.endsWith("/auth/me") ? user : url.includes("/scans/abc123") ? scan : { items: [], total: 0 };
+    const body = url.endsWith("/auth/me")
+      ? user
+      : url.includes("/scans/abc123")
+        ? scan
+        : { items: [], total: 0 };
     await route.fulfill({ json: body });
   });
 }
 
 async function serious(page: Page) {
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
   expect(results.passes.length).toBeGreaterThan(10);
   return results.violations
     .filter((v) => v.impact === "serious" || v.impact === "critical")
-    .map((v) => ({ id: v.id, nodes: v.nodes.slice(0, 3).map((n) => n.target.join(" ")) }));
+    .map((v) => ({
+      id: v.id,
+      nodes: v.nodes.slice(0, 3).map((n) => n.target.join(" ")),
+    }));
 }
 
 for (const scheme of ["dark", "light"] as const) {
-  test(`findings list and detail are accessible (${scheme} theme)`, async ({ page }) => {
+  test(`findings list and detail are accessible (${scheme} theme)`, async ({
+    page,
+  }) => {
     await page.emulateMedia({ colorScheme: scheme });
     await stubApi(page);
     await page.goto("/#/findings?scan=abc123");
     await expect(page.getByRole("heading", { name: "Findings" })).toBeVisible();
     await expect(page.getByText("Showing 4 of 4 findings.")).toBeVisible();
     expect(await serious(page), `${scheme} list`).toEqual([]);
-    await page.screenshot({ path: `test-results/findings-list-${scheme}.png`, fullPage: true });
+    await page.screenshot({
+      path: `test-results/findings-list-${scheme}.png`,
+      fullPage: true,
+    });
 
-    await page.getByRole("link", { name: /Strict-Transport-Security header is missing/ }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Strict-Transport-Security header is missing" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "How to verify" })).toBeVisible();
+    await page
+      .getByRole("link", {
+        name: /Strict-Transport-Security header is missing/,
+      })
+      .click();
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "Strict-Transport-Security header is missing",
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "How to verify" }),
+    ).toBeVisible();
     expect(await serious(page), `${scheme} detail`).toEqual([]);
-    await page.screenshot({ path: `test-results/finding-detail-${scheme}.png`, fullPage: true });
+    await page.screenshot({
+      path: `test-results/finding-detail-${scheme}.png`,
+      fullPage: true,
+    });
   });
 }
 
@@ -136,17 +169,28 @@ test("filters narrow the list and reset restores it", async ({ page }) => {
   await expect(page.getByText("Showing 1 of 4 findings.")).toBeVisible();
 });
 
-test("findings are usable on a phone without sideways scrolling", async ({ page }) => {
+test("findings are usable on a phone without sideways scrolling", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await stubApi(page);
   await page.goto("/#/findings?scan=abc123");
   await expect(page.getByText("Showing 4 of 4 findings.")).toBeVisible();
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  const overflow = await page.evaluate(
+    () =>
+      document.documentElement.scrollWidth -
+      document.documentElement.clientWidth,
+  );
   expect(overflow).toBeLessThanOrEqual(0);
-  await page.screenshot({ path: "test-results/findings-mobile.png", fullPage: true });
+  await page.screenshot({
+    path: "test-results/findings-mobile.png",
+    fullPage: true,
+  });
 });
 
-test("an analyst can change a finding's status from its page", async ({ page }) => {
+test("an analyst can change a finding's status from its page", async ({
+  page,
+}) => {
   await stubApi(page);
   const patches: unknown[] = [];
   await page.route("**/api/v1/findings/**", async (route) => {
@@ -158,13 +202,19 @@ test("an analyst can change a finding's status from its page", async ({ page }) 
   await page.getByLabel("Note (optional)").fill("served by the CDN");
   await page.getByRole("button", { name: "Save status" }).click();
   await expect(page.getByText("Status saved.")).toBeVisible();
-  expect(patches).toEqual([{ status: "false_positive", note: "served by the CDN" }]);
+  expect(patches).toEqual([
+    { status: "false_positive", note: "served by the CDN" },
+  ]);
 });
 
-test("the status filter separates open, accepted and resolved findings", async ({ page }) => {
+test("the status filter separates open, accepted and resolved findings", async ({
+  page,
+}) => {
   await stubApi(page);
   await page.goto("/#/findings?scan=abc123");
   await page.getByLabel("Status").selectOption("resolved");
   await expect(page.getByText("Showing 1 of 4 findings.")).toBeVisible();
-  await expect(page.getByRole("link", { name: /Server header is present/ })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Server header is present/ }),
+  ).toBeVisible();
 });
