@@ -56,7 +56,7 @@ interface Mock {
 }
 
 /** Routes fetch by URL. `/auth/me` answers with `me` (null means signed out, i.e. 401). */
-function mockApi(handler: Handler, me: User | null = userWith("OWNER"), status = 200): Mock {
+function mockApi(handler: Handler, me: User | null = userWith("OWNER"), status: number | ((url: string, init?: RequestInit) => number) = 200): Mock {
   const mock: Mock = { calls: [] };
   vi.stubGlobal(
     "fetch",
@@ -67,13 +67,14 @@ function mockApi(handler: Handler, me: User | null = userWith("OWNER"), status =
           ? { ok: true, status: 200, json: async () => me }
           : { ok: false, status: 401, json: async () => ({ detail: "Authentication required." }) };
       }
-      return { ok: status < 400, status, json: async () => handler(url, init) };
+      const code = typeof status === "function" ? status(url, init) : status;
+      return { ok: code < 400, status: code, json: async () => handler(url, init) };
     }),
   );
   return mock;
 }
 
-function mockFetch(handler: Handler, status = 200) {
+function mockFetch(handler: Handler, status: number | ((url: string, init?: RequestInit) => number) = 200) {
   return mockApi(handler, userWith("OWNER"), status);
 }
 
@@ -103,7 +104,7 @@ describe("Overview", () => {
   it("shows an honest empty state and no fabricated results", async () => {
     mockFetch(() => ({}));
     renderApp();
-    expect(await screen.findByText("No scan yet")).toBeInTheDocument();
+    expect(await screen.findByText(/No scan yet/)).toBeInTheDocument();
     expect(screen.queryByText(/Heuristic score/)).not.toBeInTheDocument();
   });
 
@@ -119,7 +120,7 @@ describe("Overview", () => {
   });
 
   it("shows the server error when a target is rejected", async () => {
-    mockFetch(() => ({ detail: "Target resolves to a private address." }), 422);
+    mockFetch(() => ({ detail: "Target resolves to a private address." }), (_url, init) => (init?.method === "POST" ? 422 : 200));
     renderApp();
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText("Target URL"), "http://internal.test");
@@ -458,7 +459,10 @@ describe("Targets", () => {
   });
 
   it("points to Targets when a scan is refused because ownership is unverified", async () => {
-    mockFetch(() => ({ detail: "Ownership of example.org has not been verified. Add and verify it under Targets first." }), 403);
+    mockFetch(
+      () => ({ detail: "Ownership of example.org has not been verified. Add and verify it under Targets first." }),
+      (_url, init) => (init?.method === "POST" ? 403 : 200),
+    );
     renderApp();
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText("Target URL"), "https://example.org");
@@ -466,5 +470,91 @@ describe("Targets", () => {
     await user.click(screen.getByRole("button", { name: "Start scan" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("has not been verified");
     expect(screen.getByRole("link", { name: "Go to Targets" })).toHaveAttribute("href", "#/targets");
+  });
+});
+
+describe("Overview guidance and posture", () => {
+  const verified: Target = {
+    id: "t1",
+    hostname: "example.org",
+    status: "verified",
+    challenge_token: "t".repeat(20),
+    challenge_expires_at: "2026-10-20T00:00:00Z",
+    verified_at: "2026-10-18T10:00:00Z",
+    verification_method: "dns_txt",
+    last_check_at: null,
+    last_check_error: null,
+    created_at: "2026-10-18T09:00:00Z",
+    dns_record_name: "",
+    dns_record_value: "",
+    http_file_url: "",
+    http_file_content: "",
+  };
+  const summary = { ...scan, findings: undefined, error: undefined, metadata: undefined, score_note: undefined };
+
+  function route(targets: Target[], scans: unknown[]): Handler {
+    return (url) => {
+      if (url.includes("/targets")) return { items: targets };
+      if (url.includes("/scans/")) return scan;
+      if (url.includes("/scans")) return { items: scans, total: scans.length };
+      return {};
+    };
+  }
+
+  it("walks a new user through the first step", async () => {
+    mockFetch(route([], []));
+    renderApp();
+    expect(await screen.findByRole("heading", { name: "Get your first result" })).toBeInTheDocument();
+    const current = screen.getByRole("listitem", { current: "step" });
+    expect(current).toHaveTextContent("Add the site you want to check");
+    expect(screen.getByRole("link", { name: "Add a site" })).toHaveAttribute("href", "#/targets");
+    expect(screen.queryByText("Fix this first")).not.toBeInTheDocument();
+  });
+
+  it("offers verified sites as one-click choices and fills the URL", async () => {
+    mockFetch(route([verified], []));
+    renderApp();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "example.org" }));
+    expect(screen.getByLabelText("Target URL")).toHaveValue("https://example.org/");
+    expect(screen.getByRole("listitem", { current: "step" })).toHaveTextContent("Run your first scan");
+  });
+
+  it("shows what to fix first, and drops the setup guide, once a scan has completed", async () => {
+    mockFetch(route([verified], [summary]));
+    renderApp();
+    expect(await screen.findByRole("heading", { name: "Fix this first" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Get your first result" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "See the evidence and fix" })).toHaveAttribute(
+      "href",
+      "#/findings?scan=abc123&finding=SS-HDR-CSP-001",
+    );
+    const card = screen.getByRole("listitem", { name: "example.org" });
+    expect(card).toHaveTextContent("Grade B");
+    expect(card).toHaveTextContent("First scan of this site");
+    expect(card).toHaveTextContent("1 open");
+  });
+
+  it("does not count a resolved finding as open", async () => {
+    const resolved = { ...scan, findings: [{ ...finding, status: "resolved" as const }] };
+    mockFetch((url) => (url.includes("/scans/") ? resolved : route([verified], [summary])(url)));
+    renderApp();
+    expect(await screen.findByText(/Nothing open/)).toBeInTheDocument();
+    expect(screen.getByRole("listitem", { name: "example.org" })).toHaveTextContent("No open findings.");
+  });
+
+  it("tells viewers they cannot scan and offers no setup buttons", async () => {
+    mockApi(route([], []), userWith("VIEWER"));
+    renderApp();
+    expect(await screen.findByText(/cannot start scans/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Add a site" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Target URL")).not.toBeInTheDocument();
+  });
+
+  it("links a just-finished scan to its findings", async () => {
+    window.location.hash = "#/?scan=abc123";
+    mockFetch(route([verified], [summary]));
+    renderApp();
+    expect(await screen.findByRole("link", { name: "Review 1 finding" })).toHaveAttribute("href", "#/findings?scan=abc123");
   });
 });

@@ -2,7 +2,14 @@ import { useState, type FormEvent } from "react";
 import { ApiError, createScan } from "../api";
 import { ErrorNotice } from "./ui";
 
-export default function ScanForm({ onStarted }: { onStarted: (scanId: string) => void }) {
+export default function ScanForm({
+  onStarted,
+  verifiedHosts = [],
+}: {
+  onStarted: (scanId: string) => void;
+  /** Verified sites, offered as one-click choices so nobody has to type a URL first. */
+  verifiedHosts?: string[];
+}) {
   const [url, setUrl] = useState("");
   const [authorized, setAuthorized] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -25,6 +32,16 @@ export default function ScanForm({ onStarted }: { onStarted: (scanId: string) =>
   return (
     <form className="card scan-form" onSubmit={submit} aria-labelledby="scan-form-title">
       <h2 id="scan-form-title">Start a scan</h2>
+      {verifiedHosts.length > 0 && (
+        <div className="row" role="group" aria-label="Your verified sites">
+          <span className="muted small">Verified sites:</span>
+          {verifiedHosts.map((host) => (
+            <button key={host} type="button" className="chip" onClick={() => setUrl(`https://${host}/`)}>
+              {host}
+            </button>
+          ))}
+        </div>
+      )}
       <div>
         <label className="field-label" htmlFor="target-url">
           Target URL

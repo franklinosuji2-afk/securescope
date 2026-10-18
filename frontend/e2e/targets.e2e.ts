@@ -6,7 +6,8 @@ test.describe("targets and scan gating (real backend)", () => {
     await register(page, uniqueEmail("targets"));
 
     // Overview: honest empty state, nothing fabricated.
-    await expect(page.getByText("No scan yet")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Get your first result" })).toBeVisible();
+    await expect(page.getByText(/No scan yet/)).toBeVisible();
 
     // Scanning an unverified domain is refused by the server and the UI explains why.
     await page.getByLabel("Target URL").fill("https://example.com");
