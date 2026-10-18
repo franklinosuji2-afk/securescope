@@ -182,3 +182,19 @@ def test_scoring_bounds_and_grades() -> None:
 def test_count_by_severity_includes_zeroes() -> None:
     counts = count_by_severity(finding(Severity.HIGH, 2) + finding(Severity.LOW))
     assert counts == {"critical": 0, "high": 2, "medium": 0, "low": 1, "info": 0}
+
+
+def test_missing_header_evidence_names_what_was_observed() -> None:
+    result = make_result([("content-type", "text/html"), ("x-content-type-options", "nosniff")])
+    findings, _ = run_checks(result)
+    hsts = next(f for f in findings if f.id == "SS-HDR-HSTS-001")
+    assert hsts.evidence is not None
+    assert "https://example.com/" in hsts.evidence
+    assert "HTTP 200" in hsts.evidence
+    assert "x-content-type-options: nosniff" in hsts.evidence
+
+
+def test_missing_header_evidence_when_no_security_headers() -> None:
+    findings, _ = run_checks(make_result())
+    csp = next(f for f in findings if f.id == "SS-HDR-CSP-001")
+    assert csp.evidence is not None and "none of the common security headers" in csp.evidence

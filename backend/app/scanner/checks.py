@@ -27,6 +27,31 @@ def _truncate(value: str, limit: int = 200) -> str:
     return value if len(value) <= limit else value[: limit - 1] + "…"
 
 
+SECURITY_HEADERS: tuple[str, ...] = (
+    "strict-transport-security",
+    "content-security-policy",
+    "x-content-type-options",
+    "x-frame-options",
+    "referrer-policy",
+    "permissions-policy",
+)
+
+
+def observed_context(result: FetchResult) -> str:
+    """Describe exactly what was looked at, so a "missing" finding can be checked by the reader."""
+    present = [
+        f"{name}: {_truncate(result.headers[name], 80)}"
+        for name in SECURITY_HEADERS
+        if name in result.headers
+    ]
+    seen = "; ".join(present) if present else "none of the common security headers"
+    return f"Checked the HTTP {result.status_code} response from {result.final_url}. Security headers seen: {seen}."
+
+
+def _missing(result: FetchResult, header: str) -> str:
+    return f"{header} was not present. {observed_context(result)}"
+
+
 def check_https(result: FetchResult) -> list[Finding]:
     if result.final_scheme == "http":
         return [
@@ -76,7 +101,7 @@ def check_hsts(result: FetchResult) -> list[Finding]:
                     "Without HSTS, browsers may still attempt plain HTTP connections, which "
                     "enables downgrade and protocol-stripping attacks on first or later visits."
                 ),
-                evidence="Header not present in the response.",
+                evidence=_missing(result, "Strict-Transport-Security"),
                 remediation=(
                     "Send 'Strict-Transport-Security: max-age=31536000; includeSubDomains' "
                     "once every subdomain is reachable over HTTPS."
@@ -113,7 +138,7 @@ def check_csp(result: FetchResult) -> list[Finding]:
                     "A Content-Security-Policy limits where scripts and other resources can "
                     "load from and reduces the impact of cross-site scripting."
                 ),
-                evidence="Header not present in the response.",
+                evidence=_missing(result, "Content-Security-Policy"),
                 remediation=(
                     "Define a CSP that restricts script sources, e.g. start in report-only mode "
                     "with \"default-src 'self'\" and tighten from there."
@@ -153,7 +178,11 @@ def check_content_type_options(result: FetchResult) -> list[Finding]:
             severity=Severity.LOW,
             category="Security headers",
             description="Browsers may MIME-sniff responses, which can turn some uploads into executable content.",
-            evidence="Header not present." if not value else f"X-Content-Type-Options: {_truncate(value)}",
+            evidence=(
+                _missing(result, "X-Content-Type-Options")
+                if not value
+                else f"X-Content-Type-Options was '{_truncate(value)}', expected 'nosniff'. {observed_context(result)}"
+            ),
             remediation="Send 'X-Content-Type-Options: nosniff' on all responses.",
         )
     ]
@@ -169,7 +198,7 @@ def check_referrer_policy(result: FetchResult) -> list[Finding]:
             severity=Severity.LOW,
             category="Security headers",
             description="Without a policy, full URLs may be sent to other sites in the Referer header.",
-            evidence="Header not present in the response.",
+            evidence=_missing(result, "Referrer-Policy"),
             remediation="Send 'Referrer-Policy: strict-origin-when-cross-origin' (or stricter).",
         )
     ]
@@ -185,7 +214,7 @@ def check_permissions_policy(result: FetchResult) -> list[Finding]:
             severity=Severity.INFO,
             category="Security headers",
             description="A Permissions-Policy lets you disable powerful browser features the site does not use.",
-            evidence="Header not present in the response.",
+            evidence=_missing(result, "Permissions-Policy"),
             remediation="Add a Permissions-Policy that disables unused features, e.g. 'camera=(), microphone=(), geolocation=()'.",
         )
     ]
@@ -350,6 +379,23 @@ def check_off_origin_redirect(result: FetchResult) -> list[Finding]:
         )
     ]
 
+
+# Which finding-id prefixes belong to which check, so reports can list checks that found nothing.
+CHECK_LABELS: dict[str, tuple[str, tuple[str, ...]]] = {
+    "https": ("HTTPS is used and HTTP redirects to it", ("SS-TLS-",)),
+    "hsts": ("Strict-Transport-Security is set with a long max-age", ("SS-HDR-HSTS-",)),
+    "csp": ("Content-Security-Policy is set without unsafe script sources", ("SS-HDR-CSP-",)),
+    "x-content-type-options": ("X-Content-Type-Options is nosniff", ("SS-HDR-XCTO-",)),
+    "referrer-policy": ("Referrer-Policy is set", ("SS-HDR-REF-",)),
+    "permissions-policy": ("Permissions-Policy is set", ("SS-HDR-PERM-",)),
+    "disclosure-headers": (
+        "Server and X-Powered-By do not disclose software",
+        ("SS-DISC-SRV-", "SS-DISC-XPB-"),
+    ),
+    "cookie-attributes": ("Cookies use Secure, HttpOnly and SameSite", ("SS-COOKIE-",)),
+    "directory-index": ("No directory listing in the page", ("SS-DIR-",)),
+    "scan-scope": ("Scan stayed on the verified site", ("SS-SCOPE-",)),
+}
 
 Check = Callable[[FetchResult], list[Finding]]
 

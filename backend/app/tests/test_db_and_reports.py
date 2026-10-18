@@ -134,3 +134,17 @@ def test_filename_is_sanitized(db_url: str) -> None:
     detail = completed_detail(db_url).model_copy(update={"host": '../../etc/pass"wd'})
     name = reports.safe_filename(detail, "json")
     assert "/" not in name and '"' not in name and name.endswith(".json")
+
+
+def test_reports_state_coverage_and_limits(db_url: str) -> None:
+    detail = completed_detail(db_url)
+    assert detail.metadata is not None
+    detail = detail.model_copy(
+        update={"metadata": detail.metadata.model_copy(update={"checks_run": ["https", "hsts", "csp"]})}
+    )
+    text = reports.to_markdown(detail)
+    assert "## What was checked" in text and "## Limits of this scan" in text
+    assert "TLS certificate and cipher configuration are not assessed" in text
+    assert "Passed: " in text
+    page = reports.to_html(detail)
+    assert "What was checked" in page and "Limits of this scan" in page

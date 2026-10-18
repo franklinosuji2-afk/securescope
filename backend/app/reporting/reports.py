@@ -5,12 +5,50 @@ from __future__ import annotations
 import html
 import re
 
+from app.scanner.checks import CHECK_LABELS
 from app.schemas.scan import SEVERITY_ORDER, ScanDetail
 
 DISCLAIMER = (
     "This report comes from a limited set of passive, non-exploitative checks and a heuristic "
     "score. An empty findings list is not proof of security, and this is not a penetration test."
 )
+
+
+LIMITS = (
+    "Passive checks only: one page load of the address you scanned, plus any same-site redirects.",
+    "Only the response headers and the start of the page were examined; other pages, forms and APIs were not.",
+    "No login, no active testing, no vulnerability exploitation, no scan of subdomains.",
+    "TLS certificate and cipher configuration are not assessed.",
+)
+
+
+def passed_checks(detail: ScanDetail) -> list[str]:
+    """Human labels of checks that ran and raised nothing above informational level."""
+    if detail.metadata is None:
+        return []
+    raised = {f.id for f in detail.findings if f.severity.value != "info"}
+    out = []
+    for name in detail.metadata.checks_run:
+        label, prefixes = CHECK_LABELS.get(name, (name, ()))
+        if not any(i.startswith(prefixes) for i in raised if prefixes):
+            out.append(label)
+    return out
+
+
+def _coverage_md(detail: ScanDetail) -> list[str]:
+    md = detail.metadata
+    if md is None or detail.status.value != "completed":
+        return []
+    lines = ["## What was checked", ""]
+    lines.append(
+        f"- Requests made: {md.requests_made}; final URL: {_md(md.final_url or md.requested_url)}; "
+        f"HTTP status: {md.status_code}"
+    )
+    lines += [f"- Passed: {_md(label)}" for label in passed_checks(detail)]
+    lines += ["", "## Limits of this scan", ""]
+    lines += [f"- {limit}" for limit in LIMITS]
+    lines.append("")
+    return lines
 
 
 def safe_filename(detail: ScanDetail, extension: str) -> str:
@@ -66,6 +104,7 @@ def to_markdown(detail: ScanDetail) -> str:
             if finding.evidence:
                 lines.append(f"- Evidence: {_md(finding.evidence)}")
             lines += [f"- Remediation: {_md(finding.remediation)}", ""]
+    lines += _coverage_md(detail)
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -88,6 +127,16 @@ def to_html(detail: ScanDetail) -> str:
     )
     error = f'<p class="error">Error: {e(detail.error)}</p>' if detail.error else ""
     body = "".join(rows) if rows else "<p>No findings from the implemented checks.</p>"
+    if detail.metadata is not None and detail.status.value == "completed":
+        md = detail.metadata
+        passed = "".join(f"<li>{e(label)}</li>" for label in passed_checks(detail))
+        limits = "".join(f"<li>{e(limit)}</li>" for limit in LIMITS)
+        body += (
+            "<h2>What was checked</h2>"
+            f"<p>Requests made: {md.requests_made}. Final URL: {e(md.final_url or md.requested_url)}. "
+            f"HTTP status: {md.status_code}.</p><p>Passed:</p><ul>{passed}</ul>"
+            f"<h2>Limits of this scan</h2><ul>{limits}</ul>"
+        )
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
