@@ -39,13 +39,15 @@ class ScanRepository:
 
     # --- writes -----------------------------------------------------------------------
 
-    def create_scan(self, target_url: str, host: str) -> str:
+    def create_scan(self, organization_id: str, requested_by: str, target_url: str, host: str) -> str:
         scan_id = uuid.uuid4().hex
         now = _now()
         with self._session.begin() as session:
             session.add(
                 ScanRow(
                     id=scan_id,
+                    organization_id=organization_id,
+                    requested_by=requested_by,
                     target_url=target_url,
                     host=host,
                     status=ScanStatus.QUEUED.value,
@@ -160,10 +162,11 @@ class ScanRepository:
             "counts": count_by_severity(findings) if row.status == "completed" else {},
         }
 
-    def get_scan(self, scan_id: str) -> ScanDetail | None:
+    def get_scan(self, scan_id: str, organization_id: str) -> ScanDetail | None:
+        """Returns the scan only if it belongs to `organization_id` (tenant isolation)."""
         with self._session() as session:
             row = session.get(ScanRow, scan_id)
-            if row is None:
+            if row is None or row.organization_id != organization_id:
                 return None
             findings = self._findings(row)
             metadata = TargetMetadata(**json.loads(row.metadata_json)) if row.metadata_json else None
@@ -174,11 +177,15 @@ class ScanRepository:
                 findings=findings,
             )
 
-    def list_scans(self, limit: int = 25, offset: int = 0) -> tuple[list[ScanSummary], int]:
+    def list_scans(
+        self, organization_id: str, limit: int = 25, offset: int = 0
+    ) -> tuple[list[ScanSummary], int]:
         with self._session() as session:
-            total = session.scalar(select(func.count()).select_from(ScanRow)) or 0
+            scope = ScanRow.organization_id == organization_id
+            total = session.scalar(select(func.count()).select_from(ScanRow).where(scope)) or 0
             rows = session.scalars(
                 select(ScanRow)
+                .where(scope)
                 .order_by(ScanRow.created_at.desc(), ScanRow.id.desc())
                 .limit(limit)
                 .offset(offset)

@@ -43,3 +43,12 @@ Restructured into the target layout (`core`, `security`, `scanner`, `reporting`,
 ## Not verified in Phase 1
 
 Docker image builds and `docker compose up` (Docker is unavailable in the authoring environment; the Compose file only passes `docker compose config`).
+
+
+## Phase 2 addendum (v0.3)
+
+Added users, organizations, memberships, sessions, one-time tokens and audit events (Alembic migration `0002`); cookie sessions with CSRF protection and Origin checks; five roles enforced server-side; scans scoped to an organization; login, register, password reset, email verification and team pages in the UI.
+
+Verified: 158 backend tests on SQLite and on PostgreSQL 16 (including cross-tenant and escalation tests), ruff and mypy strict clean, 16 frontend tests, lint, typecheck and build. A live run of the real server on PostgreSQL from a clean pinned install: unauthenticated request 401, request without CSRF token 403, scan completes with findings, a second account gets 404 for the first account's scan, audit rows written.
+
+Known gaps: real email delivery; registration reveals whether an email is taken (409); rate limiters are per process; scans still need no target ownership proof (Phase 3); no audit-log API; sessions are not listed or individually revocable from the UI.

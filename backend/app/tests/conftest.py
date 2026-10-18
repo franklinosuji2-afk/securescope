@@ -6,6 +6,7 @@ import time
 from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -111,26 +112,75 @@ def db_url(tmp_path: Path) -> str:
 @pytest.fixture
 def make_settings(db_url: str):  # type: ignore[no-untyped-def]
     def factory(**overrides: object) -> Settings:
-        values: dict[str, object] = {"database_url": db_url}
+        values: dict[str, object] = {"database_url": db_url, "cookie_secure": False}
         values.update(overrides)
         return Settings(**values)  # type: ignore[arg-type]
 
     return factory
 
 
+PASSWORD = "correct-horse-battery-staple"
+
+
+class CapturingMailer:
+    """Collects outgoing mail so tests can follow verification and reset links."""
+
+    def __init__(self) -> None:
+        self.sent: list[tuple[str, str, str]] = []
+
+    def send(self, to: str, subject: str, body: str) -> None:
+        self.sent.append((to, subject, body))
+
+    def last_token(self) -> str:
+        return self.sent[-1][2].rsplit("token=", 1)[1].strip()
+
+
+def signup(client: TestClient, email: str, org: str | None = None) -> dict[str, Any]:
+    """Registers a user; the client now carries the session cookie and the CSRF header."""
+    payload: dict[str, Any] = {"email": email, "password": PASSWORD}
+    if org:
+        payload["organization_name"] = org
+    response = client.post("/api/v1/auth/register", json=payload)
+    assert response.status_code == 201, response.text
+    client.headers["X-CSRF-Token"] = client.cookies.get("ss_csrf") or ""
+    return response.json()  # type: ignore[no-any-return]
+
+
 @pytest.fixture
-def local_client(make_settings):  # type: ignore[no-untyped-def]
-    """API client whose scanner may reach 127.0.0.1 (test-only switch)."""
+def mailer() -> CapturingMailer:
+    return CapturingMailer()
+
+
+@pytest.fixture
+def local_client(make_settings, mailer):  # type: ignore[no-untyped-def]
+    """Signed-in API client (alice) whose scanner may reach 127.0.0.1 (test-only switch)."""
     settings = make_settings(allow_private_targets=True, request_timeout_seconds=1.0)
-    with TestClient(create_app(settings)) as client:
+    with TestClient(create_app(settings, mailer)) as client:
+        signup(client, "alice@example.com", "Alice Org")
         yield client
 
 
 @pytest.fixture
-def strict_client(make_settings):  # type: ignore[no-untyped-def]
-    """API client with production safety defaults."""
-    with TestClient(create_app(make_settings())) as client:
+def strict_client(make_settings, mailer):  # type: ignore[no-untyped-def]
+    """Signed-in API client (alice) with production safety defaults."""
+    with TestClient(create_app(make_settings(), mailer)) as client:
+        signup(client, "alice@example.com", "Alice Org")
         yield client
+
+
+@pytest.fixture
+def anon_client(make_settings, mailer):  # type: ignore[no-untyped-def]
+    """API client with no session."""
+    with TestClient(create_app(make_settings(), mailer)) as client:
+        yield client
+
+
+@pytest.fixture
+def bob_client(strict_client: TestClient) -> TestClient:
+    """A second, independent session against the same app, belonging to another organization."""
+    other = TestClient(strict_client.app)
+    signup(other, "bob@example.com", "Bob Org")
+    return other
 
 
 @pytest.fixture

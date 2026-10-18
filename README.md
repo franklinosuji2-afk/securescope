@@ -1,6 +1,6 @@
 # SecureScope
 
-> **Status: v0.2 foundation.** Single-user, no authentication, no ownership verification. Do not expose it to the internet. See `docs/IMPLEMENTATION_PLAN.md` for what is next.
+> **Status: v0.3.** Accounts, organizations, roles and tenant isolation are implemented. Domain ownership verification is **not** (scans need only a checkbox) and real email is **not** sent, so do not expose it publicly yet. See `docs/IMPLEMENTATION_PLAN.md`.
 
 A passive web-application security **posture** scanner for sites you own or are authorized to test. It checks a handful of safe, non-exploitative signals, explains each finding with evidence and a fix, keeps scan history, and exports reports.
 
@@ -11,7 +11,7 @@ A passive web-application security **posture** scanner for sites you own or are 
 ```bash
 cp .env.example .env      # then edit POSTGRES_PASSWORD (PowerShell: Copy-Item .env.example .env)
 docker compose up --build
-# open http://localhost:8080
+# open http://localhost:8080 and create an account (use exactly this address: other origins are refused)
 ```
 
 Requires Docker with Compose v2. No cloud account, no paid API. Data lives in PostgreSQL in a Docker volume; migrations run automatically on backend start.
@@ -28,12 +28,15 @@ Requires Docker with Compose v2. No cloud account, no paid API. Data lives in Po
 | Heuristic score and grade, severity breakdown | Implemented |
 | Scan history, retention cleanup (default 30 days) | Implemented |
 | Report export: HTML, Markdown, JSON | Implemented |
-| Dashboard: Overview, Findings, Scan History | Implemented |
+| Dashboard: Overview, Findings, Scan History, Team | Implemented |
+| Registration, login, logout, sessions (HttpOnly cookies + CSRF), Argon2id passwords | Implemented |
+| Organizations, 5 roles enforced server-side, tenant-isolated scans, audit events | Implemented |
+| Email verification / password reset flows | Implemented, but mail goes to the server log only |
 
 ## Roadmap (not implemented)
 
 - Domain ownership verification (DNS TXT or HTTP token) – **required before any public hosting**
-- Authentication, accounts, tenant isolation, audit logs
+- Real email delivery, audit-log API, session management UI
 - PostgreSQL backend (repository layer is ready for it), scheduled rescans, trends, PDF reports
 - Outdated-software detection, TLS configuration/certificate analysis, optional OWASP ZAP integration
 - Egress proxy for production DNS-rebinding defence
@@ -60,6 +63,8 @@ See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/DATA_RETENTION.md](docs/
 | GET | `/api/v1/scans?limit=&offset=` | List scans |
 | GET | `/api/v1/scans/{id}` | Scan detail with findings |
 | GET | `/api/v1/scans/{id}/report?format=json\|md\|html` | Export |
+
+Scan endpoints require a signed-in user. Authentication, organization and member endpoints are in [docs/API.md](docs/API.md).
 
 ## Development
 

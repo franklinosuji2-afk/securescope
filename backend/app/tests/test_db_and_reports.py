@@ -8,6 +8,7 @@ from app.database.migrate import upgrade
 from app.database.session import make_engine
 from app.models.scan import FindingRow, ScanRow
 from app.reporting import reports
+from app.repositories.accounts import AccountRepository
 from app.repositories.scans import ScanRepository
 from app.schemas.scan import Finding, ScanStatus, Severity, TargetMetadata
 
@@ -42,54 +43,74 @@ def make_repo(url: str) -> ScanRepository:
     return ScanRepository(make_engine(url))
 
 
+def make_org(url: str, email: str = "t@example.com") -> tuple[str, str]:
+    """(organization_id, user_id) for tests that talk to the repository directly."""
+    accounts = AccountRepository(make_engine(url))
+    user, membership = accounts.create_user_with_org(email, "x", "Test Org")
+    return membership.organization_id, user.id
+
+
 def test_migrations_are_idempotent_and_create_schema(db_url: str) -> None:
     upgrade(db_url)  # a second run on an up-to-date database must be a no-op
     tables = set(inspect(make_engine(db_url)).get_table_names())
-    assert {"scans", "findings", "alembic_version"} <= tables
+    assert {
+        "scans",
+        "findings",
+        "alembic_version",
+        "users",
+        "organizations",
+        "organization_members",
+        "sessions",
+        "account_tokens",
+        "audit_events",
+    } <= tables
 
 
 def test_scan_lifecycle_and_ordering(db_url: str) -> None:
     repo = make_repo(db_url)
-    first = repo.create_scan("https://a.example/", "a.example")
-    second = repo.create_scan("https://b.example/", "b.example")
-    assert repo.get_scan(first).status is ScanStatus.QUEUED  # type: ignore[union-attr]
+    org, user = make_org(db_url)
+    first = repo.create_scan(org, user, "https://a.example/", "a.example")
+    second = repo.create_scan(org, user, "https://b.example/", "b.example")
+    assert repo.get_scan(first, org).status is ScanStatus.QUEUED  # type: ignore[union-attr]
     repo.mark_running(first)
     repo.complete_scan(first, sample_findings(), 76, "C", make_meta())
     repo.fail_scan(second, "boom")
-    done = repo.get_scan(first)
+    done = repo.get_scan(first, org)
     assert done and done.status is ScanStatus.COMPLETED and done.score == 76
     assert [f.id for f in done.findings] == ["SS-T-1", "SS-T-2"]
     assert done.counts["high"] == 1 and done.counts["low"] == 1
     assert done.created_at.tzinfo is not None
-    failed = repo.get_scan(second)
+    failed = repo.get_scan(second, org)
     assert failed and failed.error == "boom" and failed.findings == []
-    items, total = repo.list_scans()
+    items, total = repo.list_scans(org)
     assert total == 2 and [i.id for i in items] == [second, first]  # newest first
-    assert repo.get_scan("nope") is None
+    assert repo.get_scan("nope", org) is None
     assert repo.ping() is True
 
 
 def test_retention_and_interrupted(db_url: str) -> None:
     repo = make_repo(db_url)
-    old = repo.create_scan("https://old.example/", "old.example")
+    org, user = make_org(db_url)
+    old = repo.create_scan(org, user, "https://old.example/", "old.example")
     repo.complete_scan(old, sample_findings(), 50, "D", make_meta())
-    fresh = repo.create_scan("https://new.example/", "new.example")
+    fresh = repo.create_scan(org, user, "https://new.example/", "new.example")
     stale = datetime.now(UTC) - timedelta(days=45)
     with repo.engine.begin() as conn:
         conn.execute(update(ScanRow).where(ScanRow.id == old).values(created_at=stale))
     assert repo.delete_older_than(30) == 1
-    assert repo.get_scan(old) is None
+    assert repo.get_scan(old, org) is None
     with repo.engine.connect() as conn:  # findings are removed with their scan
         assert conn.scalar(select(func.count()).select_from(FindingRow)) == 0
     assert repo.fail_interrupted() == 1
-    assert repo.get_scan(fresh).status is ScanStatus.FAILED  # type: ignore[union-attr]
+    assert repo.get_scan(fresh, org).status is ScanStatus.FAILED  # type: ignore[union-attr]
 
 
 def completed_detail(db_url: str):  # type: ignore[no-untyped-def]
     repo = make_repo(db_url)
-    scan_id = repo.create_scan("https://a.example/?q=<b>", "a.example")
+    org, user = make_org(db_url)
+    scan_id = repo.create_scan(org, user, "https://a.example/?q=<b>", "a.example")
     repo.complete_scan(scan_id, sample_findings(), 76, "C", make_meta())
-    detail = repo.get_scan(scan_id)
+    detail = repo.get_scan(scan_id, org)
     assert detail is not None
     return detail
 

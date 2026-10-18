@@ -20,6 +20,9 @@ services:
     environment:
       SECURESCOPE_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-securescope}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-securescope}
       SECURESCOPE_CORS_ORIGINS: '["http://localhost:8080"]'
+      # Local HTTP only. Behind HTTPS in production leave this at its default (true).
+      SECURESCOPE_COOKIE_SECURE: ${SECURESCOPE_COOKIE_SECURE:-false}
+      SECURESCOPE_PUBLIC_BASE_URL: ${SECURESCOPE_PUBLIC_BASE_URL:-http://localhost:8080}
     depends_on:
       db:
         condition: service_healthy

@@ -14,6 +14,9 @@ class ScanRow(Base):
     __tablename__ = "scans"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    # Nullable only for rows created before accounts existed (v0.1); those are invisible to everyone.
+    organization_id: Mapped[str | None] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"))
+    requested_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     target_url: Mapped[str] = mapped_column(Text)
     host: Mapped[str] = mapped_column(String(255))
     status: Mapped[str] = mapped_column(String(16))
@@ -30,7 +33,10 @@ class ScanRow(Base):
         back_populates="scan", cascade="all, delete-orphan", order_by="FindingRow.position"
     )
 
-    __table_args__ = (Index("ix_scans_created_at", "created_at"),)
+    __table_args__ = (
+        Index("ix_scans_created_at", "created_at"),
+        Index("ix_scans_organization_id_created_at", "organization_id", "created_at"),
+    )
 
 
 class FindingRow(Base):

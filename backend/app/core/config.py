@@ -29,6 +29,17 @@ class Settings(BaseSettings):
     max_concurrent_scans: int = Field(3, ge=1, le=50)
     allowed_ports: list[int] = [80, 443, 8080, 8443]
 
+    # Sessions and accounts
+    session_ttl_hours: int = Field(12, ge=1, le=720)
+    # Secure cookies need HTTPS. Docker Compose for local HTTP development turns this off explicitly.
+    cookie_secure: bool = True
+    login_attempts_per_ip_per_15min: int = Field(20, ge=1)
+    login_attempts_per_email_per_15min: int = Field(5, ge=1)
+    registrations_per_ip_per_hour: int = Field(10, ge=1)
+    password_reset_requests_per_ip_per_hour: int = Field(5, ge=1)
+    # Base URL used in verification/reset links written to the (development) mailer log.
+    public_base_url: str = "http://localhost:8080"
+
     # Abuse protection (per client address, in memory)
     scans_per_client_per_hour: int = Field(10, ge=1)
     scans_per_target_per_hour: int = Field(3, ge=1)

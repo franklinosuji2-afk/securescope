@@ -56,4 +56,4 @@ jobs:
     needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
-      - run: docker compose --env-file .env.example build
+      - run: docker compose build

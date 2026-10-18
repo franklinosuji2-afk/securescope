@@ -1,6 +1,6 @@
 # Threat model
 
-**Scope:** the self-hosted v0.1 MVP. Public multi-tenant hosting is out of scope until the roadmap items are done.
+**Scope:** the self-hosted v0.3 MVP (accounts and organizations, no ownership verification). Public multi-tenant hosting is out of scope until the roadmap items are done.
 
 ## Assets
 Host network (internal services), scan records, availability, third-party targets (must not be harmed).
@@ -18,7 +18,10 @@ Host network (internal services), scan records, availability, third-party target
 | **Secret leakage** | Bodies never stored; cookie values and sensitive evidence redacted | – |
 | **Container privilege** | Non-root user, read-only root FS, dropped capabilities, no-new-privileges | Keep base images updated |
 | **Supply chain** | Exact-pinned dependencies, CI | Add automated dependency audit |
-| **Unauthenticated access to history** | Designed for single-user local use | **No authentication in v0.1 – do not expose publicly** |
+| **Unauthorised access to scans** | Cookie sessions, CSRF tokens, Origin check, per-organization scoping in the repository layer, 404 for other tenants' ids, server-side RBAC (see SECURITY.md) | Single-process rate limits; no MFA |
+| **Credential stuffing / brute force** | Argon2id, per-email and per-IP login limits, generic errors | In-memory limiter resets on restart |
+| **Session theft** | HttpOnly + Secure(+SameSite) cookie, server-side revocation, tokens stored hashed | Requires HTTPS in production (`cookie_secure`) |
+| **Scanning sites the user does not own** | Checkbox only | **Ownership verification is Phase 3; do not expose publicly before it exists** |
 
 ## Not covered
 Authentication, tenancy, audit logging, abuse monitoring, legal review (required before SaaS).

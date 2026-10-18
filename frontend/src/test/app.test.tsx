@@ -2,9 +2,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
+import { AuthProvider } from "../auth";
 import FindingList from "../components/FindingList";
 import { buildHash, parseHash } from "../router";
-import type { Finding, ScanDetail } from "../types";
+import type { Finding, Role, ScanDetail, User } from "../types";
 
 const finding: Finding = {
   id: "SS-HDR-CSP-001",
@@ -32,14 +33,47 @@ const scan: ScanDetail = {
   score_note: "Heuristic score.",
 };
 
-function mockFetch(handler: (url: string, init?: RequestInit) => unknown, status = 200) {
+function userWith(role: Role): User {
+  return {
+    id: "u1",
+    email: "alice@example.org",
+    email_verified: true,
+    organizations: [{ id: "org1", name: "Alice Org", slug: "alice-org", role }],
+  };
+}
+
+type Handler = (url: string, init?: RequestInit) => unknown;
+interface Mock {
+  calls: { url: string; init?: RequestInit }[];
+}
+
+/** Routes fetch by URL. `/auth/me` answers with `me` (null means signed out, i.e. 401). */
+function mockApi(handler: Handler, me: User | null = userWith("OWNER"), status = 200): Mock {
+  const mock: Mock = { calls: [] };
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (url: string, init?: RequestInit) => ({
-      ok: status < 400,
-      status,
-      json: async () => handler(url, init),
-    })),
+    vi.fn(async (url: string, init?: RequestInit) => {
+      mock.calls.push({ url, init });
+      if (url.endsWith("/auth/me")) {
+        return me
+          ? { ok: true, status: 200, json: async () => me }
+          : { ok: false, status: 401, json: async () => ({ detail: "Authentication required." }) };
+      }
+      return { ok: status < 400, status, json: async () => handler(url, init) };
+    }),
+  );
+  return mock;
+}
+
+function mockFetch(handler: Handler, status = 200) {
+  return mockApi(handler, userWith("OWNER"), status);
+}
+
+function renderApp() {
+  return render(
+    <AuthProvider>
+      <App />
+    </AuthProvider>,
   );
 }
 
@@ -50,26 +84,26 @@ beforeEach(() => {
 
 describe("router", () => {
   it("parses and builds hashes", () => {
-    expect(parseHash("#/findings?scan=abc123")).toEqual({ page: "findings", scanId: "abc123" });
-    expect(parseHash("#/findings?scan=../x")).toEqual({ page: "findings", scanId: null });
-    expect(parseHash("")).toEqual({ page: "overview", scanId: null });
+    expect(parseHash("#/findings?scan=abc123")).toEqual({ page: "findings", scanId: "abc123", token: null });
+    expect(parseHash("#/findings?scan=../x")).toEqual({ page: "findings", scanId: null, token: null });
+    expect(parseHash("")).toEqual({ page: "overview", scanId: null, token: null });
     expect(buildHash("history", null)).toBe("#/history");
   });
 });
 
 describe("Overview", () => {
-  it("shows an honest empty state and no fabricated results", () => {
+  it("shows an honest empty state and no fabricated results", async () => {
     mockFetch(() => ({}));
-    render(<App />);
-    expect(screen.getByText("No scan yet")).toBeInTheDocument();
+    renderApp();
+    expect(await screen.findByText("No scan yet")).toBeInTheDocument();
     expect(screen.queryByText(/Heuristic score/)).not.toBeInTheDocument();
   });
 
   it("keeps Start disabled until authorization is acknowledged", async () => {
     mockFetch(() => ({}));
-    render(<App />);
+    renderApp();
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText("Target URL"), "https://example.org");
+    await user.type(await screen.findByLabelText("Target URL"), "https://example.org");
     const button = screen.getByRole("button", { name: "Start scan" });
     expect(button).toBeDisabled();
     await user.click(screen.getByRole("checkbox"));
@@ -78,9 +112,9 @@ describe("Overview", () => {
 
   it("shows the server error when a target is rejected", async () => {
     mockFetch(() => ({ detail: "Target resolves to a private address." }), 422);
-    render(<App />);
+    renderApp();
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText("Target URL"), "http://internal.test");
+    await user.type(await screen.findByLabelText("Target URL"), "http://internal.test");
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: "Start scan" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("private address");
@@ -89,7 +123,7 @@ describe("Overview", () => {
   it("renders a completed scan loaded from the URL", async () => {
     window.location.hash = "#/?scan=abc123";
     mockFetch(() => scan);
-    render(<App />);
+    renderApp();
     expect(await screen.findByText("Grade B")).toBeInTheDocument();
     expect(screen.getByText("Heuristic score.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "JSON" })).toHaveAttribute("href", "/api/v1/scans/abc123/report?format=json");
@@ -113,7 +147,7 @@ describe("History", () => {
   it("lists saved scans", async () => {
     window.location.hash = "#/history";
     mockFetch(() => ({ items: [scan], total: 1 }));
-    render(<App />);
+    renderApp();
     await waitFor(() => expect(screen.getByText("example.org")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Open scan of example.org" })).toBeInTheDocument();
   });
@@ -121,7 +155,103 @@ describe("History", () => {
   it("shows an empty state", async () => {
     window.location.hash = "#/history";
     mockFetch(() => ({ items: [], total: 0 }));
-    render(<App />);
+    renderApp();
     expect(await screen.findByText("No scans yet")).toBeInTheDocument();
+  });
+});
+
+
+describe("Authentication", () => {
+  it("shows the sign-in page when there is no session", async () => {
+    mockApi(() => ({}), null);
+    renderApp();
+    expect(await screen.findByRole("heading", { name: "Sign in required" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Target URL")).not.toBeInTheDocument();
+  });
+
+  it("shows a generic server error on a failed login and does not enter the app", async () => {
+    window.location.hash = "#/login";
+    mockApi(() => ({ detail: "Invalid email or password." }), null, 401);
+    renderApp();
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("Email"), "a@b.co");
+    await user.type(screen.getByLabelText("Password"), "wrong-password-123");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid email or password.");
+    expect(screen.queryByText("Overview")).not.toBeInTheDocument();
+  });
+
+  it("registers and enters the app", async () => {
+    window.location.hash = "#/register";
+    const me = userWith("OWNER");
+    const mock = mockApi(() => me, null, 201);
+    renderApp();
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("Email"), "alice@example.org");
+    await user.type(screen.getByLabelText("Password"), "correct-horse-battery");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+    expect(await screen.findByLabelText("Target URL")).toBeInTheDocument();
+    const post = mock.calls.find((c) => c.url.endsWith("/auth/register"));
+    expect(post?.init?.method).toBe("POST");
+    expect(JSON.parse(String(post?.init?.body))).toMatchObject({ email: "alice@example.org" });
+  });
+
+  it("sends the CSRF header and organization header on state-changing requests", async () => {
+    document.cookie = "ss_csrf=csrf-token-value";
+    const mock = mockFetch(() => ({}), 202);
+    renderApp();
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("Target URL"), "https://example.org");
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: "Start scan" }));
+    await waitFor(() => expect(mock.calls.some((c) => c.url.endsWith("/scans") && c.init?.method === "POST")).toBe(true));
+    const call = mock.calls.find((c) => c.url.endsWith("/scans") && c.init?.method === "POST");
+    const headers = call?.init?.headers as Record<string, string>;
+    expect(headers["X-CSRF-Token"]).toBe("csrf-token-value");
+    expect(headers["X-Organization-Id"]).toBe("org1");
+  });
+
+  it("hides the scan form from viewers", async () => {
+    mockApi(() => ({}), userWith("VIEWER"));
+    renderApp();
+    expect(await screen.findByText(/cannot start scans/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Target URL")).not.toBeInTheDocument();
+  });
+
+  it("signs out", async () => {
+    const mock = mockFetch(() => ({}), 204);
+    renderApp();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Sign out" }));
+    await waitFor(() => expect(mock.calls.some((c) => c.url.endsWith("/auth/logout"))).toBe(true));
+    expect(await screen.findByRole("heading", { name: "Sign in" })).toBeInTheDocument();
+  });
+});
+
+describe("Team", () => {
+  const detail = {
+    ...userWith("OWNER").organizations[0],
+    members: [
+      { user_id: "u1", email: "alice@example.org", role: "OWNER", joined_at: "2026-10-18T10:00:00Z" },
+      { user_id: "u2", email: "bob@example.org", role: "VIEWER", joined_at: "2026-10-18T11:00:00Z" },
+    ],
+  };
+
+  it("lets owners manage members", async () => {
+    window.location.hash = "#/team";
+    mockApi(() => detail, userWith("OWNER"));
+    renderApp();
+    expect(await screen.findByText("bob@example.org")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove bob@example.org" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Add a member" })).toBeInTheDocument();
+  });
+
+  it("is read-only for members", async () => {
+    window.location.hash = "#/team";
+    mockApi(() => detail, userWith("MEMBER"));
+    renderApp();
+    expect(await screen.findByText("bob@example.org")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Add a member" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove bob@example.org" })).not.toBeInTheDocument();
   });
 });

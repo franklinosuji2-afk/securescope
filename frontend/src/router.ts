@@ -1,9 +1,37 @@
 import { useCallback, useEffect, useState } from "react";
 
-export type Page = "overview" | "findings" | "history";
+export type Page =
+  | "overview"
+  | "findings"
+  | "history"
+  | "team"
+  | "login"
+  | "register"
+  | "forgot-password"
+  | "reset-password"
+  | "verify-email";
+
+const PAGES: readonly Page[] = [
+  "findings",
+  "history",
+  "team",
+  "login",
+  "register",
+  "forgot-password",
+  "reset-password",
+  "verify-email",
+];
+export const PUBLIC_PAGES: readonly Page[] = [
+  "login",
+  "register",
+  "forgot-password",
+  "reset-password",
+  "verify-email",
+];
 export interface Route {
   page: Page;
   scanId: string | null;
+  token: string | null;
 }
 
 export function parseHash(hash: string): Route {
@@ -11,8 +39,11 @@ export function parseHash(hash: string): Route {
   const params = new URLSearchParams(query);
   const raw = params.get("scan");
   const scanId = raw && /^[A-Za-z0-9]{1,64}$/.test(raw) ? raw : null;
-  const page: Page = path === "/findings" ? "findings" : path === "/history" ? "history" : "overview";
-  return { page, scanId };
+  const name = path.replace(/^\//, "");
+  const page: Page = (PAGES as readonly string[]).includes(name) ? (name as Page) : "overview";
+  const rawToken = params.get("token");
+  const token = rawToken && /^[A-Za-z0-9_-]{10,200}$/.test(rawToken) ? rawToken : null;
+  return { page, scanId, token };
 }
 
 export function buildHash(page: Page, scanId: string | null): string {

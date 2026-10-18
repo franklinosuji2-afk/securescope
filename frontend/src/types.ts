@@ -52,3 +52,39 @@ export interface ScanList {
 }
 
 export type ReportFormat = "json" | "md" | "html";
+
+export type Role = "OWNER" | "ADMIN" | "SECURITY_ANALYST" | "MEMBER" | "VIEWER";
+export const ROLES: readonly Role[] = ["OWNER", "ADMIN", "SECURITY_ANALYST", "MEMBER", "VIEWER"];
+
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  role: Role;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  email_verified: boolean;
+  organizations: Organization[];
+}
+
+export interface Member {
+  user_id: string;
+  email: string;
+  role: Role;
+  joined_at: string;
+}
+
+export interface OrganizationDetail extends Organization {
+  members: Member[];
+}
+
+/** Mirrors backend/app/security/permissions.py. The server enforces; this only shapes the UI. */
+export function canScan(role: Role): boolean {
+  return role !== "VIEWER";
+}
+export function canManageMembers(role: Role): boolean {
+  return role === "OWNER" || role === "ADMIN";
+}
