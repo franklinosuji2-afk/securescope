@@ -382,17 +382,17 @@ def check_off_origin_redirect(result: FetchResult) -> list[Finding]:
 
 # Which finding-id prefixes belong to which check, so reports can list checks that found nothing.
 CHECK_LABELS: dict[str, tuple[str, tuple[str, ...]]] = {
-    "https": ("HTTPS is used and HTTP redirects to it", ("SS-TLS-",)),
+    "https": ("The page was served over HTTPS", ("SS-TLS-",)),
     "hsts": ("Strict-Transport-Security is set with a long max-age", ("SS-HDR-HSTS-",)),
     "csp": ("Content-Security-Policy is set without unsafe script sources", ("SS-HDR-CSP-",)),
     "x-content-type-options": ("X-Content-Type-Options is nosniff", ("SS-HDR-XCTO-",)),
     "referrer-policy": ("Referrer-Policy is set", ("SS-HDR-REF-",)),
     "permissions-policy": ("Permissions-Policy is set", ("SS-HDR-PERM-",)),
     "disclosure-headers": (
-        "Server and X-Powered-By do not disclose software",
+        "No software version shown in the Server or X-Powered-By headers",
         ("SS-DISC-SRV-", "SS-DISC-XPB-"),
     ),
-    "cookie-attributes": ("Cookies use Secure, HttpOnly and SameSite", ("SS-COOKIE-",)),
+    "cookie-attributes": ("No cookie attribute problems found (a site that sets no cookies passes this)", ("SS-COOKIE-",)),
     "directory-index": ("No directory listing in the page", ("SS-DIR-",)),
     "scan-scope": ("Scan stayed on the verified site", ("SS-SCOPE-",)),
 }
