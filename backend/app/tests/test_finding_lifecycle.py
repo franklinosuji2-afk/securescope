@@ -78,6 +78,21 @@ def test_new_finding_is_open_and_keeps_its_fingerprint(db_url: str) -> None:
     assert b.first_seen_at == a.first_seen_at  # same issue, first seen once
 
 
+def test_report_does_not_claim_an_open_finding_is_unchecked_once_two_scans_reported_it(db_url: str) -> None:
+    from app.reporting import reports
+
+    repo, (org, user) = make_repo(db_url), make_org(db_url)
+    first = scan_with(repo, org, user, [finding("SS-1")])
+    assert "seen in one scan so far" in reports.to_markdown(repo.get_scan(first, org))  # type: ignore[arg-type]
+    second = scan_with(repo, org, user, [finding("SS-1")])
+    for text in (
+        reports.to_markdown(repo.get_scan(second, org)),  # type: ignore[arg-type]
+        reports.to_html(repo.get_scan(second, org)),  # type: ignore[arg-type]
+    ):
+        assert "first seen" in text and "last seen" in text
+        assert "not yet re-checked" not in text
+
+
 def test_finding_is_resolved_only_when_a_later_scan_no_longer_reports_it(db_url: str) -> None:
     repo, (org, user) = make_repo(db_url), make_org(db_url)
     first = scan_with(repo, org, user, [finding("SS-1"), finding("SS-2")])

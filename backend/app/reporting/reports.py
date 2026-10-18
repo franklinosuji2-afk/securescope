@@ -6,7 +6,7 @@ import html
 import re
 
 from app.scanner.checks import CHECK_LABELS
-from app.schemas.scan import SEVERITY_ORDER, ScanDetail
+from app.schemas.scan import SEVERITY_ORDER, Finding, ScanDetail
 
 DISCLAIMER = (
     "This report comes from a limited set of passive, non-exploitative checks and a heuristic "
@@ -61,9 +61,16 @@ def _sorted_findings(detail: ScanDetail):  # type: ignore[no-untyped-def]
     return sorted(detail.findings, key=lambda f: (order[f.severity], f.id))
 
 
-def _status_label(status: str) -> str:
+def _status_label(finding: Finding) -> str:
+    status = finding.status.value
+    if status == "open":
+        first, last = finding.first_seen_at, finding.last_seen_at
+        if first and last and first != last:
+            return f"Open (first seen {first:%Y-%m-%d %H:%M} UTC, last seen {last:%Y-%m-%d %H:%M} UTC)"
+        if first:
+            return f"Open (seen in one scan so far, {first:%Y-%m-%d %H:%M} UTC)"
+        return "Open"
     return {
-        "open": "Open (not yet re-checked by a later scan)",
         "accepted_risk": "Accepted risk",
         "false_positive": "Marked false positive",
         "resolved": "Resolved (a later scan no longer reported it)",
@@ -109,7 +116,7 @@ def to_markdown(detail: ScanDetail) -> str:
                 f"- ID: {finding.id}",
                 f"- Category: {_md(finding.category)}",
                 f"- Confidence: {finding.confidence.value}",
-                f"- Status: {_status_label(finding.status.value)}",
+                f"- Status: {_status_label(finding)}",
                 f"- Description: {_md(finding.description)}",
             ]
             if finding.evidence:
@@ -128,7 +135,7 @@ def to_html(detail: ScanDetail) -> str:
             f'<section class="finding {e(finding.severity.value)}">'
             f'<h3>{e(finding.title)} <span class="badge">{e(finding.severity.value)}</span></h3>'
             f'<p class="meta">{e(finding.id)} · {e(finding.category)} · confidence {e(finding.confidence.value)}'
-            f" · {e(_status_label(finding.status.value))}</p>"
+            f" · {e(_status_label(finding))}</p>"
             f"<p>{e(finding.description)}</p>{evidence}"
             f"<p><strong>Remediation:</strong> {e(finding.remediation)}</p></section>"
         )
