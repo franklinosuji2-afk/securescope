@@ -140,7 +140,8 @@ class AccountRepository:
         except IntegrityError as exc:
             raise DuplicateEmailError from exc
         user = self.get_user(user_id)
-        assert user is not None
+        if user is None:
+            raise RuntimeError("user vanished immediately after creation")
         return user, self.membership(org_id, user_id)  # type: ignore[return-value]
 
     def get_user(self, user_id: str) -> UserRecord | None:

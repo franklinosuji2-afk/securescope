@@ -9,3 +9,5 @@ data/
 *.db
 .env
 *.zip
+frontend/test-results/
+frontend/playwright-report/

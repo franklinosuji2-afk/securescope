@@ -84,7 +84,8 @@ async def create_scan(body: ScanCreate, request: Request, state: StateDep, ctx: 
     task.add_done_callback(state.tasks.discard)
     log_event(logger, "scan queued", scan_id=scan_id, host=target.host, organization_id=ctx.organization_id)
     detail = await asyncio.to_thread(state.repo.get_scan, scan_id, ctx.organization_id)
-    assert detail is not None
+    if detail is None:  # created a moment ago in this organization; only possible on a storage fault
+        raise HTTPException(status_code=500, detail="The scan could not be loaded.")
     return detail
 
 

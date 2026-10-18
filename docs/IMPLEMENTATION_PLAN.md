@@ -12,6 +12,6 @@ Status key: DONE, NEXT, PLANNED.
 | 6 Background jobs | Redis + Celery, state machine (QUEUED...TIMED_OUT), cancellation, worker-failure handling | PLANNED |
 | 7 Dashboard and findings | Real metrics, history, finding lifecycle and status changes, comparisons | PLANNED |
 | 8 Reporting | HTML/JSON/PDF, access-controlled downloads | PLANNED |
-| 9-12 | Hardening, full test suites incl. Playwright, CI security gates (Bandit, Semgrep, Trivy), observability, commercial preparation | PLANNED |
+| 9-12 | Hardening, observability, commercial preparation. Playwright e2e and CI security gates (Bandit, pip-audit, npm audit, Semgrep, Trivy) are already in place (Semgrep/Trivy unverified until first CI run) | PARTIAL |
 
 Rules: no phase is called complete until its tests pass; anything unverified is listed as such in this file and in the README.

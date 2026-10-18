@@ -33,7 +33,8 @@ class DuplicateTargetError(Exception):
 
 def to_out(row: TargetRow) -> TargetOut:
     expires = _aware(row.challenge_expires_at)
-    assert expires is not None
+    if expires is None:
+        raise ValueError("target row without challenge expiry")
     return TargetOut(
         id=row.id,
         hostname=row.hostname,

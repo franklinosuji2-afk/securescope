@@ -60,3 +60,7 @@ Added: targets per organization, DNS TXT and HTTP-file ownership verification wi
 Verified (commands actually run in the build environment): 217 backend tests on SQLite and on PostgreSQL 16, ruff and mypy strict clean, 21 frontend tests, ESLint, TypeScript and production build. Two of the new safeguards were mutation-checked (disabling the scan gate and loosening the DNS comparison both make tests fail). A live run of the real server on PostgreSQL confirmed: IP-literal hosts rejected at registration, a registered host stays unverified without a TXT record, the real `dnspython` lookup path returns a clear failure message, and an unverified host cannot be scanned.
 
 Not verified: ownership checks against a real domain you control (DNS TXT or file), Docker image build/run of this version, real-browser behaviour of the new page, accessibility audit of the new page (labels, `aria` and keyboard use follow the existing patterns but no axe or screen-reader run has happened).
+
+## CI security gates and browser tests addendum
+
+Added Playwright end-to-end tests (including axe accessibility checks), a `security` CI job (Bandit, pip-audit, npm audit, Semgrep, Trivy) and an `e2e` CI job. Bandit reported three low-severity `assert` statements in application code (B101); they were replaced with explicit error handling. Verified by running: Bandit clean, pip-audit and npm audit clean, 217 backend tests on SQLite and PostgreSQL, 21 frontend unit tests, 5 Playwright tests. Semgrep and Trivy are untested until the first CI run.
