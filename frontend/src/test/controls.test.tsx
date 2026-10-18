@@ -285,6 +285,10 @@ describe("audit log", () => {
       "finding.status_changed",
       "org.member.added",
       "target.verified",
+      "auth.login.success",
+      "auth.session.refreshed",
+      "auth.password_reset.requested",
+      "auth.password_reset.completed",
     ]) {
       expect(auditLabel(type)).not.toBe(type);
     }

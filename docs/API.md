@@ -40,7 +40,7 @@ Errors are `{"detail": "..."}`; validation errors are 422. **Not implemented:** 
 
 ## Audit log
 
-`GET /audit-events` is limited to owners and admins because it names members and shows what each did. Event types: `user.registered`, `auth.email_verified`, `auth.login.failed`, `auth.logout`, `org.created`, `org.member.added`, `org.member.role_changed`, `org.member.removed`, `target.created`, `target.verified`, `target.verification_failed`, `target.challenge_regenerated`, `target.deleted`, `scan.created`, `scan.cancelled`, `scan.retried`, `report.exported`, `finding.status_changed`. The log stores no IP addresses, passwords, tokens or page content. An event whose user no longer exists has no actor.
+`GET /audit-events` is limited to owners and admins because it names members and shows what each did. Event types: `user.registered`, `auth.email_verified`, `auth.login.success`, `auth.login.failed`, `auth.logout`, `auth.session.refreshed`, `auth.password_reset.requested`, `auth.password_reset.completed`, `org.created`, `org.member.added`, `org.member.role_changed`, `org.member.removed`, `target.created`, `target.verified`, `target.verification_failed`, `target.challenge_regenerated`, `target.deleted`, `scan.created`, `scan.cancelled`, `scan.retried`, `report.exported`, `finding.status_changed`. The log stores no IP addresses, passwords, tokens or page content. An event whose user no longer exists has no actor.
 
 ## Findings
 

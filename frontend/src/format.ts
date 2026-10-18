@@ -42,7 +42,11 @@ export function confidenceLabel(confidence: Confidence): string {
 const AUDIT_LABELS: Record<string, string> = {
   "user.registered": "Account created",
   "auth.email_verified": "Email confirmed",
+  "auth.login.success": "Signed in",
   "auth.login.failed": "Failed sign-in",
+  "auth.session.refreshed": "Session renewed",
+  "auth.password_reset.requested": "Password reset requested",
+  "auth.password_reset.completed": "Password reset completed",
   "auth.logout": "Signed out",
   "org.created": "Organization created",
   "org.member.added": "Member added",
