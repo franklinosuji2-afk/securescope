@@ -3,7 +3,7 @@
 Cost: $0 on free tiers. Free-tier terms change, so check each provider's current limits when you sign up.
 
 ```
-Phone / browser ──HTTPS──> Cloudflare Pages (static app + /api proxy Function)
+Phone / browser ──HTTPS──> Cloudflare Worker (static app + /api proxy)
                                    │  adds X-Proxy-Secret and the visitor's address
                                    ▼
                            Render free web service (Docker, FastAPI)
@@ -13,7 +13,7 @@ Phone / browser ──HTTPS──> Cloudflare Pages (static app + /api proxy Fun
 Email: Brevo (or Resend) HTTPS API, called by the backend
 ```
 
-The browser only ever talks to one origin (your Pages domain), so cookies, CSRF and CORS behave exactly as on localhost.
+The browser only ever talks to one origin (your app domain), so cookies, CSRF and CORS behave exactly as on localhost.
 
 ## 0. Secrets you will create
 
@@ -21,7 +21,7 @@ Never commit these and never paste them into chat. Each lives only in the provid
 
 | Name | What | Where it is set |
 | --- | --- | --- |
-| `PROXY_SECRET` / `SECURESCOPE_TRUSTED_PROXY_SECRET` | One long random string, the same in both places (for example 48 random characters from a password manager). | Cloudflare Pages and Render |
+| `PROXY_SECRET` / `SECURESCOPE_TRUSTED_PROXY_SECRET` | One long random string, the same in both places (for example 48 random characters from a password manager). | Cloudflare and Render |
 | Neon connection string | `postgresql+psycopg://USER:PASSWORD@HOST/DB?sslmode=require` | Render |
 | Mail API key | From Brevo or Resend | Render |
 
@@ -50,14 +50,17 @@ Set `SECURESCOPE_MAIL_PROVIDER` (`brevo` or `resend`), `SECURESCOPE_MAIL_API_KEY
 
 Free instances sleep after 15 minutes without traffic and take about a minute to wake. Rate-limit counters and running scans do not survive a sleep or restart (a scan left running is marked failed on the next start).
 
-## 4. Cloudflare Pages (app and proxy)
+## 4. Cloudflare (app and proxy)
 
-1. Create a Pages project from this repository. Root directory: `frontend`. Build command: `npm run build`. Output: `dist`.
+Cloudflare's "create application" flow builds this as a **Worker with static assets** (not a classic Pages project). `frontend/wrangler.jsonc` describes it: the built app in `dist` is served from Cloudflare's asset layer, single-page-app fallback is on, and only `/api/*` runs `frontend/worker/index.js`.
+
+1. Workers & Pages > Create > import the Git repository. Project/Worker name: `securescope`. Root directory: `frontend`. Build command: `npm run build`. Deploy command: `npx wrangler deploy`. Variable `NODE_VERSION` = `22`.
 2. Settings > Variables and Secrets (Production), as **secrets**:
    - `BACKEND_URL`: `https://YOUR-API.onrender.com` (no trailing slash)
    - `PROXY_SECRET`: the shared secret.
-3. Redeploy once after adding them. `frontend/functions/api/[[path]].js` forwards `/api/*` to Render, replaces any visitor-supplied proxy headers, and passes the visitor's real address using `CF-Connecting-IP`.
+3. Redeploy once after adding them. The Worker forwards `/api/*` to Render, replaces any visitor-supplied proxy headers, and passes the visitor's real address from `CF-Connecting-IP`.
 4. `frontend/public/_headers` gives the site the same security headers as the local nginx setup.
+5. The app's address is `https://securescope.<your-subdomain>.workers.dev` unless you attach your own domain. Use that exact address in Render's `SECURESCOPE_PUBLIC_BASE_URL` and `SECURESCOPE_CORS_ORIGINS`.
 
 ## 5. Check it
 
@@ -74,4 +77,4 @@ Free instances sleep after 15 minutes without traffic and take about a minute to
 
 ## Why the proxy secret
 
-The Render address is public. If the backend believed an `X-Forwarded-For` header, anyone calling it directly could pick their own address and dodge every limit. Instead the backend uses a visitor address only when the request also carries the shared secret, which only the Pages Function knows. Anything else falls back to the connection's own address.
+The Render address is public. If the backend believed an `X-Forwarded-For` header, anyone calling it directly could pick their own address and dodge every limit. Instead the backend uses a visitor address only when the request also carries the shared secret, which only the Worker knows. Anything else falls back to the connection's own address.

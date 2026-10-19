@@ -17,7 +17,7 @@ services:
       - key: SECURESCOPE_CORS_ORIGINS
         sync: false # ["https://your-site.pages.dev"]
       - key: SECURESCOPE_TRUSTED_PROXY_SECRET
-        sync: false # the same value as PROXY_SECRET in Cloudflare Pages
+        sync: false # the same value as PROXY_SECRET in Cloudflare
       - key: SECURESCOPE_COOKIE_SECURE
         value: "true"
       - key: SECURESCOPE_MAIL_PROVIDER
