@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Annotated
@@ -20,7 +21,7 @@ from app.security.ownership import TxtLookup, system_txt_lookup
 from app.security.permissions import Permission, Role, can
 from app.security.tokens import constant_time_equal
 from app.services.auth import AuthService
-from app.services.mailer import LogMailer, Mailer
+from app.services.mailer import Mailer, build_mailer
 
 SESSION_COOKIE = "ss_session"
 CSRF_COOKIE = "ss_csrf"
@@ -36,7 +37,7 @@ class AppState:
         self.targets = TargetRepository(self.engine)
         self.accounts = AccountRepository(self.engine)
         self.audit = AuditRepository(self.engine)
-        self.auth = AuthService(self.accounts, settings, mailer or LogMailer())
+        self.auth = AuthService(self.accounts, settings, mailer or build_mailer(settings))
         self.semaphore = asyncio.Semaphore(settings.max_concurrent_scans)
         self.client_limiter = SlidingWindowLimiter(settings.scans_per_client_per_hour)
         self.target_limiter = SlidingWindowLimiter(settings.scans_per_target_per_hour)
@@ -67,11 +68,30 @@ def get_state(request: Request) -> AppState:
 StateDep = Annotated[AppState, Depends(get_state)]
 
 
+def _valid_ip(value: str) -> str | None:
+    try:
+        return str(ipaddress.ip_address(value.strip()))
+    except ValueError:
+        return None
+
+
 def client_key(request: Request, state: AppState) -> str:
-    if state.settings.trust_proxy_headers:
-        forwarded = request.headers.get("x-forwarded-for", "")
+    """The address rate limits and login throttling are keyed on.
+
+    Behind the front proxy only an address that arrives with the correct shared secret is believed.
+    Anything else falls back to the connection's own peer, which a client cannot choose.
+    """
+    settings = state.settings
+    if settings.trusted_proxy_secret is not None:
+        supplied = request.headers.get("x-proxy-secret", "")
+        if constant_time_equal(supplied, settings.trusted_proxy_secret.get_secret_value()):
+            forwarded = _valid_ip(request.headers.get(settings.client_ip_header, ""))
+            if forwarded:
+                return forwarded
+    if settings.trust_proxy_headers:
+        forwarded = _valid_ip(request.headers.get("x-forwarded-for", "").split(",")[0])
         if forwarded:
-            return forwarded.split(",")[0].strip()
+            return forwarded
     return request.client.host if request.client else "unknown"
 
 

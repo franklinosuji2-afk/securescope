@@ -8,7 +8,7 @@
 - The score is a heuristic, not comparable to other tools. A high score does not mean a site is secure.
 - DNS pinning mitigates rebinding, but production should still use an egress proxy.
 - Rate limits are in-memory and per process; single node.
-- Email verification and password reset links are only written to the server log (development mailer). No real email is sent.
+- Email goes out only when a provider is configured (`SECURESCOPE_MAIL_PROVIDER=brevo|resend`); with the default `log` mailer, links are only written to the server log. A provider outage is logged and does not fail the request, so the user is not told that an email did not arrive.
 - Registration reveals whether an email is already registered (409); mitigated by rate limiting only.
 - Domain ownership is verified once and stays verified until the target is deleted; there is no periodic re-verification, so a domain that changes hands stays authorised. Verification is exact-host (no wildcard/subdomain scope), and only domain names are supported (no IP targets).
 - Ownership verification: the HTTP-file method was confirmed once end to end on a real domain (2026-10-18, the author's own site, followed by a real scan and report). The DNS TXT method has only been tested with mocked lookups and error mapping, not against a live domain.

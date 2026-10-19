@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,7 +19,14 @@ class Settings(BaseSettings):
 
     # HTTP / CORS
     cors_origins: list[str] = ["http://localhost:8080", "http://localhost:5173"]
+    # Legacy switch: trusts the first X-Forwarded-For entry. Anyone who can reach the app directly can forge
+    # it, so leave it off unless the app is reachable ONLY through a proxy you control.
     trust_proxy_headers: bool = False
+    # Safer for a public deployment: a front proxy (the Cloudflare Pages Function) sends the visitor's
+    # address in `client_ip_header` together with this shared secret in X-Proxy-Secret. The address is
+    # used only when the secret matches, so a visitor who calls the backend directly cannot choose it.
+    trusted_proxy_secret: SecretStr | None = None
+    client_ip_header: str = "x-real-client-ip"
 
     # Scan safety limits (enforced server side)
     max_redirects: int = Field(5, ge=0, le=10)
@@ -40,6 +48,14 @@ class Settings(BaseSettings):
     # Base URL used in verification/reset links written to the (development) mailer log.
     public_base_url: str = "http://localhost:8080"
 
+    # Outgoing mail. "log" only writes messages to the log (development). "brevo" and "resend" send real
+    # email through the provider's HTTPS API. The key is a secret: set it in the host's environment only.
+    mail_provider: Literal["log", "brevo", "resend"] = "log"
+    mail_api_key: SecretStr | None = None
+    mail_from_email: str | None = None
+    mail_from_name: str = "SecureScope"
+    mail_timeout_seconds: float = Field(10.0, gt=0, le=30)
+
     target_verifications_per_target_per_hour: int = Field(10, ge=1)
 
     # Abuse protection (per client address, in memory)
@@ -49,6 +65,12 @@ class Settings(BaseSettings):
     # DANGEROUS: lets the scanner reach loopback/private addresses. Only for automated tests
     # against a local mock server. Never enable in a deployed environment.
     allow_private_targets: bool = False
+
+    @model_validator(mode="after")
+    def _mail_is_complete(self) -> Settings:
+        if self.mail_provider != "log" and not (self.mail_api_key and self.mail_from_email):
+            raise ValueError("mail_provider needs SECURESCOPE_MAIL_API_KEY and SECURESCOPE_MAIL_FROM_EMAIL")
+        return self
 
 
 @lru_cache

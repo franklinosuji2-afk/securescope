@@ -1,0 +1,28 @@
+# Render Blueprint: the API as a free Docker web service. The database lives on Neon (free, does not expire).
+# Secrets are marked sync: false, so they are entered in the Render dashboard and never stored in git.
+services:
+  - type: web
+    name: securescope-api
+    runtime: docker
+    plan: free
+    dockerContext: backend
+    dockerfilePath: backend/Dockerfile
+    healthCheckPath: /api/v1/ready
+    autoDeploy: true
+    envVars:
+      - key: SECURESCOPE_DATABASE_URL
+        sync: false # postgresql+psycopg://USER:PASSWORD@HOST/DB?sslmode=require (from Neon)
+      - key: SECURESCOPE_PUBLIC_BASE_URL
+        sync: false # https://your-site.pages.dev
+      - key: SECURESCOPE_CORS_ORIGINS
+        sync: false # ["https://your-site.pages.dev"]
+      - key: SECURESCOPE_TRUSTED_PROXY_SECRET
+        sync: false # the same value as PROXY_SECRET in Cloudflare Pages
+      - key: SECURESCOPE_COOKIE_SECURE
+        value: "true"
+      - key: SECURESCOPE_MAIL_PROVIDER
+        value: brevo # or resend
+      - key: SECURESCOPE_MAIL_API_KEY
+        sync: false
+      - key: SECURESCOPE_MAIL_FROM_EMAIL
+        sync: false # a sender address you verified with the mail provider
