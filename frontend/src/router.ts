@@ -11,7 +11,10 @@ export type Page =
   | "register"
   | "forgot-password"
   | "reset-password"
-  | "verify-email";
+  | "verify-email"
+  | "impressum"
+  | "privacy"
+  | "terms";
 
 const PAGES: readonly Page[] = [
   "targets",
@@ -24,7 +27,11 @@ const PAGES: readonly Page[] = [
   "forgot-password",
   "reset-password",
   "verify-email",
+  "impressum",
+  "privacy",
+  "terms",
 ];
+export const LEGAL_PAGES: readonly Page[] = ["impressum", "privacy", "terms"];
 export const PUBLIC_PAGES: readonly Page[] = [
   "login",
   "register",

@@ -71,6 +71,13 @@ export default function Overview({
           scan={scan}
           onChanged={allowed ? reload : undefined}
           onRetried={allowed ? onStarted : undefined}
+          onDeleted={
+            allowed
+              ? () => {
+                  window.location.hash = buildHash("overview", null);
+                }
+              : undefined
+          }
         />
       )}
       {scan?.status === "completed" && (

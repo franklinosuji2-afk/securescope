@@ -111,6 +111,21 @@ class ScanRepository:
             )
             return result.rowcount == 1  # type: ignore[attr-defined,no-any-return]
 
+    def delete_scan(self, scan_id: str, organization_id: str) -> bool:
+        """Deletes a finished scan and its findings. False if it is unknown, not ours, or still active."""
+        with self._session.begin() as session:
+            owned = select(ScanRow.id).where(
+                ScanRow.id == scan_id,
+                ScanRow.organization_id == organization_id,
+                ScanRow.status.not_in(ACTIVE),
+            )
+            if session.execute(owned).first() is None:
+                return False
+            # Delete findings explicitly so behaviour does not depend on the DB enforcing FKs.
+            session.execute(delete(FindingRow).where(FindingRow.scan_id == scan_id))
+            session.execute(delete(ScanRow).where(ScanRow.id == scan_id))
+            return True
+
     def complete_scan(
         self,
         scan_id: str,

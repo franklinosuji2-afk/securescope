@@ -145,6 +145,17 @@ async def cancel_scan(scan_id: str, request: Request, state: StateDep, ctx: CanC
     return await _load(state, ctx, scan_id)
 
 
+@router.delete("/{scan_id}", status_code=204)
+async def delete_scan(scan_id: str, request: Request, state: StateDep, ctx: CanCreate) -> None:
+    """Permanently removes a finished scan and its findings from this organization."""
+    detail = await _load(state, ctx, scan_id)
+    if detail.status in (ScanStatus.QUEUED, ScanStatus.RUNNING):
+        raise HTTPException(status_code=409, detail="This scan is still running. Cancel it first, then delete it.")
+    if not await asyncio.to_thread(state.repo.delete_scan, scan_id, ctx.organization_id):
+        raise HTTPException(status_code=409, detail="This scan could not be deleted because it is still running.")
+    await _audit(state, request, ctx, "scan.deleted", scan_id)
+
+
 @router.post("/{scan_id}/retry", response_model=ScanDetail, status_code=202)
 async def retry_scan(scan_id: str, request: Request, state: StateDep, ctx: CanCreate) -> ScanDetail:
     """Starts a new scan of the same address as a finished one ("scan again" / "retry").

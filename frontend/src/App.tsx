@@ -3,7 +3,7 @@ import { useAuth } from "./auth";
 import { useTheme } from "./theme";
 import { Loading } from "./components/ui";
 import type { Page } from "./router";
-import { PUBLIC_PAGES, buildHash, useRoute } from "./router";
+import { LEGAL_PAGES, PUBLIC_PAGES, buildHash, useRoute } from "./router";
 import {
   ForgotPasswordPage,
   LoginPage,
@@ -11,6 +11,7 @@ import {
   ResetPasswordPage,
   VerifyEmailPage,
 } from "./pages/AuthPages";
+import LegalPage, { LegalLinks } from "./pages/Legal";
 import Targets from "./pages/Targets";
 import Team from "./pages/Team";
 import Findings from "./pages/Findings";
@@ -55,6 +56,14 @@ export default function App() {
       <div className="auth-wrap">
         <Loading label="Loading…" />
       </div>
+    );
+  }
+
+  if (LEGAL_PAGES.includes(route.page)) {
+    return (
+      <main id="main">
+        <LegalPage page={route.page} />
+      </main>
     );
   }
 
@@ -195,6 +204,7 @@ export default function App() {
           <p className="rail-note">
             Heuristic, passive checks only. Not a penetration test.
           </p>
+          <LegalLinks />
         </div>
       </aside>
       <main className="main" id="main" tabIndex={-1}>

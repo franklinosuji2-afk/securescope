@@ -4,6 +4,7 @@ import { ApiError } from "../api";
 import { useAuth } from "../auth";
 import { ErrorNotice } from "../components/ui";
 import { buildHash } from "../router";
+import { LegalLinks } from "./Legal";
 
 function Shell({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -11,6 +12,7 @@ function Shell({ title, children }: { title: string; children: ReactNode }) {
       <div className="card auth-card">
         <h1>{title}</h1>
         {children}
+        <LegalLinks />
       </div>
     </div>
   );
@@ -167,6 +169,11 @@ export function RegisterPage({ onDone }: { onDone: () => void }) {
         <button className="btn" type="submit" disabled={busy}>
           {busy ? "Creating…" : "Create account"}
         </button>
+        <p className="muted small">
+          By creating an account you agree to the{" "}
+          <a href="#/terms">Terms of use</a> and have read the{" "}
+          <a href="#/privacy">Privacy notice</a>.
+        </p>
         <p className="small">
           Already registered? <a href={buildHash("login", null)}>Sign in</a>
         </p>

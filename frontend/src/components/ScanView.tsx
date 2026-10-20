@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { rescanLabel } from "./RescanButton";
-import { ApiError, cancelScan, reportUrl, retryScan } from "../api";
+import { ApiError, cancelScan, deleteScan, reportUrl, retryScan } from "../api";
+import Checklist from "./Checklist";
 import { formatDate } from "../format";
 import type { ScanDetail } from "../types";
 import { isActive } from "../types";
@@ -86,16 +87,20 @@ export function ScanActions({
   scan,
   onChanged,
   onRetried,
+  onDeleted,
 }: {
   scan: ScanDetail;
   /** Called after a cancel, so the scan can be loaded again. */
   onChanged: () => void;
+  /** Called after the scan has been permanently deleted. */
+  onDeleted?: () => void;
   /** Called with the id of the new scan after a retry. */
   onRetried: (scanId: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [confirming, setConfirming] = useState(false);
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -123,6 +128,12 @@ export function ScanActions({
       onRetried(next.id);
     });
 
+  const remove = () =>
+    run(async () => {
+      await deleteScan(scan.id);
+      onDeleted?.();
+    });
+
   return (
     <div className="stack-sm">
       <div className="row">
@@ -146,6 +157,35 @@ export function ScanActions({
             {busy ? "Starting…" : rescanLabel(scan.status)}
           </button>
         )}
+        {!isActive(scan.status) && onDeleted && !confirming && (
+          <button
+            className="btn-ghost"
+            type="button"
+            disabled={busy}
+            onClick={() => setConfirming(true)}
+          >
+            Delete scan
+          </button>
+        )}
+        {!isActive(scan.status) && onDeleted && confirming && (
+          <>
+            <button
+              className="btn-danger"
+              type="button"
+              disabled={busy}
+              onClick={() => void remove()}
+            >
+              Permanently delete this scan
+            </button>
+            <button
+              className="btn-ghost"
+              type="button"
+              onClick={() => setConfirming(false)}
+            >
+              Keep it
+            </button>
+          </>
+        )}
       </div>
       <p className="visually-hidden" role="status">
         {message}
@@ -159,10 +199,12 @@ export default function ScanView({
   scan,
   onChanged,
   onRetried,
+  onDeleted,
 }: {
   scan: ScanDetail;
   onChanged?: () => void;
   onRetried?: (scanId: string) => void;
+  onDeleted?: () => void;
 }) {
   return (
     <div className="stack">
@@ -176,7 +218,12 @@ export default function ScanView({
         </div>
       )}
       {onChanged && onRetried && (
-        <ScanActions scan={scan} onChanged={onChanged} onRetried={onRetried} />
+        <ScanActions
+          scan={scan}
+          onChanged={onChanged}
+          onRetried={onRetried}
+          onDeleted={onDeleted}
+        />
       )}
       <div className="grid grid-3">
         <ScanStatusCard scan={scan} />
@@ -187,6 +234,7 @@ export default function ScanView({
         />
         <SeverityBreakdown counts={scan.counts} />
       </div>
+      <Checklist scan={scan} />
       <TargetMeta scan={scan} />
       {scan.status === "completed" && <ReportButtons scanId={scan.id} />}
     </div>

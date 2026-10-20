@@ -192,6 +192,8 @@ export const cancelScan = (id: string) =>
   request<ScanDetail>(`/scans/${encodeURIComponent(id)}/cancel`, {
     method: "POST",
   });
+export const deleteScan = (id: string) =>
+  request<void>(`/scans/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const retryScan = (id: string) =>
   request<ScanDetail>(`/scans/${encodeURIComponent(id)}/retry`, {
     method: "POST",
