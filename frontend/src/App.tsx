@@ -180,7 +180,7 @@ export default function App() {
                 d="M16 3 5 7v8c0 7 4.6 11.7 11 14 6.4-2.3 11-7 11-14V7L16 3Z"
                 fill="none"
                 strokeWidth="2.2"
-                style={{ stroke: "var(--accent)" }}
+                style={{ stroke: "var(--accent-soft)" }}
               />
               <path
                 d="m11 16 4 4 6-8"
