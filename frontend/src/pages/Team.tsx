@@ -81,7 +81,12 @@ export default function Team() {
       {error && <ErrorNotice message={error} />}
       {!detail && !error && <Loading label="Loading team…" />}
       {detail && (
-        <div className="card table-wrap">
+        <div
+          className="card table-wrap"
+          role="region"
+          tabIndex={0}
+          aria-label="Team members (scrolls sideways on small screens)"
+        >
           <table>
             <thead>
               <tr>

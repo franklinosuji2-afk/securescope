@@ -1,3 +1,101 @@
-﻿# OPERATIONS
+# Operations runbook
 
-Status: not yet written.
+For the person running SecureScope. Everything here assumes the free-tier setup in `DEPLOY_FREE.md`: Cloudflare (static site, Worker proxy, DNS, Email Routing), Render (API), Neon (Postgres), Brevo (mail).
+
+Menus in provider dashboards change. If a path below does not match, search the dashboard for the feature name.
+
+## 1. Is it up? (monitoring)
+
+Set up one free external monitor so you hear about an outage before a user does.
+
+1. Create a free account at UptimeRobot (the free plan lists 50 monitors, 5-minute checks and e-mail alerts; check the current terms).
+2. Add an **HTTP(s)** monitor for `https://getsecurescope.com/api/v1/ready`. It returns 200 with `{"status":"ready"}` when the API can reach the database, and 503 otherwise.
+3. Add a second monitor for `https://getsecurescope.com/` (the static site).
+4. Send alerts to an e-mail address you read on your phone.
+
+Side effect to know: a ping every 5 minutes keeps the free Render instance from sleeping. That removes cold starts but uses its free monthly hours continuously. Check Render's current free-hours limit before relying on it.
+
+In-app view: **Platform Health** (admin only). Its request and e-mail figures are in memory and reset on every restart (`MONITORING.md`).
+
+## 2. Backups
+
+Neon's free plan keeps only a short history window for restore (6 hours by default at the time of writing, see the [Neon docs](https://neon.com/docs/introduction/point-in-time-restore)). Anything older than that cannot be recovered from Neon alone, so take your own backup.
+
+**Take a backup** (Windows, Docker Desktop running):
+
+```
+$env:SECURESCOPE_BACKUP_URL = "<Neon connection string>"
+.\scripts\backup-db.ps1
+Remove-Item Env:SECURESCOPE_BACKUP_URL
+```
+
+The script writes `backups\securescope-<time>.dump` (ignored by git) and checks the file can be read back. The connection string is typed only into your own shell; never paste it anywhere else.
+
+**The backup contains user e-mail addresses and password hashes.** Keep the file on an encrypted disk or in a private cloud folder and delete old copies.
+
+**Prove it works** (do this once now, then after any schema change):
+
+```
+.\scripts\restore-test.ps1 backups\securescope-<time>.dump
+```
+
+It restores into a throw-away local PostgreSQL container, prints a row count per table and the schema version, then deletes the container.
+
+Suggested rhythm: before every release that includes a migration, and at least weekly while real users exist.
+
+Status: the dump/restore commands were tested against a real PostgreSQL 16 in the development environment (identical row counts and schema version after restore). The PowerShell wrappers have not yet been run on your PC with Neon; run them once and record the date here: `_not yet run_`.
+
+## 3. Restoring
+
+| Situation | What to do |
+| --- | --- |
+| A bad change or deletion within the Neon history window | Use Neon's instant restore, or restore to a new branch and compare. See the Neon docs above. |
+| Older damage, or the Neon project is gone | Create a new Neon database, restore your latest `.dump` into it with `pg_restore --no-owner --no-privileges -d <new connection string> <file>`, then set `SECURESCOPE_DATABASE_URL` in Render to the new string. The API runs migrations on start. |
+| Lost a Render service | Re-create it from `render.yaml`, then re-enter its secrets (see section 5). |
+| Lost the Cloudflare Worker | Redeploy from git (`wrangler.jsonc`), then re-set `BACKEND_URL` and `PROXY_SECRET`. |
+
+After any restore: sign in, open Targets and Scan History, and run one scan of a verified site.
+
+## 4. Rolling back a bad release
+
+Code and database are separate, so decide which one broke.
+
+- **Frontend or API code:** the fastest safe path is `git revert <commit>` then `git push`. CI runs, Cloudflare rebuilds and Render redeploys. Both providers also let you redeploy an earlier build from their dashboards (Cloudflare: the Worker's Deployments tab; Render: the service's Events/Deploys list).
+- **A migration:** do not roll back by hand. Restore from a backup taken before the release (section 3) and deploy the previous code. Migrations are forward-only in practice.
+- After rolling back, rescan a verified site and check the Platform Health page.
+
+Take a backup before any release that adds a migration.
+
+## 5. Secrets and rotation
+
+| Secret | Set in | Rotate when |
+| --- | --- | --- |
+| Neon connection string | Render | A leak, or yearly. Create the new password in Neon, update Render, confirm `/ready`, then revoke the old one. |
+| `PROXY_SECRET` / `SECURESCOPE_TRUSTED_PROXY_SECRET` | Cloudflare and Render (identical) | A leak. Change both, Render last. |
+| Mail API key (Brevo) | Render | Before it expires (note the date when you create it) or on a leak. |
+| `SECURESCOPE_ANALYTICS_SALT`, `SECURESCOPE_METRICS_TOKEN` | Render | A leak. Changing the salt only resets the daily visitor hashes. |
+
+If a secret was pasted somewhere public, treat it as leaked and rotate it immediately.
+
+## 6. Incidents
+
+1. **Confirm:** is `https://getsecurescope.com/api/v1/ready` green? Does the site load?
+2. **Contain:** if the cause is a recent release, roll back (section 4) first and investigate after.
+3. **Look:** Render logs (JSON lines with a request ID), Platform Health, Cloudflare Worker logs.
+4. **Fix, then verify:** run one scan of a verified site and open a finding.
+5. **Write it up** within a few days using `INCIDENT_TEMPLATE.md`, even for a short outage. Keep the file in `docs/incidents/`.
+
+Common cases:
+
+- **API returns 503 on `/ready`:** the database is unreachable. Check Neon status and the connection string in Render.
+- **First request after idle is slow (30-60 seconds):** Render free instance was asleep. Expected without a monitor ping.
+- **Sign-up works but no e-mail arrives:** provider outage or key problem. The log shows `mail send failed` with a status code, never the key.
+- **Everyone is rate-limited:** the Worker secret and the Render secret differ, so every visitor looks like one address. Re-set both.
+
+## 7. Recovery targets (honest numbers)
+
+These are what the setup can deliver today, not promises.
+
+- **Data loss window:** up to the age of your latest backup (plus Neon's 6-hour history if the problem is recent). Without your own backups it is only that 6-hour window.
+- **Time to recover:** a few hours by hand with this runbook. Not rehearsed on production.
+- **Single points of failure:** one API instance, one database, one maintainer. See `KNOWN_LIMITATIONS.md`.

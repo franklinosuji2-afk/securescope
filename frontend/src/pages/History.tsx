@@ -94,7 +94,12 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
         </EmptyState>
       )}
       {items.length > 0 && (
-        <div className="card table-wrap">
+        <div
+          className="card table-wrap"
+          role="region"
+          tabIndex={0}
+          aria-label="Scan history (scrolls sideways on small screens)"
+        >
           <table>
             <thead>
               <tr>

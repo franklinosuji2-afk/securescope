@@ -664,6 +664,10 @@ code,
   overflow-x: auto;
   position: relative;
 }
+/* On a phone the table scrolls inside its card instead of squeezing a long host name into a sliver. */
+.table-wrap > table {
+  min-width: 36rem;
+}
 table {
   width: 100%;
   border-collapse: collapse;
@@ -752,6 +756,8 @@ tbody tr:last-child td {
 @media (max-width: 860px) {
   .shell {
     grid-template-columns: minmax(0, 1fr);
+    /* The top bar keeps its own height; spare height on short pages goes to the content, not the bar. */
+    grid-template-rows: auto 1fr;
   }
   .rail {
     position: sticky;

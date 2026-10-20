@@ -15,3 +15,6 @@
 
 - [ ] Renew `frontend/public/.well-known/security.txt` before its `Expires` date (2027-07-01); RFC 9116 allows at most one year. A unit test fails once the date has passed.
 - [ ] Confirm `security@getsecurescope.com` actually receives mail (send a test message).
+
+- [ ] Before a release that adds a migration: take a backup (`scripts/backup-db.ps1`) and confirm the file verifies.
+- [ ] Uptime monitor on `/api/v1/ready` is active and alerts reach a mailbox you read (`docs/OPERATIONS.md` section 1).

@@ -1,6 +1,6 @@
 # Engineering coverage audit (111 topics)
 - **Audit date:** 2026-10-21
-- **Commit audited:** `main` at `b83c5be` (published `security.txt`), plus an uncommitted bump of `certifi` to 2026.10.19 in `backend/requirements.txt`.
+- **Commit audited:** `main` after the commit that added this audit, plus the operations runbook, backup scripts and incident template added the same day.
 - **Method:** every row below was assigned by reading the code, configuration, tests and documentation in this repository. Where evidence is a path, it was opened. Nothing was inferred from installed dependencies or README headings. Cloud-provider behaviour that is not configured in this repository is not counted as implemented.
 - **Not a checklist to maximise.** SecureScope is a small passive scanner on free hosting. Many topics are correctly Not applicable.
 ## Status meanings
@@ -12,17 +12,17 @@
 | Status | Count |
 |---|---|
 | Implemented and verified | 20 |
-| Partially implemented | 34 |
-| Not implemented | 26 |
+| Partially implemented | 39 |
+| Not implemented | 21 |
 | Not applicable | 31 |
 | **Total** | **111** |
 
-**Counting method:** coverage is calculated on the 80 applicable topics (111 minus 31 not applicable). "Implemented and verified" = 20/80 (25%); "implemented and verified" plus "partially implemented" = 54/80 (68%). The percentages are only a summary of the table; the table is the source of truth. They are not a quality score.
+**Counting method:** coverage is calculated on the 80 applicable topics (111 minus 31 not applicable). "Implemented and verified" = 20/80 (25%); "implemented and verified" plus "partially implemented" = 59/80 (74%). The percentages are only a summary of the table; the table is the source of truth. They are not a quality score.
 
 ## Findings from the audit that need action
-1. **Backups and disaster recovery (83, 84):** no backup of your own, no restore test, and `docs/OPERATIONS.md` is empty. This is the largest operational gap.
-2. **Alerting (62):** nobody is told when the API is down. A free uptime monitor on `/api/v1/ready` closes most of this.
-3. **Rollback and incident process (55, 109, 111):** works in practice but is not written down.
+1. **Backups and disaster recovery (83, 84):** scripts and a runbook now exist, but no backup has been taken from the real database and no restore rehearsed. Do this once and record the date in `OPERATIONS.md`.
+2. **Alerting (62):** still not configured. The runbook describes a free monitor on `/api/v1/ready`.
+3. **Rollback and incidents (55, 109, 111):** now written down and templated, not yet rehearsed.
 4. **Idempotency for scan creation (14)** and **durable scan queue (15):** a restart loses running scans, and the API can create duplicate scans on a double submit.
 5. **Stale documentation corrected:** `KNOWN_LIMITATIONS.md` said the audit log had no API or UI; `GET /api/v1/audit-events` and the Audit page exist and are tested. The line was removed.
 6. **Single-instance assumptions (46):** rate limits and metrics are in memory; horizontal scaling needs shared state first.
@@ -72,7 +72,7 @@
 | 41 | Memory Leaks | Partially implemented | Low | `middleware/ratelimit.py` drops empty keys; analytics summary capped at 200,000 rows | No profiling or long-running soak test. |
 | 42 | Garbage Collection | Not applicable | None | Managed by the Python runtime | No custom handling needed. |
 | 43 | Thread Safety | Partially implemented | Low | `observability/metrics.py` uses a `threading.Lock`; blocking DB work runs in `asyncio.to_thread` with per-call sessions | Reasoned, not stress-tested. |
-| 44 | Backpressure | Partially implemented | Medium | `max_concurrent_scans` semaphore (`core/config.py`, `api/deps.py`); per-organization scan rate limits | Concurrency is bounded and requests are rate-limited. There is no queue-length limit. |
+| 44 | Backpressure | Partially implemented | Medium | `max_concurrent_scans` semaphore (`core/config.py`, `api/deps.py`); per-client and per-target scan rate limits (`scans_per_client_per_hour`, `scans_per_target_per_hour`) | Concurrency is bounded and requests are rate-limited. There is no queue-length limit. |
 | 45 | Autoscaling | Not applicable | None | None | Free single instance. |
 | 46 | Horizontal Scaling | Not implemented | Low | Documented as a limitation: in-memory limiters and metrics | The app cannot yet run as several instances without shared state. |
 | 47 | Vertical Scaling | Not applicable | None | Platform plan choice | Not controlled in code. |
@@ -83,14 +83,14 @@
 | 52 | Blue-Green Deployment | Not implemented | Low | None | Render replaces the instance on deploy; no parallel environment. |
 | 53 | Canary Releases | Not implemented | Low | None | Not needed for a single small deployment. |
 | 54 | Rolling Deployments | Not applicable | Low | Platform behaviour (Render), not configured in this repo | Not verified here. |
-| 55 | Rollbacks | Not implemented | Medium | None documented (`docs/OPERATIONS.md` is empty) | `git revert` plus redeploy works in practice but the procedure is not written down or rehearsed. |
+| 55 | Rollbacks | Partially implemented | Medium | `docs/OPERATIONS.md` section 4 | Procedure written down (git revert, provider redeploy, restore for migrations). It has not been rehearsed. |
 | 56 | Health Checks | Implemented and verified | High | `api/v1/__init__.py` `/health` and `/ready`; `tests/test_api.py::test_ready_reports_database_state`; Render `healthCheckPath`; Docker `HEALTHCHECK` | Present and tested. |
 | 57 | Liveness & Readiness Probes | Partially implemented | Medium | `/health` (liveness) and `/ready` (database check) | The two endpoints exist and map to the concepts, but there are no Kubernetes-style probe definitions. |
 | 58 | Monitoring | Implemented and verified | Medium | Platform Health page and `api/v1/monitoring.py`; `tests/test_platform_health.py`; `docs/MONITORING.md` | In-app view for one process; resets on restart (documented). |
-| 59 | Logging | Implemented and verified | High | `core/logging.py` (JSON to stdout, request IDs in `main.py`) | Structured logs with a request ID. Secrets are not logged by design; there is no log-retention or shipping setup. |
+| 59 | Logging | Implemented and verified | High | `core/logging.py` (JSON to stdout, request IDs in `main.py`) | Structured logs with a request ID. Whether any log line could contain sensitive data has not been audited. There is no log retention or shipping setup. |
 | 60 | Distributed Tracing | Not implemented | Low | Only an `X-Request-ID` correlation header (`main.py`) | No spans or trace export. Not needed for a single service. |
 | 61 | Metrics | Implemented and verified | Medium | `observability/metrics.py`; optional Prometheus `/metrics` behind a bearer token; `tests/test_platform_health.py` | In-memory, one process. |
-| 62 | Alerts | Not implemented | Medium | None | No alerting configured. A free uptime monitor on `/api/v1/ready` is the cheapest first step. |
+| 62 | Alerts | Not implemented | Medium | Setup steps in `docs/OPERATIONS.md` section 1 | No alerting is configured yet. The runbook describes a free external monitor on `/api/v1/ready`; this row changes once it is set up. |
 | 63 | SLOs | Not implemented | Low | None | No targets defined. |
 | 64 | SLIs | Partially implemented | Low | Request counts, error rates and p95 latency exist in `observability/metrics.py` | The raw measurements exist; no SLI has been formally defined from them. |
 | 65 | Error Budgets | Not implemented | Low | None | Depends on SLOs. |
@@ -111,8 +111,8 @@
 | 80 | SSRF | Implemented and verified | High | `security/target.py`, `scanner/fetcher.py`; `tests/test_target.py`, `tests/test_fetcher.py`, `tests/test_probes.py` | Private-range rejection, DNS-rebinding pinning, redirect revalidation, downgrade blocking. KNOWN_LIMITATIONS still recommends an egress proxy for production. |
 | 81 | Database Migrations | Implemented and verified | High | `backend/alembic/versions/0001`..`0005`; migration test in `test_db_and_reports.py`; tests run on PostgreSQL in CI | Migrations run at startup. |
 | 82 | Schema Versioning | Implemented and verified | Medium | Alembic revision chain; `alembic_version` table | Versioned and linear. |
-| 83 | Disaster Recovery | Not implemented | High | `docs/OPERATIONS.md` says "not yet written" | No documented or rehearsed recovery plan. |
-| 84 | Backups | Not implemented | High | Only what the managed database provides (`docs/DEPLOY_FREE.md` states this) | No backup of your own and no restore test. Highest-priority gap once real users exist. |
+| 83 | Disaster Recovery | Partially implemented | High | `docs/OPERATIONS.md` sections 3 and 7 | Recovery steps and honest targets are written. They have not been rehearsed against production. |
+| 84 | Backups | Partially implemented | High | `scripts/backup-db.ps1`, `scripts/restore-test.ps1`, `docs/OPERATIONS.md` section 2; dump and restore commands tested on PostgreSQL 16 (identical row counts and schema version) | The PowerShell wrappers have not yet been run against your Neon database, and no backup schedule exists. Neon alone keeps a short restore window. |
 | 85 | Failover | Not implemented | Low | None | Single instance and database. |
 | 86 | Multi-Region Deployment | Not applicable | None | None | Not justified at this scale. |
 | 87 | Chaos Engineering | Not applicable | None | None | Out of scope for current maturity. |
@@ -137,9 +137,9 @@
 | 106 | Helm Charts | Not applicable | None | None | No Kubernetes. |
 | 107 | Build Caching | Partially implemented | Low | pip/npm caching in CI (`cache: pip`, `cache: npm`); Docker layer ordering | No Docker layer cache in CI. |
 | 108 | Dependency Hell | Implemented and verified | Medium | Pinned `requirements.txt`, `package-lock.json`; CI runs pip-audit, npm audit, Trivy | Worked as intended on 2026-10-20 when pip-audit flagged `certifi` and it was bumped. |
-| 109 | Production Incidents | Not implemented | Medium | None documented | No incident process or log. |
+| 109 | Production Incidents | Partially implemented | Medium | `docs/OPERATIONS.md` section 6 | A basic response checklist exists; no incident has been recorded yet. |
 | 110 | On-Call | Not applicable | Low | Single maintainer | Not meaningful for a solo project; revisit with a team. |
-| 111 | Postmortems | Not implemented | Low | None | No template or history. A short template would be enough. |
+| 111 | Postmortems | Partially implemented | Low | `docs/INCIDENT_TEMPLATE.md`, `docs/incidents/` | Template exists; no postmortem has been written yet. |
 
 ## Evidence types
 - **Code evidence:** paths in the Evidence column were read.
@@ -151,11 +151,12 @@ Run on 2026-10-21 against the working tree described above:
 
 | Command | Result |
 |---|---|
-| `python -m pytest -q` (backend, SQLite) | all tests passed |
+| `python -m pytest -q` (backend, SQLite and again on PostgreSQL 16) | all tests passed on both |
 | `ruff check .`, `mypy app` | clean |
 | `npm run lint`, `npm run typecheck`, `npm run format:check` | clean |
 | `npx vitest run` | 96 passed |
 | `npm run build` | built |
 | `npx playwright test` (run earlier, same code apart from the dependency bump and `security.txt`) | 30 passed |
+| `pg_dump` / `pg_restore` of a migrated database | identical row counts and schema version after restore |
 
-Not run for this audit: backend tests on PostgreSQL (CI does this), `docker compose up`, and any load or restore test.
+Not run for this audit: `docker compose up`, the PowerShell backup scripts on Windows, any load test, and a restore of the real Neon database.

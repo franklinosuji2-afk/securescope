@@ -142,7 +142,12 @@ export default function Audit() {
               <p className="muted small" role="status">
                 Showing {items.length} of {total} events.
               </p>
-              <div className="card table-wrap">
+              <div
+                className="card table-wrap"
+                role="region"
+                tabIndex={0}
+                aria-label="Audit events (scrolls sideways on small screens)"
+              >
                 <table>
                   <caption className="visually-hidden">
                     Audit events, newest first

@@ -11,3 +11,5 @@ data/
 *.zip
 frontend/test-results/
 frontend/playwright-report/
+
+backups/
