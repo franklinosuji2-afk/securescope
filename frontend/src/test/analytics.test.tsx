@@ -184,3 +184,19 @@ describe("change text", () => {
     expect(change(5, 10)).toBe("-50% vs previous period");
   });
 });
+
+describe("email confirmation", () => {
+  it("lets an unconfirmed account ask for a new confirmation email", async () => {
+    const m = mockApi({ ...base, email_verified: false });
+    renderApp();
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Send confirmation email" }),
+    );
+    expect(await screen.findByText(/^Sent\./)).toBeInTheDocument();
+    expect(
+      m.mock.calls.some((c) =>
+        String(c[0]).endsWith("/auth/resend-verification"),
+      ),
+    ).toBe(true);
+  });
+});

@@ -63,6 +63,9 @@ class AuthService:
         self._send_link(user, "verify_email", "verify-email", "Confirm your SecureScope email", VERIFY_TTL)
         return self._start_session(user)
 
+    def resend_verification(self, user: UserRecord) -> None:
+        self._send_link(user, "verify_email", "verify-email", "Confirm your SecureScope email", VERIFY_TTL)
+
     def login(self, email: str, password: str) -> NewSession | None:
         user = self.accounts.get_user_by_email(email)
         # Always run a hash verification so timing does not reveal whether the account exists.

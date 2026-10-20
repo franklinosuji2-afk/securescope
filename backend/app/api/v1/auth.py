@@ -183,6 +183,25 @@ async def reset_password(body: ResetPasswordRequest, request: Request, state: St
     return {"detail": "Password updated. Sign in with your new password."}
 
 
+@router.post("/resend-verification", status_code=202)
+async def resend_verification(principal: PrincipalDep, request: Request, state: StateDep) -> dict[str, str]:
+    """Sends a fresh confirmation link to the signed-in account (at most 3 per hour)."""
+    if principal.user.email_verified:
+        return {"detail": "Your email address is already confirmed."}
+    key = principal.user.id
+    if not state.resend_limiter.check(key):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again in an hour.")
+    state.resend_limiter.record(key)
+    await asyncio.to_thread(state.auth.resend_verification, principal.user)
+    await asyncio.to_thread(
+        state.audit.record,
+        "auth.verification_resent",
+        actor_user_id=principal.user.id,
+        request_id=request_id(request),
+    )
+    return {"detail": "Confirmation email sent."}
+
+
 @router.post("/verify-email")
 async def verify_email(body: VerifyEmailRequest, request: Request, state: StateDep) -> dict[str, str]:
     user_id = await asyncio.to_thread(state.auth.verify_email, body.token)

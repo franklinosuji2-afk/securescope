@@ -231,3 +231,38 @@ def test_request_ids_are_echoed_or_replaced(strict_client: TestClient) -> None:
     assert good.headers["x-request-id"] == "abc-12345678"
     evil = strict_client.get(f"{API}/health", headers={"X-Request-ID": "x\r\ninjected: 1"})
     assert evil.headers["x-request-id"] != "x" and "injected" not in evil.headers
+
+
+def test_resend_verification_sends_a_working_link_and_is_limited(make_settings, mailer) -> None:  # type: ignore[no-untyped-def]
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+    from app.tests.conftest import signup
+
+    with TestClient(create_app(make_settings(), mailer)) as client:
+        assert client.post("/api/v1/auth/resend-verification").status_code == 401
+        signup(client, "carol@example.com", "Carol Org")
+        sent_at_signup = len(mailer.sent)
+        assert client.post("/api/v1/auth/resend-verification").status_code == 202
+        assert len(mailer.sent) == sent_at_signup + 1
+        to, _subject, _body = mailer.sent[-1]
+        assert to == "carol@example.com"
+        token = mailer.last_token()
+        assert client.post("/api/v1/auth/verify-email", json={"token": token}).status_code == 200
+        assert client.get("/api/v1/auth/me").json()["email_verified"] is True
+        # Once confirmed, nothing more is sent.
+        before = len(mailer.sent)
+        assert client.post("/api/v1/auth/resend-verification").status_code == 202
+        assert len(mailer.sent) == before
+
+
+def test_resend_verification_is_rate_limited(make_settings, mailer) -> None:  # type: ignore[no-untyped-def]
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+    from app.tests.conftest import signup
+
+    with TestClient(create_app(make_settings(), mailer)) as client:
+        signup(client, "dan@example.com", "Dan Org")
+        codes = [client.post("/api/v1/auth/resend-verification").status_code for _ in range(5)]
+        assert codes == [202, 202, 202, 429, 429]

@@ -130,6 +130,8 @@ export const resetPassword = (token: string, password: string) =>
     method: "POST",
     body: JSON.stringify({ token, password }),
   });
+export const resendVerification = () =>
+  request<{ detail: string }>("/auth/resend-verification", { method: "POST" });
 export const verifyEmail = (token: string) =>
   request<{ detail: string }>("/auth/verify-email", {
     method: "POST",
