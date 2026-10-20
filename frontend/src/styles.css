@@ -244,6 +244,26 @@ code,
   flex-direction: column;
   gap: 16px;
 }
+/* Long-form legal pages: wider than the sign-in card and read from the top. */
+.legal-wrap {
+  align-items: start;
+  place-items: start center;
+}
+.legal-card {
+  width: min(760px, 100%);
+  gap: 8px;
+  line-height: 1.6;
+}
+.legal-card h2 {
+  margin-top: 20px;
+  font-size: 1.05rem;
+}
+.legal-card ul {
+  padding-left: 20px;
+}
+.legal-links {
+  margin-top: 8px;
+}
 .rail-user {
   display: flex;
   flex-direction: column;

@@ -64,10 +64,13 @@ export default function Checklist({ scan }: { scan: ScanDetail }) {
   if (scan.status !== "completed" || names.length === 0) return null;
   const rows = names.map((name) => {
     const info = CHECKS[name] ?? { label: name, why: "", prefixes: [] };
-    const hits = scan.findings.filter((f) =>
+    const matching = scan.findings.filter((f) =>
       info.prefixes.some((p) => f.id.startsWith(p)),
     );
-    return { name, info, hits };
+    // Like the exported report: informational findings are notes and do not fail a check.
+    const hits = matching.filter((f) => f.severity !== "info");
+    const notes = matching.length - hits.length;
+    return { name, info, hits, notes };
   });
   const passed = rows.filter((r) => r.hits.length === 0).length;
   return (
@@ -80,7 +83,7 @@ export default function Checklist({ scan }: { scan: ScanDetail }) {
         read the headers and page your site already sends, and change nothing.
       </p>
       <ul className="stack-sm" style={{ listStyle: "none", padding: 0 }}>
-        {rows.map(({ name, info, hits }) => (
+        {rows.map(({ name, info, hits, notes }) => (
           <li key={name}>
             <strong>
               {hits.length === 0 ? "✓ Passed" : "⚠ Needs attention"}
@@ -92,6 +95,14 @@ export default function Checklist({ scan }: { scan: ScanDetail }) {
                 {" "}
                 <a href={buildHash("findings", scan.id)}>
                   ({hits.length} finding{hits.length === 1 ? "" : "s"})
+                </a>
+              </>
+            )}
+            {hits.length === 0 && notes > 0 && (
+              <>
+                {" "}
+                <a href={buildHash("findings", scan.id)}>
+                  ({notes} note{notes === 1 ? "" : "s"})
                 </a>
               </>
             )}

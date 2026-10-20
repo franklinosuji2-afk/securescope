@@ -12,8 +12,8 @@ const UPDATED = "20 October 2026";
 
 function Doc({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="auth-wrap">
-      <div className="card auth-card" style={{ maxWidth: 720 }}>
+    <div className="auth-wrap legal-wrap">
+      <div className="card auth-card legal-card">
         <p className="small">
           <a href={buildHash("login", null)}>&larr; Back to SecureScope</a>
         </p>
@@ -51,6 +51,10 @@ function Impressum() {
       <h2>Contact</h2>
       <p>
         Email: <a href={`mailto:${EMAIL}`}>{EMAIL}</a>
+      </p>
+      <p>
+        Operated by an individual freelancer. No VAT identification number has
+        been issued.
       </p>
       <h2>Responsible for content (§ 18 Abs. 2 MStV)</h2>
       <p>{OPERATOR}, address as above.</p>
@@ -96,6 +100,11 @@ function Privacy() {
           <strong>Emails:</strong> we send only service emails such as email
           confirmation and password reset. No marketing.
         </li>
+        <li>
+          <strong>Server logs:</strong> our hosting providers process technical
+          data such as your IP address and the time of each request to deliver
+          the site and protect it from abuse (Art. 6(1)(f) GDPR).
+        </li>
       </ul>
 
       <h2>Cookies</h2>
@@ -126,9 +135,10 @@ function Privacy() {
       <p>
         You can ask for access, correction, deletion, restriction or export of
         your data, and object to processing based on legitimate interest. To
-        delete your account and its data, email us. You can also complain to a
-        supervisory authority, for Berlin the Berliner Beauftragte für
-        Datenschutz und Informationsfreiheit.
+        delete your account and its data, email us. We keep account data until
+        you ask us to delete it. You can also complain to a supervisory
+        authority, for Berlin the Berliner Beauftragte für Datenschutz und
+        Informationsfreiheit.
       </p>
 
       <h2>Scanning other people&apos;s sites</h2>
@@ -162,7 +172,7 @@ function Terms() {
         responsible for activity in your workspace. We may suspend accounts that
         abuse the service.
       </p>
-      <h2>4. No guarantees</h2>
+      <h2>4. Early access and no guarantees</h2>
       <p>
         The service is provided as is, during an early access phase, without
         guarantee of availability or completeness of findings. Checks can miss
@@ -176,7 +186,17 @@ function Terms() {
         negligence we are liable only for breach of essential contractual duties
         and only for foreseeable, typical damage.
       </p>
-      <h2>6. Changes and contact</h2>
+      <h2>6. Ending your use</h2>
+      <p>
+        You can stop using SecureScope at any time and ask us to delete your
+        account. We may end access for accounts that break these terms.
+      </p>
+      <h2>7. Governing law</h2>
+      <p>
+        German law applies, except where mandatory consumer protection rules of
+        your country of residence say otherwise.
+      </p>
+      <h2>8. Changes and contact</h2>
       <p>
         We may update these terms; the date above shows the latest version.
         Questions: <a href={`mailto:${EMAIL}`}>{EMAIL}</a>.

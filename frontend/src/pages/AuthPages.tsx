@@ -218,8 +218,8 @@ export function ForgotPasswordPage() {
           Send reset link
         </button>
         <p className="muted small">
-          This development build does not send real email; the link is written
-          to the server log.
+          If an account exists for this email, we will send a reset link. It can
+          take a minute, and it may land in your spam folder.
         </p>
         <a className="small" href={buildHash("login", null)}>
           Back to sign in
