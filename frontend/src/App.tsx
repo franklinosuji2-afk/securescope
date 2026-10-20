@@ -17,6 +17,7 @@ import Team from "./pages/Team";
 import Findings from "./pages/Findings";
 import { ApiError, resendVerification } from "./api";
 import Analytics from "./pages/Analytics";
+import Health from "./pages/Health";
 import Audit from "./pages/Audit";
 import History from "./pages/History";
 import Overview from "./pages/Overview";
@@ -63,6 +64,7 @@ const NAV: { page: Page; label: string }[] = [
   { page: "team", label: "Team" },
   { page: "audit", label: "Audit log" },
   { page: "analytics", label: "Analytics" },
+  { page: "health", label: "Platform Health" },
 ];
 
 export default function App() {
@@ -205,7 +207,7 @@ export default function App() {
         <div className="rail-menu" id="rail-menu">
           <nav className="nav" aria-label="Primary">
             {NAV.filter((n) =>
-              n.page === "analytics"
+              n.page === "analytics" || n.page === "health"
                 ? user.is_admin === true
                 : n.page !== "audit" ||
                   (organization ? canReadAudit(organization.role) : false),
@@ -281,6 +283,7 @@ export default function App() {
         {route.page === "team" && <Team />}
         {route.page === "audit" && <Audit />}
         {route.page === "analytics" && user.is_admin === true && <Analytics />}
+        {route.page === "health" && user.is_admin === true && <Health />}
       </main>
     </div>
   );

@@ -15,6 +15,7 @@ from fastapi import Depends, Header, HTTPException, Request
 from app.core.config import Settings
 from app.database.session import make_engine
 from app.middleware.ratelimit import SlidingWindowLimiter
+from app.observability.metrics import RequestMetrics
 from app.repositories.accounts import AccountRepository, AuditRepository, SessionRecord, UserRecord
 from app.repositories.analytics import AnalyticsRepository
 from app.repositories.scans import ScanRepository
@@ -56,6 +57,7 @@ class AppState:
         self.register_limiter = SlidingWindowLimiter(settings.registrations_per_ip_per_hour)
         self.reset_limiter = SlidingWindowLimiter(settings.password_reset_requests_per_ip_per_hour)
         self.resend_limiter = SlidingWindowLimiter(3)
+        self.metrics = RequestMetrics()
         self.verify_limiter = SlidingWindowLimiter(settings.target_verifications_per_target_per_hour)
         # Seams so tests never touch real DNS or the network; production keeps the defaults.
         self.txt_lookup: TxtLookup = system_txt_lookup

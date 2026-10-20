@@ -247,3 +247,55 @@ export interface AnalyticsSummary {
   sources: AnalyticsCount[];
   devices: AnalyticsCount[];
 }
+
+export interface PlatformHealth {
+  version: string;
+  started_at: string;
+  uptime_seconds: number;
+  database: { ok: boolean; latency_ms: number | null };
+  requests: {
+    window_seconds: number;
+    requests: number;
+    server_errors: number;
+    client_errors: number;
+    error_rate: number | null;
+    p50_ms: number | null;
+    p95_ms: number | null;
+    p99_ms: number | null;
+    routes: {
+      route: string;
+      requests: number;
+      errors: number;
+      p95_ms: number | null;
+    }[];
+    truncated: boolean;
+  };
+  scans: {
+    window_hours: number;
+    completed: number;
+    failed: number;
+    cancelled: number;
+    in_progress: number;
+    avg_seconds: number | null;
+    max_concurrent: number;
+    running_here: number;
+  };
+  mail: {
+    provider: string;
+    delivering: boolean;
+    sent: number;
+    failed: number;
+    last_success_at: string | null;
+    last_failure_at: string | null;
+    last_failure_status: number | null;
+  };
+  configuration: {
+    trusted_proxy: boolean;
+    admin_email: boolean;
+    analytics_enabled: boolean;
+    metrics_endpoint: boolean;
+    cookie_secure: boolean;
+    verification_valid_days: number;
+    retention_days: number;
+  };
+}

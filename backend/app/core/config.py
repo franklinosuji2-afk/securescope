@@ -70,6 +70,9 @@ class Settings(BaseSettings):
     analytics_retention_days: int = Field(90, ge=1, le=730)
     analytics_events_per_client_per_hour: int = Field(60, ge=1)
 
+    # Bearer token for GET /metrics (Prometheus format). Without it the endpoint does not exist (404).
+    metrics_token: SecretStr | None = None
+
     # Abuse protection (per client address, in memory)
     scans_per_client_per_hour: int = Field(10, ge=1)
     scans_per_target_per_hour: int = Field(3, ge=1)

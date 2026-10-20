@@ -450,6 +450,34 @@ class ScanRepository:
             best = min(candidates, key=_priority, default=None)
             return Overview(sites=sites, fix_first=best, other_open=open_total - 1 if best else 0)
 
+    def stats_since(self, since: datetime) -> dict[str, object]:
+        """Scan outcomes since `since`, across all organizations (operator view; no identities)."""
+        with self._session() as session:
+            rows = session.execute(
+                select(ScanRow.status, func.count()).where(ScanRow.created_at >= since).group_by(ScanRow.status)
+            ).all()
+            counts = {status: int(count) for status, count in rows}
+            finished = session.execute(
+                select(ScanRow.started_at, ScanRow.finished_at).where(
+                    ScanRow.status == ScanStatus.COMPLETED.value,
+                    ScanRow.created_at >= since,
+                    ScanRow.started_at.is_not(None),
+                    ScanRow.finished_at.is_not(None),
+                )
+            ).all()
+            active = session.scalar(select(func.count()).select_from(ScanRow).where(ScanRow.status.in_(ACTIVE)))
+        durations = []
+        for started, ended in finished:
+            if started is not None and ended is not None:
+                a = started if started.tzinfo else started.replace(tzinfo=UTC)
+                b = ended if ended.tzinfo else ended.replace(tzinfo=UTC)
+                durations.append((b - a).total_seconds())
+        return {
+            "counts": counts,
+            "active": int(active or 0),
+            "avg_seconds": (sum(durations) / len(durations)) if durations else None,
+        }
+
     def ping(self) -> bool:
         """Cheap connectivity check used by the readiness endpoint."""
         with self.engine.connect() as connection:

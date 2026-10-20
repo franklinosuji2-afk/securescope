@@ -1276,3 +1276,11 @@ a.btn {
   border-radius: 3px;
   background: var(--accent);
 }
+.notice-warn {
+  border-color: var(--sev-medium);
+}
+@media (min-width: 700px) {
+  .an-wide {
+    grid-column: 1 / -1;
+  }
+}

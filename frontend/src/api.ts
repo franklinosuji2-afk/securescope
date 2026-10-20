@@ -1,5 +1,6 @@
 import type {
   AnalyticsSummary,
+  PlatformHealth,
   AuditList,
   FindingStatus,
   Member,
@@ -257,3 +258,6 @@ export const fetchAnalytics = (days: number, timezone: string) =>
   request<AnalyticsSummary>(
     `/analytics/summary?days=${days}&tz=${encodeURIComponent(timezone)}`,
   );
+
+export const fetchPlatformHealth = () =>
+  request<PlatformHealth>("/platform/health");

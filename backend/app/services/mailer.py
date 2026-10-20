@@ -9,6 +9,8 @@ records only that a send failed (never the message body, the link or the API key
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Protocol
 
 import httpx
@@ -17,6 +19,17 @@ from app.core.config import Settings
 from app.core.logging import log_event
 
 logger = logging.getLogger("securescope.mail")
+
+
+@dataclass
+class MailStats:
+    """What this process has seen from the mail provider since it started (not persisted)."""
+
+    sent: int = 0
+    failed: int = 0
+    last_success_at: datetime | None = None
+    last_failure_at: datetime | None = None
+    last_failure_status: int | None = None
 
 
 class Mailer(Protocol):
@@ -42,6 +55,7 @@ class ApiMailer:
         if settings.mail_api_key is None or settings.mail_from_email is None:
             raise ValueError("a mail API key and sender address are required")
         self.provider = settings.mail_provider
+        self.stats = MailStats()
         self._key = settings.mail_api_key.get_secret_value()
         self._from_email = settings.mail_from_email
         self._from_name = settings.mail_from_name
@@ -75,6 +89,9 @@ class ApiMailer:
             response.raise_for_status()
         except httpx.HTTPError as exc:
             status = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None
+            self.stats.failed += 1
+            self.stats.last_failure_at = datetime.now(UTC)
+            self.stats.last_failure_status = status
             log_event(
                 logger,
                 "mail send failed",
@@ -83,6 +100,8 @@ class ApiMailer:
                 error=type(exc).__name__,
             )
             return
+        self.stats.sent += 1
+        self.stats.last_success_at = datetime.now(UTC)
         log_event(logger, "mail sent", provider=self.provider)
 
 
