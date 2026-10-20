@@ -166,3 +166,21 @@ def test_skipped_checks_appear_in_reports(db_url: str) -> None:
     assert "Not checked: No exposed .git directory or .env file" in reports.to_markdown(detail)
     assert "Not checked" in reports.to_html(detail)
     assert reports.to_pdf(detail)[:4] == b"%PDF"
+
+
+def test_missing_security_txt_is_not_listed_as_passed(db_url: str) -> None:
+    from app.reporting import reports
+    from app.tests.test_db_and_reports import completed_detail
+
+    detail = completed_detail(db_url)
+    assert detail.metadata is not None
+    a = assess(make_result(), None, probes())
+    detail = detail.model_copy(
+        update={
+            "findings": a.findings,
+            "metadata": detail.metadata.model_copy(update={"checks_run": a.checks_run}),
+        }
+    )
+    passed = reports.passed_checks(detail)
+    assert "A security.txt contact file is published" not in passed
+    assert "No exposed .git directory or .env file" in passed

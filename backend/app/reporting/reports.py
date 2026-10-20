@@ -13,7 +13,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import KeepTogether, Paragraph, SimpleDocTemplate, Table, TableStyle
 
-from app.scanner.checks import CHECK_LABELS
+from app.scanner.checks import CHECK_LABELS, NOT_PASSED_AT_INFO
 from app.schemas.scan import SEVERITY_ORDER, Finding, ScanDetail
 
 DISCLAIMER = (
@@ -57,7 +57,10 @@ def passed_checks(detail: ScanDetail) -> list[str]:
     """Human labels of checks that ran and raised nothing above informational level."""
     if detail.metadata is None:
         return []
-    raised = {f.id for f in detail.findings if f.severity.value != "info"}
+    # An absent security.txt is only informational for the score, but the check has not passed.
+    raised = {
+        f.id for f in detail.findings if f.severity.value != "info" or f.id.startswith(NOT_PASSED_AT_INFO)
+    }
     out = []
     for name in detail.metadata.checks_run:
         label, prefixes = CHECK_LABELS.get(name, (name, ()))

@@ -85,7 +85,9 @@ export default function Checklist({ scan }: { scan: ScanDetail }) {
       info.prefixes.some((p) => f.id.startsWith(p)),
     );
     // Like the exported report: informational findings are notes and do not fail a check.
-    const hits = matching.filter((f) => f.severity !== "info");
+    const hits = matching.filter(
+      (f) => f.severity !== "info" || f.id.startsWith("SS-DISC-SEC-"),
+    );
     const notes = matching.length - hits.length;
     return { name, info, hits, notes };
   });

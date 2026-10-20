@@ -382,6 +382,9 @@ def check_off_origin_redirect(result: FetchResult) -> list[Finding]:
     ]
 
 
+# Informational findings from these checks still mean the check did not pass.
+NOT_PASSED_AT_INFO: tuple[str, ...] = ("SS-DISC-SEC-",)
+
 # Paths requested once each, in addition to the page itself. Fixed here, never taken from user input.
 PROBE_PATHS: tuple[str, ...] = ("/.well-known/security.txt", "/.git/HEAD", "/.env")
 ENV_LINE = re.compile(rb"^[ \t]*(?:export[ \t]+)?[A-Za-z_][A-Za-z0-9_]*[ \t]*=", re.MULTILINE)
