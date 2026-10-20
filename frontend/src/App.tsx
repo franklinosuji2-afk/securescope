@@ -51,19 +51,28 @@ export default function App() {
     return () => document.removeEventListener("keydown", onKey);
   }, [menuOpen]);
 
-  if (loading) {
-    return (
-      <div className="auth-wrap">
-        <Loading label="Loading…" />
-      </div>
-    );
-  }
+  // A signed-in person has no use for the sign-in or registration forms: send them to the app.
+  const signedInOnAuthForm =
+    !!user && (route.page === "login" || route.page === "register");
+  useEffect(() => {
+    if (signedInOnAuthForm) window.location.hash = buildHash("overview", null);
+  }, [signedInOnAuthForm]);
 
   if (LEGAL_PAGES.includes(route.page)) {
     return (
       <main id="main">
         <LegalPage page={route.page} />
       </main>
+    );
+  }
+
+  if (signedInOnAuthForm) return null;
+
+  if (loading) {
+    return (
+      <div className="auth-wrap">
+        <Loading label="Loading…" />
+      </div>
     );
   }
 

@@ -33,6 +33,15 @@ async def _start_scan(state: StateDep, request: Request, ctx: OrgContext, url: s
     # Ownership is checked before any DNS lookup or outbound request is made for this host.
     verified = await asyncio.to_thread(state.targets.find_verified, ctx.organization_id, host)
     if verified is None:
+        known = await asyncio.to_thread(state.targets.find_by_host, ctx.organization_id, host)
+        if known is not None and known.status == "reverify":
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"The ownership proof for {host} has expired. "
+                    "Open Targets, press New challenge, publish it and verify again."
+                ),
+            )
         raise HTTPException(
             status_code=403,
             detail=f"Ownership of {host} has not been verified. Add and verify it under Targets first.",

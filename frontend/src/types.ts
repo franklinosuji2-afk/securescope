@@ -125,7 +125,7 @@ export function canManageMembers(role: Role): boolean {
 }
 
 export type VerificationMethod = "dns_txt" | "http_file";
-export type TargetStatus = "pending" | "verified" | "expired";
+export type TargetStatus = "pending" | "verified" | "expired" | "reverify";
 
 export interface Target {
   id: string;
@@ -134,6 +134,7 @@ export interface Target {
   challenge_token: string;
   challenge_expires_at: string;
   verified_at: string | null;
+  verification_expires_at?: string | null;
   verification_method: VerificationMethod | null;
   last_check_at: string | null;
   last_check_error: string | null;

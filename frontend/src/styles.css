@@ -217,7 +217,7 @@ code,
 }
 .main {
   padding: 28px clamp(16px, 3vw, 40px) 56px;
-  max-width: 1180px;
+  max-width: 1560px;
   width: 100%;
 }
 .page-head {
@@ -246,23 +246,65 @@ code,
 }
 /* Long-form legal pages: wider than the sign-in card and read from the top. */
 .legal-wrap {
-  align-items: start;
   place-items: start center;
 }
-.legal-card {
+.legal-shell {
   width: min(760px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.legal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.legal-brand {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  line-height: 1.6;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+}
+.legal-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.legal-tabs a {
+  padding: 10px 14px;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.legal-tabs a[aria-current="page"] {
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.legal-card {
+  line-height: 1.65;
+}
+.legal-card h1 {
+  margin-bottom: 4px;
 }
 .legal-card h2 {
-  margin-top: 20px;
+  margin: 28px 0 6px;
   font-size: 1.05rem;
+}
+.legal-card p,
+.legal-card ul {
+  margin: 0 0 10px;
 }
 .legal-card ul {
   padding-left: 20px;
 }
-.legal-links {
-  margin-top: 8px;
+.legal-summary {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
 }
 .rail-user {
   display: flex;
@@ -770,7 +812,8 @@ tbody tr:last-child td {
 .pill-pending {
   color: var(--accent-soft);
 }
-.pill-expired {
+.pill-expired,
+.pill-reverify {
   color: var(--danger);
 }
 .btn-danger {
@@ -1143,4 +1186,34 @@ a.btn {
 .trend-table th {
   color: var(--muted);
   font-weight: 500;
+}
+
+/* Overview: summary row, then findings and sites beside the scan form on wide screens. */
+.summary-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.overview-grid {
+  display: grid;
+  gap: 20px;
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 1100px) {
+  .overview-grid {
+    grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+  }
+  .overview-grid > :last-child {
+    position: sticky;
+    top: 20px;
+  }
 }

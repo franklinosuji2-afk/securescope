@@ -31,14 +31,28 @@ class DuplicateTargetError(Exception):
     pass
 
 
-def to_out(row: TargetRow) -> TargetOut:
+def verification_expiry(row: TargetRow, valid_days: int) -> datetime | None:
+    """When a proven domain stops being authorised, or None if it is unproven or never expires."""
+    verified = _aware(row.verified_at)
+    if verified is None or valid_days <= 0:
+        return None
+    return verified + timedelta(days=valid_days)
+
+
+def to_out(row: TargetRow, valid_days: int = 0) -> TargetOut:
     expires = _aware(row.challenge_expires_at)
     if expires is None:
         raise ValueError("target row without challenge expiry")
+    lapses = verification_expiry(row, valid_days)
+    if row.verified_at:
+        status = "reverify" if lapses is not None and lapses <= _now() else "verified"
+    else:
+        status = "expired" if expires <= _now() else "pending"
     return TargetOut(
         id=row.id,
         hostname=row.hostname,
-        status="verified" if row.verified_at else ("expired" if expires <= _now() else "pending"),
+        status=status,
+        verification_expires_at=lapses,
         challenge_token=row.challenge_token,
         challenge_expires_at=expires,
         verified_at=_aware(row.verified_at),
@@ -54,8 +68,9 @@ def to_out(row: TargetRow) -> TargetOut:
 
 
 class TargetRepository:
-    def __init__(self, engine: Engine) -> None:
+    def __init__(self, engine: Engine, verification_valid_days: int = 0) -> None:
         self._session = make_session_factory(engine)
+        self._valid_days = verification_valid_days
 
     def create(self, organization_id: str, hostname: str, created_by: str) -> TargetOut:
         now = _now()
@@ -72,7 +87,7 @@ class TargetRepository:
             with self._session.begin() as session:
                 session.add(row)
                 session.flush()
-                return to_out(row)
+                return to_out(row, self._valid_days)
         except IntegrityError as exc:
             raise DuplicateTargetError from exc
 
@@ -81,7 +96,7 @@ class TargetRepository:
             row = session.get(TargetRow, target_id)
             if row is None or row.organization_id != organization_id:
                 return None
-            return to_out(row)
+            return to_out(row, self._valid_days)
 
     def list(self, organization_id: str) -> list[TargetOut]:
         with self._session() as session:
@@ -101,7 +116,20 @@ class TargetRepository:
                     TargetRow.verified_at.is_not(None),
                 )
             )
-            return to_out(row) if row else None
+            if row is None:
+                return None
+            out = to_out(row, self._valid_days)
+            return out if out.status == "verified" else None
+
+    def find_by_host(self, organization_id: str, hostname: str) -> TargetOut | None:
+        """The target for a host in any state, so callers can explain why a scan is refused."""
+        with self._session() as session:
+            row = session.scalar(
+                select(TargetRow).where(
+                    TargetRow.organization_id == organization_id, TargetRow.hostname == hostname
+                )
+            )
+            return to_out(row, self._valid_days) if row else None
 
     def delete(self, target_id: str, organization_id: str) -> bool:
         with self._session.begin() as session:
@@ -123,7 +151,7 @@ class TargetRepository:
             if row.verified_at is None:
                 row.last_check_error = None
             session.flush()
-            return to_out(row)
+            return to_out(row, self._valid_days)
 
     def record_check(
         self,
@@ -144,4 +172,4 @@ class TargetRepository:
                 .values(**values)
             )
             row = session.get(TargetRow, target_id)
-            return to_out(row) if row and row.organization_id == organization_id else None
+            return to_out(row, self._valid_days) if row and row.organization_id == organization_id else None

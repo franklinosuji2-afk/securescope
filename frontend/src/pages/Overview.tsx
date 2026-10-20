@@ -3,6 +3,7 @@ import Posture from "../components/Posture";
 import ScanForm from "../components/ScanForm";
 import ScanView from "../components/ScanView";
 import SetupGuide from "../components/SetupGuide";
+import SummaryCards from "../components/SummaryCards";
 import { ErrorNotice, Loading } from "../components/ui";
 import { setupSteps } from "../overview";
 import { buildHash, type Route } from "../router";
@@ -51,19 +52,24 @@ export default function Overview({
         />
       )}
       {scanned && (
-        <Posture
-          overview={data.overview}
-          onScanAgain={allowed ? onStarted : undefined}
-        />
+        <SummaryCards overview={data.overview} targets={data.targets} />
       )}
-      {allowed ? (
-        <ScanForm onStarted={onStarted} verifiedHosts={verifiedHosts} />
-      ) : (
-        <div className="notice notice-info" role="note">
-          Your role ({role ?? "none"}) can view scans and export reports but
-          cannot start scans.
-        </div>
-      )}
+      <div className={scanned ? "overview-grid" : "stack"}>
+        {scanned && (
+          <Posture
+            overview={data.overview}
+            onScanAgain={allowed ? onStarted : undefined}
+          />
+        )}
+        {allowed ? (
+          <ScanForm onStarted={onStarted} verifiedHosts={verifiedHosts} />
+        ) : (
+          <div className="notice notice-info" role="note">
+            Your role ({role ?? "none"}) can view scans and export reports but
+            cannot start scans.
+          </div>
+        )}
+      </div>
       {error && <ErrorNotice message={error} />}
       {loading && !scan && <Loading label="Loading scan…" />}
       {scan && (

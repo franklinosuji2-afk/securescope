@@ -11,6 +11,7 @@ const STATUS_LABEL: Record<Target["status"], string> = {
   verified: "Verified",
   pending: "Not verified",
   expired: "Challenge expired",
+  reverify: "Re-verification needed",
 };
 
 function TargetCard({
@@ -46,11 +47,17 @@ function TargetCard({
             : "HTTP file"}
           . Scans of exactly <code>{target.hostname}</code> are allowed.
           Subdomains and <code>www.</code> variants need their own entry.
+          {target.verification_expires_at
+            ? ` This proof is valid until ${formatDate(target.verification_expires_at)}, after which you will be asked to verify again.`
+            : ""}
         </p>
       ) : (
         <details
           className="howto"
-          open={target.status === "pending" && !target.last_check_error}
+          open={
+            (target.status === "pending" && !target.last_check_error) ||
+            target.status === "reverify"
+          }
         >
           <summary>How to prove you control this domain</summary>
           <p className="small muted">
@@ -84,31 +91,39 @@ function TargetCard({
           </dl>
         </details>
       )}
+      {target.status === "reverify" && (
+        <div className="notice notice-info" role="note">
+          The ownership proof for {target.hostname} has expired, so scans are
+          paused. Press <strong>New challenge</strong>, publish the new value,
+          then verify again. Your earlier scans and findings are kept.
+        </div>
+      )}
       {target.last_check_error && !verified && (
         <ErrorNotice message={target.last_check_error} />
       )}
       {manage && (
         <div className="actions">
-          {!verified && target.status === "pending" && (
-            <>
-              <button
-                className="btn"
-                type="button"
-                disabled={busy}
-                onClick={() => onVerify("dns_txt")}
-              >
-                Verify DNS record
-              </button>
-              <button
-                className="btn-ghost"
-                type="button"
-                disabled={busy}
-                onClick={() => onVerify("http_file")}
-              >
-                Verify HTTP file
-              </button>
-            </>
-          )}
+          {!verified &&
+            (target.status === "pending" || target.status === "reverify") && (
+              <>
+                <button
+                  className="btn"
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onVerify("dns_txt")}
+                >
+                  Verify DNS record
+                </button>
+                <button
+                  className="btn-ghost"
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onVerify("http_file")}
+                >
+                  Verify HTTP file
+                </button>
+              </>
+            )}
           <button
             className="btn-ghost"
             type="button"

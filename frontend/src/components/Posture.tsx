@@ -22,9 +22,16 @@ export function FixFirstPanel({ overview }: { overview: Overview }) {
     );
   }
   const guide = guidanceFor(fix.finding_id);
+  const urgent = fix.severity !== "info";
   return (
     <section className="card fix-first" aria-labelledby="fix-title">
-      <h2 id="fix-title">Fix this first</h2>
+      <h2 id="fix-title">{urgent ? "Fix this first" : "Nothing urgent"}</h2>
+      {!urgent && (
+        <p className="muted small">
+          Only informational notes are open. They are worth knowing about, not
+          fixing in a hurry.
+        </p>
+      )}
       <div className="fix-head">
         <SeverityBadge severity={fix.severity} />
         <strong>{fix.title}</strong>

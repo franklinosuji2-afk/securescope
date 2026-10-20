@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     mail_timeout_seconds: float = Field(10.0, gt=0, le=30)
 
     target_verifications_per_target_per_hour: int = Field(10, ge=1)
+    # How long a proven domain stays authorised before it must be proven again. 0 means it never expires.
+    target_verification_valid_days: int = Field(180, ge=0, le=3650)
 
     # Abuse protection (per client address, in memory)
     scans_per_client_per_hour: int = Field(10, ge=1)

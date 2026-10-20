@@ -34,7 +34,7 @@ class AppState:
         self.settings = settings
         self.engine = make_engine(settings.database_url)
         self.repo = ScanRepository(self.engine)
-        self.targets = TargetRepository(self.engine)
+        self.targets = TargetRepository(self.engine, settings.target_verification_valid_days)
         self.accounts = AccountRepository(self.engine)
         self.audit = AuditRepository(self.engine)
         self.auth = AuthService(self.accounts, settings, mailer or build_mailer(settings))

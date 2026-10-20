@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from app.api.deps import OrgContext, StateDep, request_id, require
-from app.repositories.targets import DuplicateTargetError
+from app.repositories.targets import CHALLENGE_TTL, DuplicateTargetError
 from app.schemas.target import TargetCreate, TargetList, TargetOut, TargetVerify
 from app.security.ownership import (
     OwnershipCheckError,
@@ -100,6 +101,21 @@ async def verify_target(
         raise HTTPException(status_code=404, detail="Target not found.")
     if target.status == "verified":
         return target
+    reverifying = target.status == "reverify"
+    if reverifying:
+        # A lapsed proof needs a challenge issued after it lapsed, so an old token left on a domain that
+        # has since changed hands cannot renew the authorisation.
+        lapsed_at = target.verification_expires_at
+        issued_at = target.challenge_expires_at - CHALLENGE_TTL
+        if lapsed_at is not None and issued_at < lapsed_at:
+            raise HTTPException(
+                status_code=409,
+                detail="The ownership proof has expired. Press New challenge, publish the new value, then verify.",
+            )
+        if target.challenge_expires_at <= datetime.now(UTC):
+            raise HTTPException(
+                status_code=409, detail="The challenge has expired. Generate a new one and publish it."
+            )
     if target.status == "expired":
         raise HTTPException(
             status_code=409, detail="The challenge has expired. Generate a new one and publish it."
@@ -128,6 +144,12 @@ async def verify_target(
     if updated is None:  # deleted while the check ran
         raise HTTPException(status_code=404, detail="Target not found.")
     await _audit(
-        state, request, ctx, "target.verified" if error is None else "target.verification_failed", target.id
+        state,
+        request,
+        ctx,
+        ("target.reverified" if reverifying else "target.verified")
+        if error is None
+        else "target.verification_failed",
+        target.id,
     )
     return updated

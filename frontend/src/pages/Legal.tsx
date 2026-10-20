@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { Page } from "../router";
+import { useAuth } from "../auth";
 import { buildHash } from "../router";
 
 // Legal text for the operator. Update these constants if the operator's details change.
@@ -10,17 +11,66 @@ const CITY = "Berlin";
 const EMAIL = "franklin.c.osuji@gmx.de";
 const UPDATED = "20 October 2026";
 
-function Doc({ title, children }: { title: string; children: ReactNode }) {
+const TABS: { page: Page; label: string }[] = [
+  { page: "impressum", label: "Impressum" },
+  { page: "privacy", label: "Privacy" },
+  { page: "terms", label: "Terms" },
+];
+
+function Doc({
+  page,
+  title,
+  children,
+}: {
+  page: Page;
+  title: string;
+  children: ReactNode;
+}) {
+  const { user } = useAuth();
+  const home = user ? buildHash("overview", null) : buildHash("login", null);
   return (
     <div className="auth-wrap legal-wrap">
-      <div className="card auth-card legal-card">
-        <p className="small">
-          <a href={buildHash("login", null)}>&larr; Back to SecureScope</a>
-        </p>
-        <h1>{title}</h1>
-        {children}
-        <p className="muted small">Last updated: {UPDATED}</p>
-        <LegalLinks />
+      <div className="legal-shell">
+        <header className="legal-head">
+          <a className="legal-brand" href={home}>
+            <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+              <path
+                d="M16 3 5 7v8c0 7 4.6 11.7 11 14 6.4-2.3 11-7 11-14V7L16 3Z"
+                fill="none"
+                strokeWidth="2.2"
+                style={{ stroke: "var(--accent)" }}
+              />
+              <path
+                d="m11 16 4 4 6-8"
+                fill="none"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ stroke: "var(--ok)" }}
+              />
+            </svg>
+            SecureScope
+          </a>
+          <a className="small" href={home}>
+            {user ? "Back to the app" : "Back to sign in"}
+          </a>
+        </header>
+        <nav className="legal-tabs" aria-label="Legal pages">
+          {TABS.map((t) => (
+            <a
+              key={t.page}
+              href={`#/${t.page}`}
+              aria-current={t.page === page ? "page" : undefined}
+            >
+              {t.label}
+            </a>
+          ))}
+        </nav>
+        <div className="card legal-card">
+          <h1>{title}</h1>
+          {children}
+          <p className="muted small">Last updated: {UPDATED}</p>
+        </div>
       </div>
     </div>
   );
@@ -37,7 +87,7 @@ export function LegalLinks() {
 
 function Impressum() {
   return (
-    <Doc title="Impressum">
+    <Doc page="impressum" title="Impressum">
       <h2>Information according to § 5 DDG</h2>
       <p>
         {OPERATOR}
@@ -70,7 +120,12 @@ function Impressum() {
 
 function Privacy() {
   return (
-    <Doc title="Privacy notice">
+    <Doc page="privacy" title="Privacy notice">
+      <p className="legal-summary">
+        <strong>The short version:</strong> we store your account and scan data
+        only to run SecureScope, we use one necessary cookie and no tracking, we
+        never sell data, and you can ask us to delete everything.
+      </p>
       <h2>Who is responsible</h2>
       <p>
         {OPERATOR}, {STREET}, {CITY}, Germany. Contact:{" "}
@@ -152,7 +207,7 @@ function Privacy() {
 
 function Terms() {
   return (
-    <Doc title="Terms of use">
+    <Doc page="terms" title="Terms of use">
       <h2>1. What SecureScope is</h2>
       <p>
         SecureScope runs passive, heuristic security checks on websites and

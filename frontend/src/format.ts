@@ -65,6 +65,7 @@ const AUDIT_LABELS: Record<string, string> = {
   "target.created": "Site added",
   "target.verified": "Site ownership verified",
   "target.verification_failed": "Site verification failed",
+  "target.reverified": "Site ownership re-verified",
   "target.challenge_regenerated": "Verification challenge renewed",
   "target.deleted": "Site removed",
   "scan.created": "Scan started",
