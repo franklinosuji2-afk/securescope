@@ -17,7 +17,7 @@
 - Ownership verification: the HTTP-file method was confirmed once end to end on a real domain (2026-10-18, the author's own site, followed by a real scan and report). The DNS TXT method has only been tested with mocked lookups and error mapping, not against a live domain.
 - DNS TXT verification trusts the resolver the server is configured with.
 - Members can only be added if they already have an account; there are no emailed invitations.
-- The audit log is write-only (no API or UI); users cannot list or revoke individual sessions.
+- Users cannot list or revoke individual sessions. (The audit log is available to owners and administrators through the API and the Audit page.)
 - Use the app only via the configured origin (`http://localhost:8080`); other origins are refused for POSTs.
 - Docker images were authored and the Compose file validated, but image builds were not executed in the authoring environment. Run `docker compose up --build` and the release checklist before relying on them.
 - Website analytics counts visitors with a daily-rotating hash, so the same person on two days counts twice and "visitors" over a range is the sum of daily uniques. Days are grouped in the viewer's time zone while the hash rotates at UTC midnight, so someone active across that boundary can count twice on one local day. Views are summed in the API process (capped at 200,000 rows), which is fine for a small site but not for large traffic. Visitors who block requests to `/api/`, send Do Not Track or Global Privacy Control, or use a bot-like browser string are not counted, so the numbers are a lower bound.
