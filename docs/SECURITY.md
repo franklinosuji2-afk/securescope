@@ -62,3 +62,9 @@ See `THREAT_MODEL.md`: SSRF controls, DNS pinning, redirect validation and limit
 ## Reporting a vulnerability
 
 Open a private security advisory on the GitHub repository.
+
+## Passive checks added in Stage 2
+
+- **TLS certificate** (`SS-TLS-CERT-001..005`): one verified connection using Python's default context (verification is never disabled). Findings: expires within 30 days (high at 14 or fewer), expired, host name mismatch, untrusted chain, not yet valid.
+- **Fixed-path probes** (`SS-EXPOSE-GIT-001`, `SS-EXPOSE-ENV-001`, `SS-DISC-SEC-001`): constants in `scanner/checks.py`, never user input. They reuse the SSRF-validated, IP-pinned fetch path, do not follow redirects, read at most 4 KB, and store no file content.
+- Checks that could not run are listed under `metadata.checks_skipped` and shown as "Not checked".

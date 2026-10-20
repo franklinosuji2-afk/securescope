@@ -4,7 +4,10 @@
 - Cookie checks only see cookies set on that response.
 - Header presence is checked; CSP/HSTS _quality_ is only lightly assessed.
 - The directory-index check is a conservative signature and can miss or (rarely) misfire.
-- No TLS/certificate analysis, no software-version vulnerability matching, no active testing (by design).
+- TLS analysis is one verified connection: certificate validity, host name, trust and the negotiated protocol and cipher. It does not enumerate supported protocol versions or cipher suites, and does not test for TLS vulnerabilities.
+- Three fixed paths are requested once each (`/.well-known/security.txt`, `/.git/HEAD`, `/.env`). Detection is by content signature, so a site that answers every path with its home page is not flagged. Redirects on these paths count as "not served". Other sensitive paths are not guessed.
+- A check that cannot get a usable answer (timeout, 5xx, 429) is reported as "Not checked" and never as passed; it also does not mark earlier findings of that check as fixed.
+- No software-version vulnerability matching, no active testing (by design).
 - The score is a heuristic, not comparable to other tools. A high score does not mean a site is secure.
 - DNS pinning mitigates rebinding, but production should still use an egress proxy.
 - Rate limits are in-memory and per process; single node.

@@ -144,7 +144,7 @@ def test_reports_state_coverage_and_limits(db_url: str) -> None:
     )
     text = reports.to_markdown(detail)
     assert "## What was checked" in text and "## Limits of this scan" in text
-    assert "TLS certificate and cipher configuration are not assessed" in text
+    assert "This is not a full TLS test" in text
     assert "Passed: " in text
     page = reports.to_html(detail)
     assert "What was checked" in page and "Limits of this scan" in page

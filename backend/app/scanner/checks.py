@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from dataclasses import dataclass, field
 
-from app.scanner.fetcher import FetchResult
-from app.schemas.scan import Confidence, Finding, Severity
+from app.scanner.fetcher import FetchResult, ProbeResponse
+from app.scanner.tls import TlsObservation
+from app.schemas.scan import Confidence, Finding, Severity, SkippedCheck, TlsSummary
 
 HSTS_MIN_SECONDS = 15_552_000  # 180 days
 VERSION_IN_HEADER = re.compile(r"\d+\.\d+")
@@ -380,9 +382,224 @@ def check_off_origin_redirect(result: FetchResult) -> list[Finding]:
     ]
 
 
+# Paths requested once each, in addition to the page itself. Fixed here, never taken from user input.
+PROBE_PATHS: tuple[str, ...] = ("/.well-known/security.txt", "/.git/HEAD", "/.env")
+ENV_LINE = re.compile(rb"^[ \t]*(?:export[ \t]+)?[A-Za-z_][A-Za-z0-9_]*[ \t]*=", re.MULTILINE)
+GIT_HEAD = re.compile(rb"^ref: refs/[A-Za-z0-9._/-]+\s*$|^[0-9a-f]{40}\s*$")
+
+
+def _is_html(response: ProbeResponse) -> bool:
+    kind = (response.content_type or "").lower()
+    return "html" in kind or response.body_sample.lstrip()[:15].lower().startswith((b"<!doctype", b"<html"))
+
+
+def probes_conclusive(probes: dict[str, ProbeResponse], path: str) -> bool:
+    """Whether the probe gave an answer we can reason about (a 5xx or a transport error does not)."""
+    response = probes.get(path)
+    return response is not None and response.error is None and response.status is not None and (
+        response.status < 500 and response.status != 429
+    )
+
+
+def check_exposed_files(result: FetchResult, probes: dict[str, ProbeResponse]) -> list[Finding]:
+    """Looks for sensitive files that should never be public. Matches on content signatures, so a site that
+    answers every path with its home page (a single-page app) does not trigger a false report. The file
+    content is never stored: evidence says only what was recognised."""
+    found: list[Finding] = []
+    git = probes.get("/.git/HEAD")
+    if git and git.status == 200 and not _is_html(git) and GIT_HEAD.match(git.body_sample.strip()[:200]):
+        found.append(
+            Finding(
+                id="SS-EXPOSE-GIT-001",
+                title="Git repository metadata is publicly readable",
+                severity=Severity.HIGH,
+                category="Exposed files",
+                description=(
+                    "The site serves /.git/HEAD. When a .git directory is readable, an attacker can usually "
+                    "download the whole repository, including source code and any secrets committed to its "
+                    "history."
+                ),
+                evidence=(
+                    f"GET {result.final_scheme}://{result.host}/.git/HEAD returned HTTP 200 with content "
+                    "in the format of a Git HEAD file. The content itself was not stored."
+                ),
+                remediation=(
+                    "Remove the .git directory from the web root or block all dot-directories at the web "
+                    "server or CDN. Treat any secret that was ever committed as exposed and rotate it."
+                ),
+            )
+        )
+    env = probes.get("/.env")
+    if env and env.status == 200 and not _is_html(env):
+        lines = len(ENV_LINE.findall(env.body_sample))
+        if lines >= 2:
+            found.append(
+                Finding(
+                    id="SS-EXPOSE-ENV-001",
+                    title="An environment file appears to be publicly readable",
+                    severity=Severity.HIGH,
+                    category="Exposed files",
+                    description=(
+                        "The site serves /.env with content that looks like KEY=VALUE settings. Environment "
+                        "files typically hold database passwords and API keys."
+                    ),
+                    evidence=(
+                        f"GET {result.final_scheme}://{result.host}/.env returned HTTP 200 with "
+                        f"{lines} lines shaped like KEY=VALUE. Names and values were not stored."
+                    ),
+                    remediation=(
+                        "Remove the file from the web root or deny access to it, then rotate every secret "
+                        "it contained, because it may already have been read."
+                    ),
+                    confidence=Confidence.MEDIUM,
+                )
+            )
+    return found
+
+
+def check_security_txt(result: FetchResult, probes: dict[str, ProbeResponse]) -> list[Finding]:
+    response = probes.get("/.well-known/security.txt")
+    if response is None:
+        return []
+    if (
+        response.status == 200
+        and not _is_html(response)
+        and re.search(rb"^contact:", response.body_sample, re.IGNORECASE | re.MULTILINE)
+    ):
+        return []
+    state = f"HTTP {response.status}" if response.status is not None else "no usable response"
+    return [
+        Finding(
+            id="SS-DISC-SEC-001",
+            title="No security.txt contact file",
+            severity=Severity.INFO,
+            category="Security hygiene",
+            description=(
+                "A security.txt file (RFC 9116) tells researchers how to report a vulnerability to you. "
+                "Without one, reports may not reach the right person."
+            ),
+            evidence=(
+                f"GET {result.final_scheme}://{result.host}/.well-known/security.txt returned {state} "
+                "without a valid Contact field."
+            ),
+            remediation=(
+                "Publish /.well-known/security.txt with at least a Contact line and an Expires date, for "
+                "example: Contact: mailto:security@your-domain"
+            ),
+        )
+    ]
+
+
+CERT_SOON_HIGH_DAYS = 14
+CERT_SOON_MEDIUM_DAYS = 30
+
+_CERT_FAILURES: dict[str, tuple[str, str, str, str]] = {
+    "expired": (
+        "SS-TLS-CERT-002",
+        "TLS certificate has expired",
+        "Browsers show a full-page warning for an expired certificate and many visitors will leave; "
+        "API clients usually refuse to connect at all.",
+        "Renew the certificate now and enable automatic renewal (for example through your host or an ACME "
+        "client). Confirm the new certificate is installed on every server and CDN edge.",
+    ),
+    "not_yet_valid": (
+        "SS-TLS-CERT-005",
+        "TLS certificate is not valid yet",
+        "The certificate's start date is in the future as seen by the scanner, so clients may reject it.",
+        "Check the certificate's validity dates and the clock on the server that issued or serves it.",
+    ),
+    "hostname_mismatch": (
+        "SS-TLS-CERT-003",
+        "TLS certificate does not match the host name",
+        "The certificate presented was issued for a different name, so browsers warn visitors and cannot "
+        "tell this server apart from an impostor.",
+        "Install a certificate that lists this exact host name (or a matching wildcard) and check that the "
+        "right certificate is served for this name on every edge.",
+    ),
+    "untrusted": (
+        "SS-TLS-CERT-004",
+        "TLS certificate is not trusted",
+        "The certificate is self-signed or its issuer is not in the standard trust store, so browsers warn "
+        "visitors.",
+        "Use a certificate from a public certificate authority and make sure the server sends the full "
+        "intermediate chain.",
+    ),
+    "other": (
+        "SS-TLS-CERT-005",
+        "TLS certificate could not be verified",
+        "Standard certificate verification failed for a reason other than expiry, host name or issuer.",
+        "Inspect the certificate chain with a TLS checker and reissue the certificate if needed.",
+    ),
+}
+
+
+def check_tls_certificate(result: FetchResult, tls: TlsObservation | None) -> list[Finding]:
+    """Findings from the one verified TLS connection. Expects a conclusive observation."""
+    if tls is None:
+        return []
+    if tls.outcome == "verification_failed" and tls.failure_kind is not None:
+        fid, title, why, fix = _CERT_FAILURES[tls.failure_kind]
+        return [
+            Finding(
+                id=fid,
+                title=title,
+                severity=Severity.HIGH,
+                category="Transport security",
+                description=why,
+                evidence=f"Certificate verification for {result.host} failed: {tls.detail}",
+                remediation=fix,
+            )
+        ]
+    if tls.outcome != "ok":
+        return []
+    days = tls.days_remaining()
+    if days is not None and days <= CERT_SOON_MEDIUM_DAYS:
+        severity = Severity.HIGH if days <= CERT_SOON_HIGH_DAYS else Severity.MEDIUM
+        until = f"{tls.not_after:%Y-%m-%d}" if tls.not_after else "unknown"
+        return [
+            Finding(
+                id="SS-TLS-CERT-001",
+                title="TLS certificate expires soon",
+                severity=severity,
+                category="Transport security",
+                description=(
+                    "When the certificate expires, browsers will block the site with a warning. "
+                    "Certificates are normally renewed automatically well before this point."
+                ),
+                evidence=f"The certificate for {result.host} is valid until {until} ({days} days left).",
+                remediation=(
+                    "Renew the certificate and check that automatic renewal works (for example certbot or "
+                    "your host's managed certificates)."
+                ),
+            )
+        ]
+    return []
+
+
+def tls_summary(tls: TlsObservation | None) -> TlsSummary | None:
+    if tls is None or tls.outcome not in ("ok", "verification_failed"):
+        return None
+    return TlsSummary(
+        protocol=tls.protocol,
+        cipher=tls.cipher,
+        not_before=tls.not_before,
+        not_after=tls.not_after,
+        days_remaining=tls.days_remaining(),
+        issuer=tls.issuer,
+        subject=tls.subject,
+        verified=tls.outcome == "ok",
+    )
+
+
 # Which finding-id prefixes belong to which check, so reports can list checks that found nothing.
 CHECK_LABELS: dict[str, tuple[str, tuple[str, ...]]] = {
-    "https": ("The page was served over HTTPS", ("SS-TLS-",)),
+    "https": ("The page was served over HTTPS", ("SS-TLS-0",)),
+    "exposed-files": ("No exposed .git directory or .env file", ("SS-EXPOSE-",)),
+    "security-txt": ("A security.txt contact file is published", ("SS-DISC-SEC-",)),
+    "tls-certificate": (
+        "TLS certificate is valid for this host and not close to expiry",
+        ("SS-TLS-CERT-",),
+    ),
     "hsts": ("Strict-Transport-Security is set with a long max-age", ("SS-HDR-HSTS-",)),
     "csp": ("Content-Security-Policy is set without unsafe script sources", ("SS-HDR-CSP-",)),
     "x-content-type-options": ("X-Content-Type-Options is nosniff", ("SS-HDR-XCTO-",)),
@@ -418,6 +635,59 @@ CHECKS: tuple[tuple[str, Check], ...] = (
 
 # Checks that match page markup or other signals instead of reading a header directly.
 HEURISTIC_FINDINGS: frozenset[str] = frozenset({"SS-DIR-001"})
+
+
+@dataclass
+class Assessment:
+    findings: list[Finding]
+    checks_run: list[str]
+    checks_skipped: list[SkippedCheck] = field(default_factory=list)
+    tls: TlsSummary | None = None
+
+    @property
+    def unverified_prefixes(self) -> tuple[str, ...]:
+        """Finding-id prefixes of checks that did not run; their old findings must not be resolved."""
+        return tuple(
+            p for skipped in self.checks_skipped for p in CHECK_LABELS.get(skipped.name, ("", ()))[1]
+        )
+
+
+def assess(
+    result: FetchResult,
+    tls: TlsObservation | None = None,
+    probes: dict[str, ProbeResponse] | None = None,
+) -> Assessment:
+    """All passive checks. Checks that need extra observations run only when those are conclusive."""
+    findings, names = run_checks(result)
+    skipped: list[SkippedCheck] = []
+    if probes is not None:
+        for name, path, check in (
+            ("exposed-files", "/.git/HEAD", check_exposed_files),
+            ("security-txt", "/.well-known/security.txt", check_security_txt),
+        ):
+            needed = ("/.git/HEAD", "/.env") if name == "exposed-files" else (path,)
+            if all(probes_conclusive(probes, p) for p in needed):
+                names.append(name)
+                findings.extend(check(result, probes))
+            else:
+                skipped.append(
+                    SkippedCheck(name=name, reason="The site did not give a usable answer for the probe.")
+                )
+    if result.final_scheme != "https":
+        skipped.append(
+            SkippedCheck(
+                name="tls-certificate",
+                reason="The site was served over HTTP, so there was no certificate to check.",
+            )
+        )
+    elif tls is None:
+        skipped.append(SkippedCheck(name="tls-certificate", reason="The TLS check did not run."))
+    elif tls.outcome in ("ok", "verification_failed"):
+        names.append("tls-certificate")
+        findings.extend(check_tls_certificate(result, tls))
+    else:
+        skipped.append(SkippedCheck(name="tls-certificate", reason=tls.detail or "The TLS check failed."))
+    return Assessment(findings, names, skipped, tls_summary(tls))
 
 
 def run_checks(result: FetchResult) -> tuple[list[Finding], list[str]]:

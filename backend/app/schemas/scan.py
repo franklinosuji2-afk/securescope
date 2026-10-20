@@ -97,6 +97,24 @@ class FindingStatusUpdate(BaseModel):
         return value or None
 
 
+class TlsSummary(BaseModel):
+    """What one verified TLS connection showed. Not a comprehensive TLS test."""
+
+    protocol: str | None = None
+    cipher: str | None = None
+    not_before: datetime | None = None
+    not_after: datetime | None = None
+    days_remaining: int | None = None
+    issuer: str | None = None
+    subject: str | None = None
+    verified: bool = False
+
+
+class SkippedCheck(BaseModel):
+    name: str
+    reason: str
+
+
 class TargetMetadata(BaseModel):
     requested_url: str
     final_url: str | None = None
@@ -109,6 +127,9 @@ class TargetMetadata(BaseModel):
     response_time_ms: int | None = None
     requests_made: int = 0
     checks_run: list[str] = []
+    # Checks that could not be evaluated on this scan, with the reason. Never counted as passed.
+    checks_skipped: list[SkippedCheck] = []
+    tls: TlsSummary | None = None
 
 
 class ScanCreate(BaseModel):

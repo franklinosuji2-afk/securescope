@@ -54,6 +54,17 @@ export interface TargetMetadata {
   response_time_ms: number | null;
   requests_made: number;
   checks_run: string[];
+  checks_skipped?: { name: string; reason: string }[];
+  tls?: {
+    protocol: string | null;
+    cipher: string | null;
+    not_before: string | null;
+    not_after: string | null;
+    days_remaining: number | null;
+    issuer: string | null;
+    subject: string | null;
+    verified: boolean;
+  } | null;
 }
 
 export interface ScanSummary {

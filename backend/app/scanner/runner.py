@@ -9,12 +9,35 @@ import time
 from app.core.config import Settings
 from app.core.logging import log_event
 from app.repositories.scans import ScanRepository
-from app.scanner.checks import run_checks
-from app.scanner.fetcher import FetchError, fetch_target
+from app.scanner.checks import PROBE_PATHS, assess
+from app.scanner.fetcher import FetchError, FetchResult, ProbeResponse, fetch_probe, fetch_target
 from app.scanner.scoring import compute_score
+from app.scanner.tls import TlsObservation, probe_tls
 from app.schemas.scan import TargetMetadata
 
 logger = logging.getLogger("securescope.scan")
+
+
+async def _collect(
+    url: str, settings: Settings
+) -> tuple[FetchResult, TlsObservation | None, dict[str, ProbeResponse] | None]:
+    """The page fetch, one TLS observation and the fixed-path probes, all on the validated target."""
+    result = await fetch_target(url, settings)
+    tls: TlsObservation | None = None
+    if result.final_scheme == "https" and result.resolved_addresses:
+        # One verified TLS connection to the address the fetcher already validated and pinned.
+        tls = await asyncio.wait_for(
+            asyncio.to_thread(
+                probe_tls,
+                result.host,
+                result.resolved_addresses[0],
+                result.port,
+                settings.request_timeout_seconds,
+            ),
+            timeout=settings.request_timeout_seconds + 2,
+        )
+    responses = await asyncio.gather(*(fetch_probe(result, path, settings) for path in PROBE_PATHS))
+    return result, tls, {r.path: r for r in responses}
 
 
 async def execute_scan(
@@ -30,8 +53,11 @@ async def execute_scan(
         if not await asyncio.to_thread(repo.mark_running, scan_id):
             return  # cancelled while it was waiting for a free slot
         try:
-            result = await asyncio.wait_for(fetch_target(url, settings), timeout=settings.max_scan_seconds)
-            findings, checks_run = run_checks(result)
+            result, tls, probes = await asyncio.wait_for(
+                _collect(url, settings), timeout=settings.max_scan_seconds
+            )
+            assessment = assess(result, tls, probes)
+            findings = assessment.findings
             score, grade = compute_score(findings)
             metadata = TargetMetadata(
                 requested_url=result.requested_url,
@@ -43,10 +69,14 @@ async def execute_scan(
                 redirect_chain=result.redirect_chain,
                 off_origin_redirect=result.off_origin_redirect,
                 response_time_ms=result.elapsed_ms,
-                requests_made=result.requests_made,
-                checks_run=checks_run,
+                requests_made=result.requests_made + (len(probes) if probes else 0),
+                checks_run=assessment.checks_run,
+                checks_skipped=assessment.checks_skipped,
+                tls=assessment.tls,
             )
-            stored = await asyncio.to_thread(repo.complete_scan, scan_id, findings, score, grade, metadata)
+            stored = await asyncio.to_thread(
+                repo.complete_scan, scan_id, findings, score, grade, metadata, assessment.unverified_prefixes
+            )
             if not stored:
                 log_event(logger, "scan finished after it was cancelled; result discarded", scan_id=scan_id)
                 return

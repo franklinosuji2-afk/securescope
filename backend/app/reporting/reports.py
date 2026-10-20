@@ -26,8 +26,31 @@ LIMITS = (
     "Passive checks only: one page load of the address you scanned, plus any same-site redirects.",
     "Only the response headers and the start of the page were examined; other pages, forms and APIs were not.",
     "No login, no active testing, no vulnerability exploitation, no scan of subdomains.",
-    "TLS certificate and cipher configuration are not assessed.",
+    "TLS: one verified connection is made to read the certificate and negotiated protocol. This is not a "
+    "full TLS test: supported protocol versions, cipher suites and known TLS vulnerabilities are not scanned.",
+    "Three fixed paths (/.well-known/security.txt, /.git/HEAD, /.env) are requested once each; "
+    "no other paths are guessed or crawled.",
 )
+
+
+def coverage_notes(detail: ScanDetail) -> list[str]:
+    """Plain-language lines about checks that could not run and what the TLS connection showed."""
+    md = detail.metadata
+    if md is None:
+        return []
+    notes = []
+    for skipped in md.checks_skipped:
+        label = CHECK_LABELS.get(skipped.name, (skipped.name, ()))[0]
+        notes.append(f"Not checked: {label}. {skipped.reason}")
+    tls = md.tls
+    if tls is not None and tls.protocol:
+        text = f"TLS: {tls.protocol}"
+        if tls.days_remaining is not None:
+            text += f"; certificate valid for {tls.days_remaining} more days"
+        if tls.issuer:
+            text += f"; issuer {tls.issuer}"
+        notes.append(text + ".")
+    return notes
 
 
 def passed_checks(detail: ScanDetail) -> list[str]:
@@ -53,6 +76,7 @@ def _coverage_md(detail: ScanDetail) -> list[str]:
         f"HTTP status: {md.status_code}"
     )
     lines += [f"- Passed: {_md(label)}" for label in passed_checks(detail)]
+    lines += [f"- {_md(note)}" for note in coverage_notes(detail)]
     lines += ["", "## Limits of this scan", ""]
     lines += [f"- {limit}" for limit in LIMITS]
     lines.append("")
@@ -157,6 +181,7 @@ def to_html(detail: ScanDetail) -> str:
     if detail.metadata is not None and detail.status.value == "completed":
         md = detail.metadata
         passed = "".join(f"<li>{e(label)}</li>" for label in passed_checks(detail))
+        passed += "".join(f"<li>{e(note)}</li>" for note in coverage_notes(detail))
         limits = "".join(f"<li>{e(limit)}</li>" for limit in LIMITS)
         body += (
             "<h2>What was checked</h2>"
@@ -299,6 +324,7 @@ def to_pdf(detail: ScanDetail) -> bytes:
             )
             story.append(Paragraph("Passed:", st["base"]))
             story += [Paragraph(t(label), st["bullet"], bulletText="•") for label in passed_checks(detail)]
+            story += [Paragraph(t(note), st["bullet"], bulletText="•") for note in coverage_notes(detail)]
             story.append(Paragraph("Limits of this scan", st["h2"]))
             story += [Paragraph(t(limit), st["bullet"], bulletText="•") for limit in LIMITS]
 

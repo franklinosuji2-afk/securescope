@@ -59,7 +59,7 @@ Captured from the running app against a real scan history of my own portfolio si
 - Periodic re-verification of target ownership
 - Real email delivery, session management UI
 - Scheduled rescans
-- Outdated-software detection, TLS configuration/certificate analysis, optional OWASP ZAP integration
+- Outdated-software detection, full TLS configuration testing (cipher/protocol enumeration), optional OWASP ZAP integration
 - Egress proxy for production DNS-rebinding defence
 
 ## Safety model (enforced server-side)

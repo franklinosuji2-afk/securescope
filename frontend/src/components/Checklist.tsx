@@ -51,6 +51,21 @@ const CHECKS: Record<
     why: "An open file listing can expose files you never meant to publish.",
     prefixes: ["SS-DIR-"],
   },
+  "tls-certificate": {
+    label: "TLS certificate",
+    why: "A valid, trusted, unexpired certificate for this host name. This is one connection, not a full TLS test.",
+    prefixes: ["SS-TLS-CERT-"],
+  },
+  "exposed-files": {
+    label: "No exposed .git directory or .env file",
+    why: "Repository metadata or environment files on a web server can leak source code and secrets.",
+    prefixes: ["SS-EXPOSE-"],
+  },
+  "security-txt": {
+    label: "A security.txt contact file is published",
+    why: "Tells researchers how to report a vulnerability to you.",
+    prefixes: ["SS-DISC-SEC-"],
+  },
   "scan-scope": {
     label: "Scan stayed on your verified site",
     why: "The scan never followed a redirect to a site you did not authorize.",
@@ -61,6 +76,8 @@ const CHECKS: Record<
 /** Every check that ran on this scan and whether it found something. */
 export default function Checklist({ scan }: { scan: ScanDetail }) {
   const names = scan.metadata?.checks_run ?? [];
+  const skipped = scan.metadata?.checks_skipped ?? [];
+  const tls = scan.metadata?.tls;
   if (scan.status !== "completed" || names.length === 0) return null;
   const rows = names.map((name) => {
     const info = CHECKS[name] ?? { label: name, why: "", prefixes: [] };
@@ -110,6 +127,27 @@ export default function Checklist({ scan }: { scan: ScanDetail }) {
           </li>
         ))}
       </ul>
+      {skipped.length > 0 && (
+        <div role="note">
+          <strong>Not checked this time</strong>
+          <ul className="stack-sm">
+            {skipped.map((c) => (
+              <li key={c.name}>
+                {CHECKS[c.name]?.label ?? c.name}
+                <div className="muted small">{c.reason}</div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {tls?.protocol && (
+        <p className="muted small">
+          TLS connection: {tls.protocol}
+          {tls.days_remaining != null &&
+            `, certificate valid for ${tls.days_remaining} more days`}
+          {tls.issuer && `, issued by ${tls.issuer}`}.
+        </p>
+      )}
     </div>
   );
 }

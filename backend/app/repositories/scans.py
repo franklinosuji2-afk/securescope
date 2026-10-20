@@ -133,6 +133,7 @@ class ScanRepository:
         score: int,
         grade: str,
         metadata: TargetMetadata,
+        unverified_prefixes: tuple[str, ...] = (),
     ) -> bool:
         """Stores a finished scan. False, and nothing stored, if it was cancelled in the meantime."""
         with self._session.begin() as session:
@@ -176,12 +177,19 @@ class ScanRepository:
                     host,
                     findings,
                     may_resolve=metadata.off_origin_redirect is None,
+                    unverified_prefixes=unverified_prefixes,
                 )
             return True
 
     @staticmethod
     def _record_states(
-        session: Session, organization_id: str, host: str, findings: list[Finding], *, may_resolve: bool
+        session: Session,
+        organization_id: str,
+        host: str,
+        findings: list[Finding],
+        *,
+        may_resolve: bool,
+        unverified_prefixes: tuple[str, ...] = (),
     ) -> None:
         """Updates what is known about each finding on this host after a completed scan."""
         now = _now()
@@ -217,6 +225,9 @@ class ScanRepository:
                 row.updated_at = now
         if may_resolve:
             for fp, row in existing.items():
+                # A check that could not run on this scan says nothing about its earlier findings.
+                if unverified_prefixes and row.finding_id.startswith(unverified_prefixes):
+                    continue
                 if fp not in seen and row.status == FindingStatus.OPEN.value:
                     row.status = FindingStatus.RESOLVED.value
                     row.resolved_at = now
@@ -454,7 +465,9 @@ class ScanRepository:
         """Scan outcomes since `since`, across all organizations (operator view; no identities)."""
         with self._session() as session:
             rows = session.execute(
-                select(ScanRow.status, func.count()).where(ScanRow.created_at >= since).group_by(ScanRow.status)
+                select(ScanRow.status, func.count())
+                .where(ScanRow.created_at >= since)
+                .group_by(ScanRow.status)
             ).all()
             counts = {status: int(count) for status, count in rows}
             finished = session.execute(
@@ -465,7 +478,9 @@ class ScanRepository:
                     ScanRow.finished_at.is_not(None),
                 )
             ).all()
-            active = session.scalar(select(func.count()).select_from(ScanRow).where(ScanRow.status.in_(ACTIVE)))
+            active = session.scalar(
+                select(func.count()).select_from(ScanRow).where(ScanRow.status.in_(ACTIVE))
+            )
         durations = []
         for started, ended in finished:
             if started is not None and ended is not None:

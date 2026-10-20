@@ -21,6 +21,7 @@ from urllib.parse import urljoin, urlsplit
 import httpx
 
 from app.core.config import Settings
+from app.scanner.tls import classify_verification_failure, find_verification_error
 from app.security.target import TargetError, ValidatedTarget, validate_target
 
 USER_AGENT = "SecureScope/0.1 (+passive security posture check; authorized targets only)"
@@ -45,6 +46,7 @@ class FetchResult:
     started_scheme: str = "https"
     final_scheme: str = "https"
     host: str = ""
+    port: int = 443
 
 
 def _site_key(host: str) -> str:
@@ -136,10 +138,13 @@ async def fetch_target(
             except httpx.TimeoutException as exc:
                 raise FetchError("The target did not respond in time.") from exc
             except httpx.HTTPError as exc:
+                verification = find_verification_error(exc)
+                if verification is not None:
+                    _kind, message = classify_verification_failure(getattr(verification, "verify_code", 0))
+                    raise FetchError(message) from exc
                 if _is_tls_failure(exc):
                     raise FetchError(
-                        "The TLS certificate could not be verified (expired, self-signed, "
-                        "wrong host name or untrusted issuer)."
+                        "The TLS connection failed before a certificate could be checked."
                     ) from exc
                 raise FetchError("The target could not be reached.") from exc
 
@@ -169,6 +174,7 @@ async def fetch_target(
                         started_scheme=first_scheme,
                         final_scheme=target.scheme,
                         host=target.host,
+                        port=target.port,
                     )
                 try:
                     target = await validate_target(next_url, settings)
@@ -190,5 +196,76 @@ async def fetch_target(
                 started_scheme=first_scheme,
                 final_scheme=target.scheme,
                 host=target.host,
+                port=target.port,
             )
     raise FetchError("Too many redirects.")
+
+
+PROBE_BODY_BYTES = 4096
+
+
+@dataclass
+class ProbeResponse:
+    """The outcome of one fixed-path probe. `error` is set when no usable response was obtained."""
+
+    path: str
+    status: int | None = None
+    content_type: str | None = None
+    body_sample: bytes = b""
+    error: str | None = None
+
+
+async def fetch_probe(
+    base: FetchResult,
+    path: str,
+    settings: Settings,
+    transport: httpx.AsyncBaseTransport | None = None,
+) -> ProbeResponse:
+    """One GET of a fixed path on the host the main fetch ended on.
+
+    The same safety rules as the main fetch apply: the host is validated and resolved again (so DNS
+    rebinding between requests is caught), the connection is pinned to the validated address, TLS is
+    verified, the body is capped small, and redirects are NOT followed (a redirect just means "not served
+    here"). `path` comes from a constant list in the checks, never from user input.
+    """
+    if not path.startswith("/") or "?" in path or "#" in path or " " in path:
+        raise ValueError("probe paths are fixed, absolute and have no query")
+    host = f"[{base.host}]" if ":" in base.host else base.host
+    url = f"{base.final_scheme}://{host}:{base.port}{path}"
+    try:
+        target = await validate_target(url, settings)
+    except TargetError as exc:
+        return ProbeResponse(path, error=str(exc))
+    headers = {
+        "Host": target.host if target.port in (80, 443) else f"{target.host}:{target.port}",
+        "User-Agent": USER_AGENT,
+        "Accept": "text/plain,*/*;q=0.5",
+        "Accept-Encoding": "identity",
+    }
+    extensions = {"sni_hostname": target.host} if target.scheme == "https" else {}
+    limit = min(settings.max_response_bytes, PROBE_BODY_BYTES)
+    try:
+        async with (
+            httpx.AsyncClient(
+                timeout=httpx.Timeout(settings.request_timeout_seconds),
+                follow_redirects=False,
+                verify=True,
+                transport=transport,
+                trust_env=False,
+                limits=httpx.Limits(max_connections=1, max_keepalive_connections=0),
+            ) as client,
+            client.stream(
+                "GET", _pinned_url(target, target.addresses[0]), headers=headers, extensions=extensions
+            ) as response,
+        ):
+            body = await _read_capped(response, limit)
+            return ProbeResponse(
+                path,
+                status=response.status_code,
+                content_type=response.headers.get("content-type"),
+                body_sample=body,
+            )
+    except httpx.TimeoutException:
+        return ProbeResponse(path, error="The request timed out.")
+    except httpx.HTTPError:
+        return ProbeResponse(path, error="The request could not be completed.")

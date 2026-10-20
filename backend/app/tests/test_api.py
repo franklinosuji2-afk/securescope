@@ -112,8 +112,9 @@ def test_end_to_end_scan_with_findings_and_exports(local_client: TestClient, moc
 
 def test_hardened_target_has_only_the_expected_findings(local_client: TestClient, mock_server: str) -> None:
     detail = wait_for(local_client, start_scan(local_client, f"{mock_server}/hardened").json()["id"])
-    # Only: served over plain http, and the server announces its name (no version).
-    assert {f["id"] for f in detail["findings"]} == {"SS-TLS-001", "SS-DISC-SRV-002"}
+    # Only: served over plain http, the server announces its name (no version), and no security.txt.
+    ids = {f["id"] for f in detail["findings"]}
+    assert ids == {"SS-TLS-001", "SS-DISC-SRV-002", "SS-DISC-SEC-001"}
 
 
 def test_directory_listing_detected(local_client: TestClient, mock_server: str) -> None:
