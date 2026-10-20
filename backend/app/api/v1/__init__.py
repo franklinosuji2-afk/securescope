@@ -6,7 +6,7 @@ import logging
 from fastapi import APIRouter, Response
 
 from app.api.deps import StateDep
-from app.api.v1 import audit, auth, findings, organizations, overview, scans, targets
+from app.api.v1 import analytics, audit, auth, findings, organizations, overview, scans, targets
 from app.schemas.scan import HealthResponse
 
 VERSION = "0.7.0"
@@ -39,3 +39,4 @@ router.include_router(targets.router)
 router.include_router(findings.router)
 router.include_router(overview.router)
 router.include_router(audit.router)
+router.include_router(analytics.router)

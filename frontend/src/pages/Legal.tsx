@@ -123,8 +123,9 @@ function Privacy() {
     <Doc page="privacy" title="Privacy notice">
       <p className="legal-summary">
         <strong>The short version:</strong> we store your account and scan data
-        only to run SecureScope, we use one necessary cookie and no tracking, we
-        never sell data, and you can ask us to delete everything.
+        only to run SecureScope, we use one necessary cookie, we count visits to
+        the public pages without cookies or stored IP addresses, we never sell
+        data, and you can ask us to delete everything.
       </p>
       <h2>Who is responsible</h2>
       <p>
@@ -152,6 +153,20 @@ function Privacy() {
           secure (Art. 6(1)(f) GDPR).
         </li>
         <li>
+          <strong>Visit statistics:</strong> when you open a public page
+          (sign-in, registration, password reset, legal pages) while signed out,
+          we count the visit to learn whether the site is used. We store the
+          page name, the website that linked to us (host name only), a coarse
+          device type (desktop, mobile or tablet) and a one-way hash that
+          changes every day. We do not store your IP address or browser details,
+          set no cookie and keep nothing on your device, so we cannot recognise
+          you on another day. Your address is used briefly in memory to create
+          the hash and to limit abuse. Visits are not counted while you are
+          signed in, or if your browser sends Do Not Track or Global Privacy
+          Control. These statistics are deleted after 90 days. Our legitimate
+          interest in running and improving the service (Art. 6(1)(f) GDPR).
+        </li>
+        <li>
           <strong>Emails:</strong> we send only service emails such as email
           confirmation and password reset. No marketing.
         </li>
@@ -166,7 +181,8 @@ function Privacy() {
       <p>
         One session cookie (<code>ss_session</code>) keeps you signed in. It is
         strictly necessary, so no consent banner is needed. We use no
-        advertising or tracking cookies and no analytics.
+        advertising or tracking cookies. Our visit statistics use no cookies or
+        other storage on your device.
       </p>
 
       <h2>Service providers (processors)</h2>

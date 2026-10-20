@@ -10,6 +10,7 @@ from app.api.deps import (
     PrincipalDep,
     StateDep,
     client_key,
+    is_admin,
     request_id,
 )
 from app.schemas.auth import (
@@ -28,11 +29,12 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 GENERIC_LOGIN_ERROR = "Invalid email or password."
 
 
-def _user_out(session: NewSession) -> UserOut:
+def _user_out(session: NewSession, state: StateDep) -> UserOut:
     return UserOut(
         id=session.user.id,
         email=session.user.email,
         email_verified=session.user.email_verified,
+        is_admin=is_admin(session.user, state.settings),
         organizations=[
             OrganizationOut(id=m.organization_id, name=m.name, slug=m.slug, role=m.role)
             for m in session.memberships
@@ -85,7 +87,7 @@ async def register(body: RegisterRequest, request: Request, response: Response, 
         request_id=request_id(request),
     )
     _set_cookies(response, session, state)
-    return _user_out(session)
+    return _user_out(session, state)
 
 
 @router.post("/login", response_model=UserOut)
@@ -108,7 +110,7 @@ async def login(body: LoginRequest, request: Request, response: Response, state:
         request_id=request_id(request),
     )
     _set_cookies(response, session, state)
-    return _user_out(session)
+    return _user_out(session, state)
 
 
 @router.post("/logout", status_code=204)
@@ -132,7 +134,7 @@ async def refresh(principal: PrincipalDep, request: Request, response: Response,
         request_id=request_id(request),
     )
     _set_cookies(response, session, state)
-    return _user_out(session)
+    return _user_out(session, state)
 
 
 @router.get("/me", response_model=UserOut)
@@ -142,6 +144,7 @@ async def me(principal: PrincipalDep, state: StateDep) -> UserOut:
         id=principal.user.id,
         email=principal.user.email,
         email_verified=principal.user.email_verified,
+        is_admin=is_admin(principal.user, state.settings),
         organizations=[
             OrganizationOut(id=m.organization_id, name=m.name, slug=m.slug, role=m.role) for m in memberships
         ],

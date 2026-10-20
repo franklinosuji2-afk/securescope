@@ -1,4 +1,5 @@
 import type {
+  AnalyticsSummary,
   AuditList,
   FindingStatus,
   Member,
@@ -249,3 +250,8 @@ export function setFindingStatus(
 }
 
 export const getOverview = () => request<Overview>("/overview");
+
+export const fetchAnalytics = (days: number, timezone: string) =>
+  request<AnalyticsSummary>(
+    `/analytics/summary?days=${days}&tz=${encodeURIComponent(timezone)}`,
+  );

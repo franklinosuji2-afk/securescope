@@ -1217,3 +1217,62 @@ a.btn {
     top: 20px;
   }
 }
+
+/* Analytics */
+.an-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.an-views {
+  fill: var(--border-strong);
+}
+.an-visitors {
+  fill: var(--accent);
+}
+.an-key {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin: 0 6px 0 12px;
+}
+.an-key:first-child {
+  margin-left: 0;
+}
+.an-key-visitors {
+  background: var(--accent);
+}
+.an-key-views {
+  background: var(--border-strong);
+}
+.an-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.an-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.an-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.an-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  margin-top: 4px;
+}
+.an-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}

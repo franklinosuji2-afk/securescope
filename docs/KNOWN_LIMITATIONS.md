@@ -10,10 +10,11 @@
 - Rate limits are in-memory and per process; single node.
 - Email goes out only when a provider is configured (`SECURESCOPE_MAIL_PROVIDER=brevo|resend`); with the default `log` mailer, links are only written to the server log. A provider outage is logged and does not fail the request, so the user is not told that an email did not arrive.
 - Registration reveals whether an email is already registered (409); mitigated by rate limiting only.
-- Domain ownership is verified once and stays verified until the target is deleted; there is no periodic re-verification, so a domain that changes hands stays authorised. Verification is exact-host (no wildcard/subdomain scope), and only domain names are supported (no IP targets).
+- Domain ownership proof expires after 180 days (`SECURESCOPE_TARGET_VERIFICATION_VALID_DAYS`, 0 = never); the site then needs a fresh challenge before it can be scanned again. Between re-verifications a domain that changes hands stays authorised. Verification is exact-host (no wildcard/subdomain scope), and only domain names are supported (no IP targets).
 - Ownership verification: the HTTP-file method was confirmed once end to end on a real domain (2026-10-18, the author's own site, followed by a real scan and report). The DNS TXT method has only been tested with mocked lookups and error mapping, not against a live domain.
 - DNS TXT verification trusts the resolver the server is configured with.
 - Members can only be added if they already have an account; there are no emailed invitations.
 - The audit log is write-only (no API or UI); users cannot list or revoke individual sessions.
 - Use the app only via the configured origin (`http://localhost:8080`); other origins are refused for POSTs.
 - Docker images were authored and the Compose file validated, but image builds were not executed in the authoring environment. Run `docker compose up --build` and the release checklist before relying on them.
+- Website analytics counts visitors with a daily-rotating hash, so the same person on two days counts twice and "visitors" over a range is the sum of daily uniques. Days are grouped in the viewer's time zone while the hash rotates at UTC midnight, so someone active across that boundary can count twice on one local day. Views are summed in the API process (capped at 200,000 rows), which is fine for a small site but not for large traffic. Visitors who block requests to `/api/`, send Do Not Track or Global Privacy Control, or use a bot-like browser string are not counted, so the numbers are a lower bound.

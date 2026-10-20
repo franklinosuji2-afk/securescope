@@ -143,10 +143,14 @@ async def get_scan(scan_id: str, state: StateDep, ctx: CanRead) -> ScanDetail:
 async def cancel_scan(scan_id: str, request: Request, state: StateDep, ctx: CanCreate) -> ScanDetail:
     detail = await _load(state, ctx, scan_id)
     if detail.status not in (ScanStatus.QUEUED, ScanStatus.RUNNING):
-        raise HTTPException(status_code=409, detail="This scan has already finished, so it cannot be cancelled.")
+        raise HTTPException(
+            status_code=409, detail="This scan has already finished, so it cannot be cancelled."
+        )
     # The database decides who wins a race with the scanner finishing at the same moment.
     if not await asyncio.to_thread(state.repo.cancel_scan, scan_id, ctx.organization_id):
-        raise HTTPException(status_code=409, detail="This scan has already finished, so it cannot be cancelled.")
+        raise HTTPException(
+            status_code=409, detail="This scan has already finished, so it cannot be cancelled."
+        )
     task = state.scan_tasks.get(scan_id)
     if task is not None:
         task.cancel()
@@ -159,9 +163,13 @@ async def delete_scan(scan_id: str, request: Request, state: StateDep, ctx: CanC
     """Permanently removes a finished scan and its findings from this organization."""
     detail = await _load(state, ctx, scan_id)
     if detail.status in (ScanStatus.QUEUED, ScanStatus.RUNNING):
-        raise HTTPException(status_code=409, detail="This scan is still running. Cancel it first, then delete it.")
+        raise HTTPException(
+            status_code=409, detail="This scan is still running. Cancel it first, then delete it."
+        )
     if not await asyncio.to_thread(state.repo.delete_scan, scan_id, ctx.organization_id):
-        raise HTTPException(status_code=409, detail="This scan could not be deleted because it is still running.")
+        raise HTTPException(
+            status_code=409, detail="This scan could not be deleted because it is still running."
+        )
     await _audit(state, request, ctx, "scan.deleted", scan_id)
 
 
@@ -173,7 +181,9 @@ async def retry_scan(scan_id: str, request: Request, state: StateDep, ctx: CanCr
     """
     detail = await _load(state, ctx, scan_id)
     if detail.status in (ScanStatus.QUEUED, ScanStatus.RUNNING):
-        raise HTTPException(status_code=409, detail="This scan is still running, so it cannot be run again yet.")
+        raise HTTPException(
+            status_code=409, detail="This scan is still running, so it cannot be run again yet."
+        )
     created = await _start_scan(state, request, ctx, detail.target_url)
     await _audit(state, request, ctx, "scan.retried", scan_id)
     return created

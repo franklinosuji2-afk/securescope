@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import ipaddress
+import secrets
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Annotated
@@ -15,6 +16,7 @@ from app.core.config import Settings
 from app.database.session import make_engine
 from app.middleware.ratelimit import SlidingWindowLimiter
 from app.repositories.accounts import AccountRepository, AuditRepository, SessionRecord, UserRecord
+from app.repositories.analytics import AnalyticsRepository
 from app.repositories.scans import ScanRepository
 from app.repositories.targets import TargetRepository
 from app.security.ownership import TxtLookup, system_txt_lookup
@@ -36,6 +38,12 @@ class AppState:
         self.repo = ScanRepository(self.engine)
         self.targets = TargetRepository(self.engine, settings.target_verification_valid_days)
         self.accounts = AccountRepository(self.engine)
+        self.analytics = AnalyticsRepository(self.engine)
+        salt = (
+            settings.analytics_salt.get_secret_value() if settings.analytics_salt else secrets.token_hex(32)
+        )
+        self.analytics_salt = salt
+        self.analytics_limiter = SlidingWindowLimiter(settings.analytics_events_per_client_per_hour)
         self.audit = AuditRepository(self.engine)
         self.auth = AuthService(self.accounts, settings, mailer or build_mailer(settings))
         self.semaphore = asyncio.Semaphore(settings.max_concurrent_scans)
@@ -124,6 +132,22 @@ async def current_principal(request: Request, state: StateDep) -> Principal:
 
 
 PrincipalDep = Annotated[Principal, Depends(current_principal)]
+
+
+def is_admin(user: UserRecord, settings: Settings) -> bool:
+    """The operator account: the configured admin email, and only once that address is confirmed."""
+    configured = (settings.admin_email or "").strip().lower()
+    return bool(configured) and user.email.lower() == configured and user.email_verified
+
+
+async def require_admin(principal: PrincipalDep, state: StateDep) -> Principal:
+    if not is_admin(principal.user, state.settings):
+        # Same answer as an unknown page, so the dashboards are not advertised to other accounts.
+        raise HTTPException(status_code=404, detail="Not found.")
+    return principal
+
+
+AdminDep = Annotated[Principal, Depends(require_admin)]
 
 
 @dataclass(frozen=True)

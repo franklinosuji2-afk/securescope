@@ -60,6 +60,16 @@ class Settings(BaseSettings):
     # How long a proven domain stays authorised before it must be proven again. 0 means it never expires.
     target_verification_valid_days: int = Field(180, ge=0, le=3650)
 
+    # Website analytics (cookieless, public pages only). Only the signed-in account with this email
+    # address, once confirmed, may read it. Leave empty to switch the dashboards off for everyone.
+    admin_email: str | None = None
+    analytics_enabled: bool = True
+    # Mixed into the daily visitor hash. Set a long random value so the hash cannot be reproduced from
+    # an address and browser string alone; if empty a random value is generated at start-up.
+    analytics_salt: SecretStr | None = None
+    analytics_retention_days: int = Field(90, ge=1, le=730)
+    analytics_events_per_client_per_hour: int = Field(60, ge=1)
+
     # Abuse protection (per client address, in memory)
     scans_per_client_per_hour: int = Field(10, ge=1)
     scans_per_target_per_hour: int = Field(3, ge=1)

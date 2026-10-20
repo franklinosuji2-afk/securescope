@@ -102,6 +102,8 @@ export interface User {
   id: string;
   email: string;
   email_verified: boolean;
+  /** True only for the operator account that may open the Analytics page. */
+  is_admin?: boolean;
   organizations: Organization[];
 }
 
@@ -212,4 +214,36 @@ export interface Overview {
   sites: SitePosture[];
   fix_first: TopFinding | null;
   other_open: number;
+}
+
+export interface AnalyticsDay {
+  date: string;
+  views: number;
+  visitors: number;
+}
+export interface AnalyticsPeriod {
+  views: number;
+  visitors: number;
+  series: AnalyticsDay[];
+}
+export interface AnalyticsCount {
+  name: string;
+  count: number;
+}
+export interface AnalyticsPageCount extends AnalyticsCount {
+  visitors: number;
+}
+export interface AnalyticsSummary {
+  range_days: number;
+  timezone: string;
+  tracking_enabled: boolean;
+  last_event_at: string | null;
+  current: AnalyticsPeriod;
+  previous: AnalyticsPeriod;
+  today: { views: number; visitors: number };
+  yesterday: { views: number; visitors: number };
+  top_pages: AnalyticsPageCount[];
+  landing_pages: AnalyticsCount[];
+  sources: AnalyticsCount[];
+  devices: AnalyticsCount[];
 }

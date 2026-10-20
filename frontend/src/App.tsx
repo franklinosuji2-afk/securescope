@@ -15,10 +15,12 @@ import LegalPage, { LegalLinks } from "./pages/Legal";
 import Targets from "./pages/Targets";
 import Team from "./pages/Team";
 import Findings from "./pages/Findings";
+import Analytics from "./pages/Analytics";
 import Audit from "./pages/Audit";
 import History from "./pages/History";
 import Overview from "./pages/Overview";
 import { canReadAudit } from "./types";
+import { trackPageView, trackedPageName } from "./tracking";
 
 const NAV: { page: Page; label: string }[] = [
   { page: "overview", label: "Overview" },
@@ -27,6 +29,7 @@ const NAV: { page: Page; label: string }[] = [
   { page: "history", label: "Scan History" },
   { page: "team", label: "Team" },
   { page: "audit", label: "Audit log" },
+  { page: "analytics", label: "Analytics" },
 ];
 
 export default function App() {
@@ -57,6 +60,21 @@ export default function App() {
   useEffect(() => {
     if (signedInOnAuthForm) window.location.hash = buildHash("overview", null);
   }, [signedInOnAuthForm]);
+
+  // Count visits to the public pages only. Nobody who is signed in is counted, and nothing is sent until
+  // we know whether someone is signed in.
+  const lastTracked = useRef<string | null>(null);
+  useEffect(() => {
+    if (loading) return;
+    if (user) {
+      lastTracked.current = null;
+      return;
+    }
+    const name = trackedPageName(route.page);
+    if (!name || lastTracked.current === name) return;
+    lastTracked.current = name;
+    trackPageView(name);
+  }, [loading, user, route.page]);
 
   if (LEGAL_PAGES.includes(route.page)) {
     return (
@@ -153,10 +171,11 @@ export default function App() {
         </div>
         <div className="rail-menu" id="rail-menu">
           <nav className="nav" aria-label="Primary">
-            {NAV.filter(
-              (n) =>
-                n.page !== "audit" ||
-                (organization ? canReadAudit(organization.role) : false),
+            {NAV.filter((n) =>
+              n.page === "analytics"
+                ? user.is_admin === true
+                : n.page !== "audit" ||
+                  (organization ? canReadAudit(organization.role) : false),
             ).map((n) => (
               <a
                 key={n.page}
@@ -230,6 +249,7 @@ export default function App() {
         )}
         {route.page === "team" && <Team />}
         {route.page === "audit" && <Audit />}
+        {route.page === "analytics" && user.is_admin === true && <Analytics />}
       </main>
     </div>
   );

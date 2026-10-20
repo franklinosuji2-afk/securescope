@@ -65,6 +65,7 @@ class UserOut(BaseModel):
     id: str
     email: str
     email_verified: bool
+    is_admin: bool = False
     organizations: list[OrganizationOut]
 
 

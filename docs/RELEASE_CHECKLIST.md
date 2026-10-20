@@ -9,3 +9,5 @@
 - [ ] Licence chosen; name/trademark search done
 - [ ] README implemented-vs-roadmap table still accurate
 - [ ] **Before any public hosting:** ownership verification, authentication, tenant isolation, edge rate limits, abuse monitoring, audit logs, privacy notice, legal review
+- [ ] Analytics: `SECURESCOPE_ADMIN_EMAIL` set on the API host, that account's email confirmed, `SECURESCOPE_ANALYTICS_SALT` set to a long random value; open a public page in a private window and confirm it appears under Analytics
+- [ ] Privacy notice mentions the visit statistics and the retention (`SECURESCOPE_ANALYTICS_RETENTION_DAYS`) matches it
