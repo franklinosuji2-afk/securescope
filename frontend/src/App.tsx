@@ -20,6 +20,7 @@ import Analytics from "./pages/Analytics";
 import Health from "./pages/Health";
 import Audit from "./pages/Audit";
 import History from "./pages/History";
+import NotFound from "./pages/NotFound";
 import Overview from "./pages/Overview";
 import { canReadAudit } from "./types";
 import { trackPageView, trackedPageName } from "./tracking";
@@ -286,6 +287,7 @@ export default function App() {
             onStarted={(id) => navigate("overview", id)}
           />
         )}
+        {route.page === "not-found" && <NotFound />}
         {route.page === "targets" && <Targets />}
         {route.page === "findings" && <Findings route={route} />}
         {route.page === "history" && (

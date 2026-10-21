@@ -14,7 +14,7 @@ const admin: User = {
 };
 
 const health = (over: Partial<PlatformHealth> = {}): PlatformHealth => ({
-  version: "0.7.0",
+  version: "0.8.0",
   started_at: "2026-10-20T10:00:00Z",
   uptime_seconds: 3700,
   database: { ok: true, latency_ms: 12 },

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export type Page =
   | "overview"
+  | "not-found"
   | "targets"
   | "findings"
   | "history"
@@ -56,9 +57,13 @@ export function parseHash(hash: string): Route {
   const raw = params.get("scan");
   const scanId = raw && /^[A-Za-z0-9]{1,64}$/.test(raw) ? raw : null;
   const name = path.replace(/^\//, "");
+  // An empty path is the home page; a name we do not know is shown as "not found" instead of silently
+  // landing on Overview.
   const page: Page = (PAGES as readonly string[]).includes(name)
     ? (name as Page)
-    : "overview";
+    : name === "" || name === "overview"
+      ? "overview"
+      : "not-found";
   const rawFinding = params.get("finding");
   const findingId =
     rawFinding && /^[A-Za-z0-9-]{1,64}$/.test(rawFinding) ? rawFinding : null;

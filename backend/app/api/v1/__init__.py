@@ -9,7 +9,7 @@ from app.api.deps import StateDep
 from app.api.v1 import analytics, audit, auth, findings, organizations, overview, scans, targets
 from app.schemas.scan import HealthResponse
 
-VERSION = "0.7.0"
+VERSION = "0.8.0"
 logger = logging.getLogger("securescope.api")
 
 router = APIRouter(prefix="/api/v1")

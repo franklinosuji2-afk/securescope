@@ -123,9 +123,9 @@ function Privacy() {
     <Doc page="privacy" title="Privacy notice">
       <p className="legal-summary">
         <strong>The short version:</strong> we store your account and scan data
-        only to run SecureScope, we use one necessary cookie, we count visits to
-        the public pages without cookies or stored IP addresses, we never sell
-        data, and you can ask us to delete everything.
+        only to run SecureScope, we use two strictly necessary cookies, we count
+        visits to the public pages without cookies or stored IP addresses, we
+        never sell data, and you can ask us to delete everything.
       </p>
       <h2>Who is responsible</h2>
       <p>
@@ -179,10 +179,11 @@ function Privacy() {
 
       <h2>Cookies</h2>
       <p>
-        One session cookie (<code>ss_session</code>) keeps you signed in. It is
-        strictly necessary, so no consent banner is needed. We use no
-        advertising or tracking cookies. Our visit statistics use no cookies or
-        other storage on your device.
+        Two cookies are set when you sign in: <code>ss_session</code> keeps you
+        signed in, and <code>ss_csrf</code> protects your requests against
+        forged cross-site requests. Both are strictly necessary, so no consent
+        banner is needed. We use no advertising or tracking cookies. Our visit
+        statistics use no cookies or other storage on your device.
       </p>
 
       <h2>Service providers (processors)</h2>

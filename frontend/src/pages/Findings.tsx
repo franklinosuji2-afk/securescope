@@ -8,6 +8,9 @@ import type { Route } from "../router";
 import type { Finding, FindingStatus, Severity } from "../types";
 import { FINDING_STATUSES, SEVERITIES } from "../types";
 import { useScan } from "../useScan";
+import { useRecentScans } from "../components/bento/useRecentScans";
+import { buildHash } from "../router";
+import { formatDate } from "../format";
 
 type SortKey = "severity" | "title";
 
@@ -41,6 +44,28 @@ export function filterFindings(
         ? a.title.localeCompare(b.title)
         : rank(a.severity) - rank(b.severity) || a.title.localeCompare(b.title),
     );
+}
+
+/** With no scan chosen, offer the latest one instead of a dead end. */
+function NoScanSelected() {
+  const { loading, items } = useRecentScans("findings", 1);
+  const latest = items[0];
+  if (loading) return <Loading label="Loading your latest scan…" />;
+  if (!latest) {
+    return (
+      <EmptyState title="No scans yet">
+        Start a scan from Overview. Its findings will appear here.
+      </EmptyState>
+    );
+  }
+  return (
+    <EmptyState title="No scan selected">
+      Your latest scan is of <strong>{latest.host}</strong>, started{" "}
+      {formatDate(latest.created_at)}.{" "}
+      <a href={buildHash("findings", latest.id)}>Open its findings</a>, or pick
+      another from <a href={buildHash("history", null)}>Scan History</a>.
+    </EmptyState>
+  );
 }
 
 export default function Findings({ route }: { route: Route }) {
@@ -88,11 +113,7 @@ export default function Findings({ route }: { route: Route }) {
           the evidence and a fix you can adapt.
         </p>
       </header>
-      {!route.scanId && (
-        <EmptyState title="No scan selected">
-          Start a scan from Overview or open one from Scan History.
-        </EmptyState>
-      )}
+      {!route.scanId && <NoScanSelected />}
       {error && <ErrorNotice message={error} />}
       {loading && !scan && <Loading label="Loading findings…" />}
       {scan &&
