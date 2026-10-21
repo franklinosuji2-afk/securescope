@@ -841,9 +841,10 @@ tbody tr:hover {
 .rail-open .rail-menu {
   display: flex;
 }
+/* Movement only: fading the panel in would make it low-contrast for a moment, which assistive tools and
+   people with low vision would meet mid-animation. */
 @keyframes menu-rise {
   from {
-    opacity: 0;
     transform: translateY(-6px);
   }
 }
