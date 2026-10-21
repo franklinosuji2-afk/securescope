@@ -47,7 +47,7 @@ def slugify(name: str) -> str:
 
 # Stored for accounts that have no password (sign-in through a provider only). It is not a valid hash,
 # so no password can ever match it.
-UNUSABLE_PASSWORD = "!"  # noqa: S105
+UNUSABLE_PASSWORD = "!"  # noqa: S105  # nosec B105
 
 
 class DuplicateEmailError(Exception):

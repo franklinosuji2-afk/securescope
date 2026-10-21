@@ -70,13 +70,13 @@ class StartedSignIn:
 
 _SPECS: dict[str, dict[str, str]] = {
     "google": {
-        "authorize": "https://accounts.google.com/o/oauth2/v2/auth",
-        "token": "https://oauth2.googleapis.com/token",
+        "authorize_url": "https://accounts.google.com/o/oauth2/v2/auth",
+        "exchange_url": "https://oauth2.googleapis.com/token",
         "scope": "openid email",
     },
     "github": {
-        "authorize": "https://github.com/login/oauth/authorize",
-        "token": "https://github.com/login/oauth/access_token",
+        "authorize_url": "https://github.com/login/oauth/authorize",
+        "exchange_url": "https://github.com/login/oauth/access_token",
         "scope": "user:email",
     },
 }
@@ -145,7 +145,7 @@ class OAuthService:
         }
         if provider == "google":
             query["prompt"] = "select_account"
-        return StartedSignIn(f"{spec['authorize']}?{urlencode(query)}", browser)
+        return StartedSignIn(f"{spec['authorize_url']}?{urlencode(query)}", browser)
 
     # --- step 2: the provider sent the browser back -----------------------------------
 
@@ -171,7 +171,7 @@ class OAuthService:
         self, provider: str, code: str, verifier: str, credentials: tuple[str, str]
     ) -> Profile:
         response = self._client.post(
-            _SPECS[provider]["token"],
+            _SPECS[provider]["exchange_url"],
             data={
                 "grant_type": "authorization_code",
                 "code": code,
@@ -235,7 +235,8 @@ class OAuthService:
     def _link(self, provider: str, profile: Profile, existing: UserRecord) -> SignInResult:
         if not existing.active:
             raise OAuthError("disabled")
-        assert profile.email is not None
+        if not profile.email:
+            raise OAuthError("email_unverified")
         if not existing.email_verified:
             self.accounts.take_over_unconfirmed_account(existing.id)
         self.accounts.link_identity(existing.id, provider, profile.subject, profile.email)

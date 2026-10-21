@@ -105,4 +105,3 @@ async def oauth_callback(
     response.delete_cookie(BROWSER_COOKIE, path=BROWSER_COOKIE_PATH)
     response.headers["Cache-Control"] = "no-store"
     return response
-
