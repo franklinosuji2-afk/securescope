@@ -127,7 +127,7 @@ def test_hostile_evidence_is_printed_as_text_and_cannot_change_the_document() ->
     nasty = (
         "<b>bold</b> <img src='http://169.254.169.254/latest'/> <link rel=stylesheet href='file:///etc/passwd'> "
         '<a href="https://evil.example">click</a> <style>body{display:none}</style> & &amp; '
-        "\x00\x1b[31m 日本語 " + "W" * 500
+        "\x00\x1b[31m " + "W" * 500
     )
     findings = [finding(1, evidence=nasty, title="<script>alert(1)</script>")]
     html = render_html(detail(findings), ID, NOW)
@@ -141,6 +141,13 @@ def test_hostile_evidence_is_printed_as_text_and_cannot_change_the_document() ->
     # The report has no links, scripts or embedded files, and nothing was fetched while building it.
     for forbidden in (b"/URI", b"/Launch", b"/JavaScript", b"/JS", b"/OpenAction", b"/EmbeddedFile"):
         assert forbidden not in pdf, forbidden
+
+
+def test_text_the_fonts_cannot_draw_does_not_break_the_report() -> None:
+    # The report fonts have no Japanese glyphs: those characters print as empty boxes, but the report is still made.
+    # (Text extraction from such a page is unreliable, so only the result is checked.)
+    pdf = to_pdf(detail([finding(1, evidence="日本語 evidence", title="日本語")]))
+    assert pdf.startswith(b"%PDF") and len(PdfReader(BytesIO(pdf)).pages) >= 1
 
 
 def test_the_renderer_refuses_to_load_anything_from_the_network_or_disk() -> None:

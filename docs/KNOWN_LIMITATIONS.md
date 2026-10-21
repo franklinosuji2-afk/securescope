@@ -27,3 +27,4 @@
 - Platform Health request, latency and email figures are in memory for one process and reset on every restart; scan figures come from the database. See `docs/MONITORING.md`.
 - Backups: there is no automatic backup. Neon's free plan keeps only a short restore history; take your own with `scripts/backup-db.ps1` (see `docs/OPERATIONS.md`). The backup scripts have not yet been run against the production database.
 - Sign-in with Google or GitHub (`docs/OAUTH_SETUP.md`) links by verified email or provider account ID; it cannot be unlinked from the account screen yet and there is no Microsoft or Apple option.
+- PDF reports use DejaVu fonts, which have no Chinese, Japanese or Korean glyphs: such characters in a finding's evidence print as empty boxes (the on-screen report and the JSON/Markdown/HTML exports show them correctly).
