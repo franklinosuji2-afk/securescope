@@ -14,5 +14,14 @@ export async function register(page: Page, email: string): Promise<void> {
   await page
     .getByRole("button", { name: /create account|register|sign up/i })
     .click();
+  await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
+}
+
+/** The navigation lives in the Menu panel at every width: open it if it is closed. */
+export async function openMenu(page: Page): Promise<void> {
+  const button = page.getByRole("button", { name: /^(Menu|Close menu)$/ });
+  if ((await button.getAttribute("aria-expanded")) !== "true") {
+    await button.click();
+  }
   await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
 }

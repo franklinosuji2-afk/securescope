@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { AuthProvider } from "./auth";
+import "@fontsource-variable/inter/wght.css";
+import "@fontsource-variable/plus-jakarta-sans/wght.css";
 import "./styles.css";
 import "./bento.css";
 

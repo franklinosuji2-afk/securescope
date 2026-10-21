@@ -4,6 +4,10 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // The site's content policy allows fonts only from its own origin, so never inline one as a data: URI.
+    assetsInlineLimit: (file) => (file.endsWith(".woff2") ? false : undefined),
+  },
   server: {
     port: 5173,
     proxy: {

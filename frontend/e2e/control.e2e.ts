@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { register, uniqueEmail } from "./helpers";
+import { openMenu, register, uniqueEmail } from "./helpers";
 
 /** Stubbed API: the audit log, cancelling and retrying, in both themes, with accessibility checks. */
 const owner = {
@@ -185,6 +185,7 @@ test("a viewer does not see the audit log in the navigation", async ({
   await stub(page, "completed", viewer);
   await page.goto("/#/audit");
   await expect(page.getByText(/cannot view the audit log/)).toBeVisible();
+  await openMenu(page);
   await expect(
     page
       .getByRole("navigation", { name: "Primary" })
@@ -227,6 +228,7 @@ test("real backend: a new owner sees their own sign-up in the audit log", async 
 }) => {
   const email = uniqueEmail("audit");
   await register(page, email);
+  await openMenu(page);
   await page
     .getByRole("navigation", { name: "Primary" })
     .getByRole("link", { name: "Audit log" })

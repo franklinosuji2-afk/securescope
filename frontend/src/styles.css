@@ -1,18 +1,20 @@
 /* Design tokens. Every colour, space, radius and duration used below comes from here. */
 :root {
   color-scheme: dark;
-  --bg: #080d18;
-  --rail: #0d1524;
-  --surface: #111c2e;
-  --surface-2: #162238;
-  --border: #26344a;
-  --border-strong: #35465f;
-  --control: #6b7f9e;
-  --text: #f1f5f9;
-  --muted: #a7b4c8;
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-  --accent-soft: #60a5fa;
+  --bg: #070d14;
+  --glow: rgba(45, 212, 191, 0.1);
+  --rail: #0e1722;
+  --bar: rgba(14, 23, 34, 0.74);
+  --surface: #0e1722;
+  --surface-2: #132131;
+  --border: #213243;
+  --border-strong: #35495c;
+  --control: #6f8497;
+  --text: #e6eef5;
+  --muted: #93a7b9;
+  --accent: #3a68d6;
+  --accent-hover: #2f58bc;
+  --accent-soft: #2dd4bf;
   --on-accent: #ffffff;
   --ok: #34d399;
   --danger: #f87171;
@@ -23,38 +25,49 @@
   --sev-high: #fb923c;
   --sev-medium: #fbbf24;
   --sev-low: #60a5fa;
-  --sev-info: #a7b4c8;
-  --hover: rgba(148, 178, 255, 0.07);
-  --radius-sm: 8px;
-  --radius: 10px;
-  --radius-lg: 14px;
+  --sev-info: #93a7b9;
+  --hover: rgba(148, 200, 220, 0.08);
+  --shadow-1:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 18px 50px -20px rgba(0, 0, 0, 0.7);
+  --shadow-pop:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 30px 70px -20px rgba(0, 0, 0, 0.7);
+  --focus-ring: 2px solid #2dd4bf;
+  --radius-sm: 10px;
+  --radius: 14px;
+  --radius-lg: 22px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
   --space-6: 40px;
-  --shadow-1: none;
   --dur-fast: 150ms;
   --dur: 200ms;
-  --focus-ring: 2px solid #93c5fd;
-  --font: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font:
+    "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --font-display:
+    "Plus Jakarta Sans Variable", "Inter Variable", Inter, system-ui, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f3f6fb;
+  --bg: #eef3f8;
+  --glow: rgba(15, 118, 110, 0.08);
   --rail: #ffffff;
+  --bar: rgba(255, 255, 255, 0.8);
   --surface: #ffffff;
-  --surface-2: #eef2f9;
-  --border: #d3dbe8;
+  --surface-2: #f1f5fa;
+  --border: #d5dfea;
   --border-strong: #8794ad;
   --control: #6b7a93;
-  --text: #0f1a2b;
-  --muted: #46556e;
-  --accent: #1d4ed8;
-  --accent-hover: #1e40af;
-  --accent-soft: #1d4ed8;
+  --text: #0f2233;
+  --muted: #4a5f73;
+  --accent: #1f5c99;
+  --accent-hover: #174a7d;
+  --accent-soft: #0b5f58;
   --on-accent: #ffffff;
   --ok: #047857;
   --danger: #b42318;
@@ -65,25 +78,33 @@
   --sev-high: #a84706;
   --sev-medium: #8a5a00;
   --sev-low: #1d4ed8;
-  --sev-info: #46556e;
-  --hover: rgba(15, 26, 43, 0.05);
-  --focus-ring: 2px solid #1d4ed8;
+  --sev-info: #4a5f73;
+  --hover: rgba(15, 34, 51, 0.05);
+  --shadow-1:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 16px 36px -22px rgba(15, 34, 51, 0.3);
+  --shadow-pop:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 28px 60px -24px rgba(15, 34, 51, 0.38);
+  --focus-ring: 2px solid #0b5f58;
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     color-scheme: light;
-    --bg: #f3f6fb;
+    --bg: #eef3f8;
+    --glow: rgba(15, 118, 110, 0.08);
     --rail: #ffffff;
+    --bar: rgba(255, 255, 255, 0.8);
     --surface: #ffffff;
-    --surface-2: #eef2f9;
-    --border: #d3dbe8;
+    --surface-2: #f1f5fa;
+    --border: #d5dfea;
     --border-strong: #8794ad;
     --control: #6b7a93;
-    --text: #0f1a2b;
-    --muted: #46556e;
-    --accent: #1d4ed8;
-    --accent-hover: #1e40af;
-    --accent-soft: #1d4ed8;
+    --text: #0f2233;
+    --muted: #4a5f73;
+    --accent: #1f5c99;
+    --accent-hover: #174a7d;
+    --accent-soft: #0b5f58;
     --on-accent: #ffffff;
     --ok: #047857;
     --danger: #b42318;
@@ -94,9 +115,15 @@
     --sev-high: #a84706;
     --sev-medium: #8a5a00;
     --sev-low: #1d4ed8;
-    --sev-info: #46556e;
-    --hover: rgba(15, 26, 43, 0.05);
-    --focus-ring: 2px solid #1d4ed8;
+    --sev-info: #4a5f73;
+    --hover: rgba(15, 34, 51, 0.05);
+    --shadow-1:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 16px 36px -22px rgba(15, 34, 51, 0.3);
+    --shadow-pop:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 28px 60px -24px rgba(15, 34, 51, 0.38);
+    --focus-ring: 2px solid #0b5f58;
   }
 }
 
@@ -111,6 +138,12 @@ body,
 body {
   margin: 0;
   background: var(--bg);
+  background-image: radial-gradient(
+    900px 420px at 50% -120px,
+    var(--glow),
+    transparent 70%
+  );
+  background-repeat: no-repeat;
   color: var(--text);
   font: 15px/1.55 var(--font);
   -webkit-font-smoothing: antialiased;
@@ -120,11 +153,15 @@ h2,
 h3 {
   margin: 0;
   line-height: 1.25;
+  font-family: var(--font-display);
+  text-wrap: balance;
 }
 h1 {
-  font-size: clamp(1.5rem, 1.1rem + 1.2vw, 2rem);
-  font-weight: 650;
-  letter-spacing: -0.025em;
+  font-size: clamp(1.7rem, 1.2rem + 1.6vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--accent-soft);
 }
 h2 {
   font-size: 1.1rem;
@@ -168,28 +205,26 @@ code,
 
 /* Layout */
 .shell {
-  display: grid;
-  grid-template-columns: 232px minmax(0, 1fr);
   min-height: 100%;
 }
+/* A floating bar with one Menu button at every width. The panel opens below it. */
 .rail {
-  border-right: 1px solid var(--border);
-  padding: 20px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
   position: sticky;
   top: 0;
-  height: 100vh;
-  background: var(--rail);
+  z-index: 20;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 14px clamp(16px, 3vw, 40px) 6px;
 }
 .brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  padding: 0 8px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  padding: 0;
 }
 .brand-mark {
   width: 26px;
@@ -218,13 +253,12 @@ code,
   color: var(--text);
 }
 .nav a[aria-current="page"] {
-  background: var(--surface-2);
-  color: var(--text);
+  background: color-mix(in srgb, var(--accent-soft) 16%, transparent);
+  color: var(--accent-soft);
   font-weight: 600;
-  box-shadow: inset 3px 0 0 var(--accent-soft);
 }
 .rail-note {
-  margin-top: auto;
+  margin-top: 0;
   font-size: 0.78rem;
   color: var(--muted);
   padding: 0 8px;
@@ -338,8 +372,9 @@ code,
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  padding: 22px;
 }
 .card-title {
   display: flex;
@@ -778,52 +813,62 @@ tbody tr:hover {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding: 8px 8px 8px 18px;
+  border-radius: 999px;
+  background: var(--bar);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
 }
 .rail-menu {
-  display: flex;
+  display: none;
   flex-direction: column;
-  gap: 22px;
-  flex: 1;
-  min-height: 0;
+  gap: 18px;
+  position: absolute;
+  top: calc(100% - 2px);
+  right: clamp(16px, 3vw, 40px);
+  width: min(360px, calc(100% - 32px));
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  padding: 12px;
+  border-radius: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-pop);
+  animation: menu-rise var(--dur) ease-out;
+}
+.rail-open .rail-menu {
+  display: flex;
+}
+@keyframes menu-rise {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 .menu-btn {
-  display: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 999px;
+  padding: 9px 16px;
+}
+.menu-btn::before {
+  content: "";
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  box-shadow:
+    0 -5px 0 currentColor,
+    0 5px 0 currentColor;
 }
 .site-grid {
   margin-top: 0;
 }
 
 @media (max-width: 860px) {
-  .shell {
-    grid-template-columns: minmax(0, 1fr);
-    /* The top bar keeps its own height; spare height on short pages goes to the content, not the bar. */
-    grid-template-rows: auto 1fr;
-  }
-  .rail {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    height: auto;
-    gap: 0;
-    padding: 10px 14px;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .menu-btn {
-    display: inline-block;
-  }
-  .rail-menu {
-    display: none;
-    padding-top: 14px;
-    max-height: calc(100vh - 64px);
-    overflow-y: auto;
-  }
-  .rail-open .rail-menu {
-    display: flex;
-  }
-  .rail-note {
-    margin-top: 0;
-  }
   .grid-3,
   .grid-2 {
     grid-template-columns: 1fr;

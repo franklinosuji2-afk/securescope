@@ -72,7 +72,7 @@ export default function App() {
   const [route, navigate] = useRoute();
   const { user, loading, organization, setOrganizationId, signOut } = useAuth();
   const { theme, toggle } = useTheme();
-  // On narrow screens the navigation is a menu. It is open only for the page it was opened on, so choosing
+  // The navigation is a Menu button at every width. It is open only for the page it was opened on, so choosing
   // any page closes it without an effect; Escape closes it and returns focus to the button.
   const routeKey = `${route.page}|${route.scanId ?? ""}`;
   const [openFor, setOpenFor] = useState<string | null>(null);
@@ -86,8 +86,16 @@ export default function App() {
       setOpenFor(null);
       menuButton.current?.focus();
     };
+    const onPointer = (event: PointerEvent) => {
+      // A press outside the bar and its panel closes the menu.
+      if (!(event.target as Element | null)?.closest(".rail")) setOpenFor(null);
+    };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+    };
   }, [menuOpen]);
 
   // A signed-in person has no use for the sign-in or registration forms: send them to the app.

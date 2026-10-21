@@ -284,11 +284,22 @@ test("on a phone the navigation is a menu that works by keyboard and passes acce
   expect(overflow).toBeLessThanOrEqual(1);
 });
 
-test("on a desktop there is no Menu button and navigation is always visible", async ({
+test("on a desktop the navigation is the same floating Menu, closed until opened", async ({
   page,
 }) => {
   await stub(page, "scanned");
   await page.goto("/#/");
-  await expect(page.getByRole("button", { name: "Menu" })).toBeHidden();
+  const menu = page.getByRole("button", { name: "Menu" });
+  await expect(menu).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary" })).toBeHidden();
+  await menu.click();
   await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
+  // The account controls sit in the same panel.
+  await expect(
+    page.getByRole("button", { name: /Switch to (light|dark) theme/ }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+  // A press outside closes it.
+  await page.mouse.click(5, 400);
+  await expect(page.getByRole("navigation", { name: "Primary" })).toBeHidden();
 });
