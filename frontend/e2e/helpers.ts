@@ -9,16 +9,24 @@ export function uniqueEmail(label: string): string {
 
 /**
  * Stands in for opening the confirmation link from the email: the e2e backend has no mailbox, so the
- * address is marked confirmed straight in its throwaway SQLite database.
+ * address is marked confirmed straight in its throwaway database (SQLite locally, PostgreSQL in CI).
  */
+const CONFIRM_EMAIL_SCRIPT = [
+  "import sys",
+  "from datetime import datetime, timezone",
+  "from sqlalchemy import create_engine, text",
+  "engine = create_engine(sys.argv[1])",
+  "with engine.begin() as c:",
+  "    c.execute(text('update users set email_verified_at = :now where email = :email'), {'now': datetime.now(timezone.utc), 'email': sys.argv[2].lower()})",
+].join("\n");
+
 function confirmEmailInDatabase(email: string): void {
-  const file = (
-    process.env.E2E_DATABASE_URL ?? "sqlite:////tmp/securescope-e2e.db"
-  ).replace(/^sqlite:\/\/\//, "");
+  const url =
+    process.env.E2E_DATABASE_URL ?? "sqlite:////tmp/securescope-e2e.db";
   execFileSync(process.env.E2E_PYTHON ?? "python", [
     "-c",
-    "import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);c.execute(\"update users set email_verified_at=datetime('now') where email=?\",(sys.argv[2].lower(),));c.commit()",
-    file,
+    CONFIRM_EMAIL_SCRIPT,
+    url,
     email,
   ]);
 }
