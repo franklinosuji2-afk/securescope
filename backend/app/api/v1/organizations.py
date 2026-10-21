@@ -67,6 +67,10 @@ async def get_organization(
 ) -> OrganizationDetail:
     membership = await _membership(state, principal, organization_id)
     members = await asyncio.to_thread(state.accounts.list_members, organization_id)
+    if membership.role is Role.VIEWER:
+        # A viewer is typically a client. Clients must not learn who else (other clients, staff) belongs
+        # to the workspace, so they get only their own entry.
+        members = [m for m in members if m.user_id == principal.user.id]
     return OrganizationDetail(
         id=membership.organization_id,
         name=membership.name,

@@ -35,11 +35,21 @@ export default function Overview({
     <div className="stack">
       <header className="page-head">
         <h1>Overview</h1>
-        <p>
-          Where your sites stand and what to do next. Passive, non-exploitative
-          checks of headers, cookies and basic exposure for sites you own or are
-          authorized to test. This is not a penetration test.
-        </p>
+        {role === "VIEWER" ? (
+          <p>
+            The security status of the sites shared with you, with the latest
+            results and downloadable reports. Passive, non-exploitative checks
+            of headers, cookies and basic exposure. This is not a penetration
+            test.
+          </p>
+        ) : (
+          <p>
+            Where your sites stand and what to do next. Passive,
+            non-exploitative checks of headers, cookies and basic exposure for
+            sites you own or are authorized to test. This is not a penetration
+            test.
+          </p>
+        )}
       </header>
       {data.loading && <Loading label="Loading your sites…" />}
       {data.error && <ErrorNotice message={data.error} />}

@@ -254,3 +254,37 @@ def test_old_invitations_are_cleaned_up(strict_client: TestClient) -> None:
     with strict_client.app.state.s.engine.begin() as conn:  # type: ignore[attr-defined]
         conn.execute(update(InvitationRow).values(expires_at=datetime.now(UTC) - timedelta(days=31)))
     assert accounts.purge_old_invitations() == 1
+
+
+def test_a_viewer_sees_only_their_own_entry_in_the_member_list(
+    strict_client: TestClient, mailer: CapturingMailer
+) -> None:
+    """Clients are invited as viewers; they must not learn who else belongs to the workspace."""
+    org = org_of(strict_client)
+    invite(strict_client, org, "client-one@example.com")
+    token_one = token_in(mailer)
+    first = person(strict_client, "client-one@example.com")
+    assert accept(first, token_one).status_code == 200
+    invite(strict_client, org, "client-two@example.com")
+    token_two = token_in(mailer)
+    second = person(strict_client, "client-two@example.com")
+    assert accept(second, token_two).status_code == 200
+
+    seen = first.get(f"{API}/organizations/{org}")
+    assert seen.status_code == 200
+    assert [m["email"] for m in seen.json()["members"]] == ["client-one@example.com"]
+    assert seen.json()["role"] == "VIEWER"
+    # Nothing else in the response names the owner or the other client.
+    assert "alice@example.com" not in seen.text
+    assert "client-two@example.com" not in seen.text
+
+    # Staff still see everyone.
+    everyone = {m["email"] for m in strict_client.get(f"{API}/organizations/{org}").json()["members"]}
+    assert everyone == {"alice@example.com", "client-one@example.com", "client-two@example.com"}
+
+    # A member (not a viewer) keeps the full list.
+    invite(strict_client, org, "colleague@example.com", "MEMBER")
+    token_member = token_in(mailer)
+    colleague = person(strict_client, "colleague@example.com")
+    assert accept(colleague, token_member).status_code == 200
+    assert len(colleague.get(f"{API}/organizations/{org}").json()["members"]) == 4

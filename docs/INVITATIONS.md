@@ -26,6 +26,14 @@ client read-only access to their results.
 - Used, revoked and expired invitations are deleted a month after they expire. The privacy notice describes
   what is stored.
 
+## What a viewer sees
+
+Viewers are meant for clients. They see the sites, scans, findings and reports of the workspace, and nothing
+else. The server returns only their own entry in the member list (`GET /organizations/{id}`), so a client
+cannot learn the owner's address or who the other clients are. Members, analysts, administrators and owners
+still see the full list. If the invited address has not been confirmed yet, the invitation page offers to send
+the confirmation email.
+
 ## Checking it on the live site
 
 1. Invite a second address you control (not your main one) as Viewer.

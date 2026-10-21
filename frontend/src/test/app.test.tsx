@@ -857,6 +857,23 @@ describe("Overview guidance and posture", () => {
     expect(screen.queryByLabelText("Target URL")).not.toBeInTheDocument();
   });
 
+  it("speaks to viewers as clients, not as site owners", async () => {
+    mockApi(route([verified], scanned), userWith("VIEWER"));
+    renderApp();
+    expect(
+      await screen.findByText(/sites shared with you/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/for sites you own or are authorized to test/),
+    ).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("link", { name: "View sites" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Manage sites" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("links a just-finished scan to its findings", async () => {
     window.location.hash = "#/?scan=abc123";
     mockFetch(route([verified], scanned));

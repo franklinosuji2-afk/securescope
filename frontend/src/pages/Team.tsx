@@ -97,7 +97,9 @@ export default function Team() {
         <h1>Team</h1>
         <p>
           {organization
-            ? `Members of ${organization.name}. Your role: ${organization.role}.`
+            ? organization.role === "VIEWER"
+              ? `Your access to ${organization.name}. Your role: VIEWER. Other members are not shown to viewers.`
+              : `Members of ${organization.name}. Your role: ${organization.role}.`
             : "No organization."}{" "}
           Roles are enforced by the server.
         </p>

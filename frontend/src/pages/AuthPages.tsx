@@ -390,6 +390,7 @@ export function AcceptInvitePage({ token }: { token: string | null }) {
   const [problem, setProblem] = useState<string | null>(null);
   const [joined, setJoined] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resent, setResent] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -426,10 +427,25 @@ export function AcceptInvitePage({ token }: { token: string | null }) {
     }
   }
 
+  async function resend() {
+    setBusy(true);
+    try {
+      await api.resendVerification();
+      setResent(
+        "Sent. Open the link in that email, then come back to this page.",
+      );
+    } catch (err) {
+      setResent(message(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const mismatch =
     !!user &&
     !!preview &&
     user.email.toLowerCase() !== preview.email.toLowerCase();
+  const unconfirmed = !!user && !mismatch && !user.email_verified;
 
   return (
     <Shell title="Join a workspace">
@@ -475,6 +491,21 @@ export function AcceptInvitePage({ token }: { token: string | null }) {
                 Sign out
               </button>{" "}
               and use the invited address.
+            </div>
+          )}
+          {unconfirmed && (
+            <div className="notice notice-info" role="status">
+              Your email address is not confirmed yet. We send a link to{" "}
+              {user.email}; open it, then return here.{" "}
+              <button
+                type="button"
+                className="btn-link"
+                disabled={busy}
+                onClick={() => void resend()}
+              >
+                Send confirmation email
+              </button>
+              {resent && <div className="muted">{resent}</div>}
             </div>
           )}
           {user && !mismatch && (

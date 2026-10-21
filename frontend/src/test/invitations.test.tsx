@@ -9,11 +9,11 @@ import type { Invitation, Role, User } from "../types";
 
 const TOKEN = "T".repeat(43);
 
-function me(email: string, role: Role = "OWNER"): User {
+function me(email: string, role: Role = "OWNER", verified = true): User {
   return {
     id: "u1",
     email,
-    email_verified: true,
+    email_verified: verified,
     organizations: [{ id: "org1", name: "Alice Org", slug: "alice-org", role }],
   };
 }
@@ -157,6 +157,27 @@ describe("invitation links", () => {
     expect(JSON.parse(String(post?.init?.body))).toEqual({ token: TOKEN });
   });
 
+  it("offers to send the confirmation email when the invited address is not confirmed yet", async () => {
+    const calls = stub({ user: me("client@example.com", "VIEWER", false) });
+    open(`#/accept-invite?token=${TOKEN}`);
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: "Send confirmation email" }),
+    );
+    expect(await screen.findByText(/Sent\. Open the link/)).toBeInTheDocument();
+    const post = calls.find((c) => c.url.endsWith("/auth/resend-verification"));
+    expect(post?.init?.method).toBe("POST");
+  });
+
+  it("does not offer it once the address is confirmed", async () => {
+    stub({ user: me("client@example.com", "VIEWER") });
+    open(`#/accept-invite?token=${TOKEN}`);
+    await screen.findByRole("button", { name: "Accept and join" });
+    expect(
+      screen.queryByRole("button", { name: "Send confirmation email" }),
+    ).toBeNull();
+  });
+
   it("warns when the signed-in address is not the invited one and offers no accept button", async () => {
     stub({ user: me("someone-else@example.com", "VIEWER") });
     open(`#/accept-invite?token=${TOKEN}`);
@@ -189,6 +210,17 @@ describe("invitation links", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "missing its invitation code",
     );
+  });
+});
+
+describe("the Team page for a viewer", () => {
+  it("explains that other members are not shown", async () => {
+    stub({ user: me("client@example.com", "VIEWER") });
+    open("#/team");
+    expect(
+      await screen.findByText(/Other members are not shown to viewers/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Invite by email/)).toBeNull();
   });
 });
 

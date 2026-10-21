@@ -330,7 +330,7 @@ export default function BentoGrid({
             <p className="muted small">Showing 6 of {targets.length} sites.</p>
           )}
           <a className="btn-ghost" href="#/targets">
-            Manage sites
+            {canManage ? "Manage sites" : "View sites"}
           </a>
         </Card>
 
