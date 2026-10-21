@@ -1,8 +1,9 @@
 // Minimal service worker so the app can be installed and opens quickly.
 // It caches only the static app shell. It never touches /api, so no account data is ever stored offline.
-const CACHE = "securescope-shell-v1";
+const CACHE = "securescope-shell-v2";
+// Fixed files only. The page itself ("/") is stored after each successful visit, never frozen here, so
+// the offline copy is always the version that was last online.
 const SHELL = [
-  "/",
   "/favicon.svg",
   "/manifest.webmanifest",
   "/icon-192.png",
@@ -41,11 +42,25 @@ self.addEventListener("fetch", (event) => {
   )
     return;
   if (request.mode === "navigate") {
-    // Always try the network first so a new release is picked up; fall back to the cached shell offline.
-    event.respondWith(fetch(request).catch(() => caches.match("/")));
+    // Always try the network first so a new release is picked up; keep the latest page for offline use.
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put("/", copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match("/")),
+    );
     return;
   }
-  // Built assets have hashed names, so cache-first is safe for them.
+  // Only built assets (hashed names, so safe to keep) and the fixed shell files are served from the cache.
+  // Everything else, including a script asking for "/", goes to the network.
+  const cacheable =
+    url.pathname.startsWith("/assets/") || SHELL.includes(url.pathname);
+  if (!cacheable) return;
   event.respondWith(
     caches.match(request).then(
       (hit) =>

@@ -1413,3 +1413,22 @@ a.btn {
     grid-column: 1 / -1;
   }
 }
+
+/* "A new version is available" notice: stays out of the way at the bottom of the screen. */
+.update-notice {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  max-width: calc(100vw - 32px);
+  padding: 10px 14px;
+  border: 1px solid var(--border, #2a3b3b);
+  border-radius: 12px;
+  background: var(--surface, #0f1515);
+  color: var(--text, #e8f1f1);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}

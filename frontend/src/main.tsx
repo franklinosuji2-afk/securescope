@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { AuthProvider } from "./auth";
+import UpdateNotice from "./components/UpdateNotice";
 import "@fontsource-variable/inter/wght.css";
 import "@fontsource-variable/plus-jakarta-sans/wght.css";
 import "./styles.css";
@@ -28,6 +29,7 @@ createRoot(container).render(
     <AuthProvider>
       <App />
     </AuthProvider>
+    {import.meta.env.PROD && <UpdateNotice />}
   </StrictMode>,
 );
 
