@@ -47,6 +47,10 @@ class AuthService:
         self.accounts.create_session(user.id, token, csrf, self._ttl)
         return NewSession(user, token, csrf, self.accounts.memberships_for_user(user.id))
 
+    def begin_session(self, user: UserRecord) -> NewSession:
+        """Starts a session for an account that has already proven who it is (used by provider sign-in)."""
+        return self._start_session(user)
+
     def _send_link(self, user: UserRecord, kind: str, path: str, subject: str, ttl: timedelta) -> None:
         token = new_token()
         self.accounts.create_account_token(user.id, kind, token, ttl)

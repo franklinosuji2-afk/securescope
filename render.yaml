@@ -28,3 +28,13 @@ services:
         sync: false # a sender address you verified with the mail provider
       - key: SECURESCOPE_MAIL_REPLY_TO
         value: support@getsecurescope.com # replies to service emails reach a mailbox that is read
+      # Sign in with Google / GitHub. A provider is offered only when both of its values are set.
+      # Setup steps and redirect URIs: docs/OAUTH_SETUP.md
+      - key: SECURESCOPE_OAUTH_GOOGLE_CLIENT_ID
+        sync: false
+      - key: SECURESCOPE_OAUTH_GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: SECURESCOPE_OAUTH_GITHUB_CLIENT_ID
+        sync: false
+      - key: SECURESCOPE_OAUTH_GITHUB_CLIENT_SECRET
+        sync: false

@@ -25,6 +25,7 @@ from app.security.permissions import Permission, Role, can
 from app.security.tokens import constant_time_equal
 from app.services.auth import AuthService
 from app.services.mailer import Mailer, build_mailer
+from app.services.oauth import OAuthService
 
 SESSION_COOKIE = "ss_session"
 CSRF_COOKIE = "ss_csrf"
@@ -47,6 +48,7 @@ class AppState:
         self.analytics_limiter = SlidingWindowLimiter(settings.analytics_events_per_client_per_hour)
         self.audit = AuditRepository(self.engine)
         self.auth = AuthService(self.accounts, settings, mailer or build_mailer(settings))
+        self.oauth = OAuthService(self.accounts, settings, self.auth.begin_session)
         self.semaphore = asyncio.Semaphore(settings.max_concurrent_scans)
         self.client_limiter = SlidingWindowLimiter(settings.scans_per_client_per_hour)
         self.target_limiter = SlidingWindowLimiter(settings.scans_per_target_per_hour)
@@ -54,6 +56,7 @@ class AppState:
         self.login_email_limiter = SlidingWindowLimiter(
             settings.login_attempts_per_email_per_15min, FIFTEEN_MIN
         )
+        self.oauth_limiter = SlidingWindowLimiter(settings.oauth_attempts_per_ip_per_15min, FIFTEEN_MIN)
         self.register_limiter = SlidingWindowLimiter(settings.registrations_per_ip_per_hour)
         self.reset_limiter = SlidingWindowLimiter(settings.password_reset_requests_per_ip_per_hour)
         self.resend_limiter = SlidingWindowLimiter(3)

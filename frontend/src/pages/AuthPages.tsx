@@ -1,9 +1,9 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import * as api from "../api";
 import { ApiError } from "../api";
 import { useAuth } from "../auth";
 import { ErrorNotice } from "../components/ui";
-import { buildHash } from "../router";
+import { buildHash, parseOAuthError, type OAuthErrorCode } from "../router";
 import { LegalLinks } from "./Legal";
 
 function Shell({ title, children }: { title: string; children: ReactNode }) {
@@ -22,6 +22,55 @@ function message(err: unknown): string {
   return err instanceof ApiError
     ? err.message
     : "Something went wrong. Please try again.";
+}
+
+const OAUTH_MESSAGES: Record<OAuthErrorCode, string> = {
+  failed:
+    "Signing in with that provider did not work. Please try again, or use your email and password.",
+  cancelled: "Sign-in was cancelled. Nothing was changed.",
+  email_unverified:
+    "That account has no verified email address, so we cannot sign you in with it. Confirm the address with the provider, or use your email and password.",
+  disabled: "This account is disabled.",
+  unavailable: "That sign-in method is not available right now.",
+};
+
+const PROVIDER_LABEL: Record<api.OAuthProvider, string> = {
+  google: "Google",
+  github: "GitHub",
+};
+
+/** "Continue with Google / GitHub". Shown only for providers the server has configured. */
+function SocialSignIn({ verb }: { verb: string }) {
+  const [providers, setProviders] = useState<api.OAuthProvider[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .fetchAuthProviders()
+      .then((list) => {
+        if (!cancelled) setProviders(list);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  if (providers.length === 0) return null;
+  return (
+    <div className="social">
+      {providers.map((p) => (
+        <a key={p} className="btn-ghost social-btn" href={api.oauthStartUrl(p)}>
+          {verb} with {PROVIDER_LABEL[p]}
+        </a>
+      ))}
+      <p className="muted small">
+        No account yet? Signing in creates one. We keep only your verified email
+        address and the provider's account ID.
+      </p>
+      <div className="social-or" aria-hidden="true">
+        <span>or use email</span>
+      </div>
+    </div>
+  );
 }
 
 function Field(props: {
@@ -67,8 +116,16 @@ export function LoginPage({ onDone }: { onDone: () => void }) {
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    const code = parseOAuthError(window.location.hash);
+    return code ? OAUTH_MESSAGES[code] : null;
+  });
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    // Show the reason once; reloading the page should not show it again.
+    if (parseOAuthError(window.location.hash))
+      window.history.replaceState(null, "", buildHash("login", null));
+  }, []);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -86,6 +143,8 @@ export function LoginPage({ onDone }: { onDone: () => void }) {
 
   return (
     <Shell title="Sign in">
+      {error && <ErrorNotice message={error} />}
+      <SocialSignIn verb="Continue" />
       <form className="scan-form" onSubmit={submit}>
         <Field
           id="email"
@@ -103,7 +162,7 @@ export function LoginPage({ onDone }: { onDone: () => void }) {
           onChange={setPassword}
           autoComplete="current-password"
         />
-        {error && <ErrorNotice message={error} />}
+
         <button className="btn" type="submit" disabled={busy}>
           {busy ? "Signing in…" : "Sign in"}
         </button>
@@ -140,6 +199,7 @@ export function RegisterPage({ onDone }: { onDone: () => void }) {
 
   return (
     <Shell title="Create your account">
+      <SocialSignIn verb="Sign up" />
       <form className="scan-form" onSubmit={submit}>
         <Field
           id="email"

@@ -17,13 +17,15 @@ from app.models.account import (
     AccountTokenRow,
     AuditEventRow,
     MemberRow,
+    OAuthIdentityRow,
+    OAuthStateRow,
     OrganizationRow,
     SessionRow,
     UserRow,
 )
 from app.schemas.audit import AuditEntry
 from app.security.permissions import Role
-from app.security.tokens import hash_token
+from app.security.tokens import constant_time_equal, hash_token
 
 
 def _now() -> datetime:
@@ -41,6 +43,11 @@ def _id() -> str:
 def slugify(name: str) -> str:
     base = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:48] or "org"
     return f"{base}-{secrets.token_hex(3)}"
+
+
+# Stored for accounts that have no password (sign-in through a provider only). It is not a valid hash,
+# so no password can ever match it.
+UNUSABLE_PASSWORD = "!"  # noqa: S105
 
 
 class DuplicateEmailError(Exception):
@@ -351,6 +358,77 @@ class AccountRepository:
                 .values(used_at=now)
             )
             return row.user_id if claimed.rowcount == 1 else None  # type: ignore[attr-defined]
+
+
+    # --- sign in with an outside provider ---------------------------------------------
+
+    def find_identity_user_id(self, provider: str, subject: str) -> str | None:
+        with self._session() as session:
+            return session.scalar(
+                select(OAuthIdentityRow.user_id).where(
+                    OAuthIdentityRow.provider == provider, OAuthIdentityRow.subject == subject
+                )
+            )
+
+    def link_identity(self, user_id: str, provider: str, subject: str, email: str) -> None:
+        with self._session.begin() as session:
+            session.add(
+                OAuthIdentityRow(
+                    id=_id(), user_id=user_id, provider=provider, subject=subject, email=email, created_at=_now()
+                )
+            )
+
+    def create_oauth_user_with_org(
+        self, email: str, org_name: str, provider: str, subject: str
+    ) -> tuple[UserRecord, OrgMembership]:
+        """A new account without a password, its email already confirmed by the provider, plus a workspace."""
+        user, membership = self.create_user_with_org(email, UNUSABLE_PASSWORD, org_name)
+        self.mark_email_verified(user.id)
+        self.link_identity(user.id, provider, subject, email)
+        refreshed = self.get_user(user.id)
+        return (refreshed or user), membership
+
+    def take_over_unconfirmed_account(self, user_id: str) -> None:
+        """The email was never confirmed, so whoever set its password may not be the owner. Remove the
+        password and end every session before the real owner's provider sign-in is linked."""
+        self.set_password(user_id, UNUSABLE_PASSWORD)
+        self.revoke_all_sessions(user_id)
+        self.mark_email_verified(user_id)
+
+    def create_oauth_state(
+        self, state: str, browser: str, provider: str, code_verifier: str, ttl: timedelta
+    ) -> None:
+        with self._session.begin() as session:
+            session.add(
+                OAuthStateRow(
+                    state_hash=hash_token(state),
+                    browser_hash=hash_token(browser),
+                    provider=provider,
+                    code_verifier=code_verifier,
+                    expires_at=_now() + ttl,
+                )
+            )
+
+    def consume_oauth_state(self, state: str, browser: str, provider: str) -> str | None:
+        """Single use. Returns the PKCE verifier only if the state is fresh, was issued for this provider and
+        for this browser (the cookie). The row is deleted whatever the outcome."""
+        with self._session.begin() as session:
+            row = session.get(OAuthStateRow, hash_token(state))
+            if row is None:
+                return None
+            verifier = row.code_verifier
+            ok = (
+                _aware(row.expires_at) > _now()
+                and row.provider == provider
+                and constant_time_equal(row.browser_hash, hash_token(browser))
+            )
+            session.delete(row)
+            return verifier if ok else None
+
+    def purge_expired_oauth_states(self) -> int:
+        with self._session.begin() as session:
+            result = session.execute(delete(OAuthStateRow).where(OAuthStateRow.expires_at < _now()))
+            return int(result.rowcount or 0)  # type: ignore[attr-defined]
 
 
 class AuditRepository:

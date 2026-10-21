@@ -18,3 +18,4 @@
 
 - [ ] Before a release that adds a migration: take a backup (`scripts/backup-db.ps1`) and confirm the file verifies.
 - [ ] Uptime monitor on `/api/v1/ready` is active and alerts reach a mailbox you read (`docs/OPERATIONS.md` section 1).
+- [ ] If Google or GitHub sign-in is enabled: the redirect URIs match `docs/OAUTH_SETUP.md`, the Google consent screen is **In production**, and both a new and an existing account can sign in.

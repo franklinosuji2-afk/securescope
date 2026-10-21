@@ -37,6 +37,7 @@ async def _maintenance_loop(state: AppState) -> None:
         if removed:
             log_event(logger, "retention cleanup", removed=removed)
         await asyncio.to_thread(state.accounts.purge_expired_sessions)
+        await asyncio.to_thread(state.accounts.purge_expired_oauth_states)
         await asyncio.to_thread(state.analytics.delete_older_than, state.settings.analytics_retention_days)
         await asyncio.sleep(3600)
 

@@ -78,6 +78,36 @@ class AccountTokenRow(Base):
     __table_args__ = (Index("ix_account_tokens_user_id", "user_id"),)
 
 
+class OAuthIdentityRow(Base):
+    """A sign-in at an outside provider (Google, GitHub) that belongs to one account."""
+
+    __tablename__ = "oauth_identities"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    provider: Mapped[str] = mapped_column(String(16))
+    subject: Mapped[str] = mapped_column(String(128))
+    email: Mapped[str] = mapped_column(String(320))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        UniqueConstraint("provider", "subject", name="uq_oauth_identities_provider_subject"),
+        Index("ix_oauth_identities_user_id", "user_id"),
+    )
+
+
+class OAuthStateRow(Base):
+    """One pending provider sign-in. Only digests of the random values are stored; the row is single use."""
+
+    __tablename__ = "oauth_states"
+
+    state_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    browser_hash: Mapped[str] = mapped_column(String(64))
+    provider: Mapped[str] = mapped_column(String(16))
+    code_verifier: Mapped[str] = mapped_column(String(128))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class AuditEventRow(Base):
     __tablename__ = "audit_events"
 

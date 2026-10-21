@@ -58,6 +58,15 @@ class Settings(BaseSettings):
     mail_reply_to: str | None = None
     mail_timeout_seconds: float = Field(10.0, gt=0, le=30)
 
+    # Sign in with Google / GitHub. Each provider is offered only when both its id and secret are set (a
+    # half-set provider stays off and a warning is logged). The secrets belong in the host's environment only. Register this redirect URI with the provider:
+    # {SECURESCOPE_PUBLIC_BASE_URL}/api/v1/auth/oauth/<provider>/callback
+    oauth_google_client_id: str | None = None
+    oauth_google_client_secret: SecretStr | None = None
+    oauth_github_client_id: str | None = None
+    oauth_github_client_secret: SecretStr | None = None
+    oauth_attempts_per_ip_per_15min: int = Field(30, ge=1)
+
     target_verifications_per_target_per_hour: int = Field(10, ge=1)
     # How long a proven domain stays authorised before it must be proven again. 0 means it never expires.
     target_verification_valid_days: int = Field(180, ge=0, le=3650)

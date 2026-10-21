@@ -106,3 +106,21 @@ export function useRoute(): [
   }, []);
   return [route, navigate];
 }
+
+const OAUTH_ERRORS = [
+  "failed",
+  "cancelled",
+  "email_unverified",
+  "disabled",
+  "unavailable",
+] as const;
+export type OAuthErrorCode = (typeof OAUTH_ERRORS)[number];
+
+/** The reason the server gives when a Google or GitHub sign-in did not work, from `#/login?oauth_error=...`. */
+export function parseOAuthError(hash: string): OAuthErrorCode | null {
+  const query = hash.replace(/^#/, "").split("?")[1] ?? "";
+  const value = new URLSearchParams(query).get("oauth_error");
+  return (OAUTH_ERRORS as readonly string[]).includes(value ?? "")
+    ? (value as OAuthErrorCode)
+    : null;
+}

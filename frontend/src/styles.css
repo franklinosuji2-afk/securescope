@@ -295,6 +295,28 @@ code,
   flex-direction: column;
   gap: 16px;
 }
+.social {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.social-btn {
+  text-align: center;
+  padding: 11px 14px;
+}
+.social-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.social-or::before,
+.social-or::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--border-strong);
+}
 /* Long-form legal pages: wider than the sign-in card and read from the top. */
 .legal-wrap {
   place-items: start center;

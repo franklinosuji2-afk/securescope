@@ -138,7 +138,8 @@ function Privacy() {
     <Doc page="privacy" title="Privacy notice">
       <p className="legal-summary">
         <strong>The short version:</strong> we store your account and scan data
-        only to run SecureScope, we use two strictly necessary cookies, we count
+        only to run SecureScope, we use two strictly necessary cookies (plus a
+        short-lived one only while you sign in with Google or GitHub), we count
         visits to the public pages without cookies or stored IP addresses, we
         never sell data, and you can ask us to delete everything.
       </p>
@@ -182,6 +183,16 @@ function Privacy() {
           interest in running and improving the service (Art. 6(1)(f) GDPR).
         </li>
         <li>
+          <strong>Sign-in with Google or GitHub (optional):</strong> if you
+          choose it, the provider tells us your verified email address and its
+          own account ID for you. We store those two things so we can recognise
+          you next time and link the sign-in to your account; we do not store
+          your name or picture and receive no password. The provider learns that
+          you signed in to SecureScope. Needed to provide your account (Art.
+          6(1)(b) GDPR). If you do not use it, nothing is exchanged with these
+          providers.
+        </li>
+        <li>
           <strong>Emails:</strong> we send only service emails such as email
           confirmation and password reset. No marketing.
         </li>
@@ -197,7 +208,10 @@ function Privacy() {
         Two cookies are set when you sign in: <code>ss_session</code> keeps you
         signed in, and <code>ss_csrf</code> protects your requests against
         forged cross-site requests. Both are strictly necessary, so no consent
-        banner is needed. We use no advertising or tracking cookies. Our visit
+        banner is needed. If you choose to sign in with Google or GitHub, a
+        third cookie, <code>ss_oauth</code>, is set for ten minutes to complete
+        that sign-in and is removed afterwards; it is equally strictly
+        necessary. We use no advertising or tracking cookies. Our visit
         statistics use no cookies or other storage on your device.
       </p>
 
@@ -211,6 +225,10 @@ function Privacy() {
         </li>
         <li>Neon, Inc. &ndash; database hosting.</li>
         <li>Brevo (Sendinblue SAS), France &ndash; sending service emails.</li>
+        <li>
+          Google Ireland Limited and GitHub, Inc. &ndash; only if you choose to
+          sign in with them.
+        </li>
       </ul>
       <p>
         Some providers are based in the USA or may process data there. Transfers

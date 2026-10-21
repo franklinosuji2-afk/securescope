@@ -33,6 +33,22 @@ let onUnauthorized: (() => void) | null = null;
 export function setActiveOrganization(id: string | null): void {
   activeOrganizationId = id;
 }
+export type OAuthProvider = "google" | "github";
+
+/** Which outside sign-in methods the server offers. Anything unexpected means none. */
+export async function fetchAuthProviders(): Promise<OAuthProvider[]> {
+  const body = await request<{ providers?: unknown }>("/auth/providers");
+  return Array.isArray(body.providers)
+    ? body.providers.filter(
+        (p): p is OAuthProvider => p === "google" || p === "github",
+      )
+    : [];
+}
+
+/** A plain link, not a fetch: the browser leaves for the provider and comes back signed in. */
+export const oauthStartUrl = (provider: OAuthProvider): string =>
+  `${BASE}/auth/oauth/${provider}/start`;
+
 export function setUnauthorizedHandler(handler: (() => void) | null): void {
   onUnauthorized = handler;
 }
