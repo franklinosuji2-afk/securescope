@@ -1,4 +1,4 @@
-"""PDF export: valid output, hostile text stays inert, long reports paginate."""
+"""PDF reports: built from the HTML template, hostile text stays inert, long reports paginate."""
 
 from __future__ import annotations
 
@@ -6,12 +6,10 @@ from datetime import UTC, datetime
 from io import BytesIO
 
 import pytest
-from fastapi.testclient import TestClient
 from pypdf import PdfReader
 
-from app.reporting.reports import to_pdf
+from app.reporting.pdf import render_html, render_pdf
 from app.schemas.scan import Finding, ScanDetail, ScanStatus, Severity, TargetMetadata
-from app.tests.test_finding_lifecycle import API, member_client, run_scan
 
 NOW = datetime(2026, 10, 18, 20, 11, tzinfo=UTC)
 
@@ -54,98 +52,110 @@ def text_of(pdf: bytes) -> tuple[str, int]:
     return "\n".join(page.extract_text() for page in reader.pages), len(reader.pages)
 
 
-def test_report_contains_the_same_facts_as_the_other_formats() -> None:
+ID = "SSR-TESTREPORT"
+
+
+def to_pdf(d: ScanDetail) -> bytes:
+    return render_pdf(d, ID, NOW).content
+
+
+def test_report_contains_everything_a_client_needs() -> None:
     pdf = to_pdf(detail([finding(1, title="Content-Security-Policy header is missing")]))
     assert pdf.startswith(b"%PDF-")
     text, pages = text_of(pdf)
-    assert pages == 1
+    assert pages >= 2
     for expected in (
-        "SecureScope report",
+        "SecureScope",  # branding
+        "Website security report",
+        ID,  # report ID
+        "18 October 2026",  # scan date
         "a.example",
         "https://a.example/",
-        "80/100 (grade B)",
+        "Overall risk rating",
+        "Medium",  # the rating, from the findings
         "Content-Security-Policy header is missing",
-        "[MEDIUM]",
         "SS-TEST-001",
-        "Header not present.",
-        "Do the fix.",
+        "Affected URL: https://a.example/",
+        "Header not present.",  # evidence
+        "How to fix it.",
+        "Do the fix.",  # remediation
+        "Remediation plan",
         "not a penetration test",
-        "Limits of this scan",
-        "Page 1",
+        "Limits of this report",
     ):
-        assert expected in text, expected
+        # Headings are upper-cased by the stylesheet, so compare without regard to case.
+        assert expected.lower() in text.lower(), expected
+
+
+def test_the_overall_risk_follows_the_worst_finding_that_still_counts() -> None:
+    from app.reporting.risk import overall_risk
+    from app.schemas.scan import FindingStatus
+
+    def with_severity(severity: Severity, status: FindingStatus = FindingStatus.OPEN) -> Finding:
+        return finding(1).model_copy(update={"severity": severity, "status": status})
+
+    assert overall_risk(detail([])).level == "minimal"
+    assert overall_risk(detail([with_severity(Severity.LOW)])).level == "low"
+    assert overall_risk(detail([with_severity(Severity.MEDIUM), with_severity(Severity.LOW)])).level == "medium"
+    assert overall_risk(detail([with_severity(Severity.CRITICAL)])).level == "critical"
+    # A finding the team marked as a false positive no longer counts.
+    dismissed = with_severity(Severity.CRITICAL, FindingStatus.FALSE_POSITIVE)
+    assert overall_risk(detail([dismissed])).level == "minimal"
+
+
+def test_severity_summary_counts_each_level() -> None:
+    from app.reporting.risk import severity_counts
+
+    findings = [finding(1), finding(2), finding(3).model_copy(update={"severity": Severity.HIGH})]
+    assert severity_counts(detail(findings)) == {"critical": 0, "high": 1, "medium": 2, "low": 0, "info": 0}
 
 
 def test_a_clean_scan_says_so_and_does_not_claim_security() -> None:
     text, _ = text_of(to_pdf(detail([])))
-    assert "No findings from the implemented checks." in text
+    assert "did not find any problems" in text
     assert "not proof of security" in text
+    assert "Minimal" in text
 
 
-def test_failed_and_cancelled_scans_still_produce_a_valid_report() -> None:
-    for status, error in ((ScanStatus.FAILED, "Connection refused."), (ScanStatus.CANCELLED, "Cancelled.")):
-        text, _ = text_of(to_pdf(detail([], status, error)))
-        assert status.value in text and error in text
-        assert "Findings" not in text.replace("Findings by severity", "")  # no findings section
+def test_exposed_file_findings_name_the_exact_address() -> None:
+    env = finding(1).model_copy(update={"id": "SS-EXPOSE-ENV-001", "title": "Settings file exposed"})
+    text, _ = text_of(to_pdf(detail([env])))
+    assert "https://a.example/.env" in text
 
 
 def test_hostile_evidence_is_printed_as_text_and_cannot_change_the_document() -> None:
     nasty = (
-        "<b>bold</b> <para backColor=red>x</para> <img src='file:///etc/passwd'/> "
-        '<a href="https://evil.example">click</a> <font color="red">r</font> & &amp; '
-        "\x00\x1b[31m‮日本語 \U0001f600 " + "W" * 500
+        "<b>bold</b> <img src='http://169.254.169.254/latest'/> <link rel=stylesheet href='file:///etc/passwd'> "
+        '<a href="https://evil.example">click</a> <style>body{display:none}</style> & &amp; '
+        "\x00\x1b[31m 日本語 " + "W" * 500
     )
-    pdf = to_pdf(detail([finding(1, evidence=nasty, title="<script>alert(1)</script>")]))
+    findings = [finding(1, evidence=nasty, title="<script>alert(1)</script>")]
+    html = render_html(detail(findings), ID, NOW)
+    assert "<script>alert(1)</script>" not in html and "&lt;script&gt;" in html
+    assert "<img src='http://169.254" not in html and "<a href=\"https://evil" not in html
+    pdf = to_pdf(detail(findings))
     text, _ = text_of(pdf)
-    # Markup shows up literally instead of being interpreted.
-    for literal in ("<b>bold</b>", "<img src='file:///etc/passwd'/>", "<script>alert(1)</script>", "& &amp;"):
+    for literal in ("<b>bold</b>", "<script>alert(1)</script>", "& &amp;"):
         assert literal in text, literal
     assert "\x00" not in text and "\x1b" not in text
-    # No links, launch actions or scripts can be embedded by a remote server's header value.
+    # The report has no links, scripts or embedded files, and nothing was fetched while building it.
     for forbidden in (b"/URI", b"/Launch", b"/JavaScript", b"/JS", b"/OpenAction", b"/EmbeddedFile"):
         assert forbidden not in pdf, forbidden
-    assert len(PdfReader(BytesIO(pdf)).pages[0].get("/Annots", [])) == 0
+
+
+def test_the_renderer_refuses_to_load_anything_from_the_network_or_disk() -> None:
+    from app.reporting.pdf import _refuse_fetch
+
+    with pytest.raises(ValueError):
+        _refuse_fetch("http://169.254.169.254/latest")
+    with pytest.raises(ValueError):
+        _refuse_fetch("file:///etc/passwd")
 
 
 def test_a_very_long_report_paginates_and_every_page_has_a_footer() -> None:
-    text_blob = "word " * 200
-    findings = [finding(i, evidence=text_blob) for i in range(1, 41)]
+    blob = "word " * 120
+    findings = [finding(i, evidence=blob) for i in range(1, 31)]
     text, pages = text_of(to_pdf(detail(findings)))
-    assert pages > 3
-    assert f"Page {pages}" in text
-    assert "SS-TEST-040" in text
-
-
-def test_pdf_export_endpoint(local_client: TestClient, mock_server: str) -> None:
-    scan = run_scan(local_client, mock_server)
-    response = local_client.get(f"{API}/scans/{scan['id']}/report?format=pdf")
-    assert response.status_code == 200
-    assert response.headers["content-type"] == "application/pdf"
-    disposition = response.headers["content-disposition"]
-    assert disposition.startswith("attachment;") and disposition.endswith('.pdf"')
-    assert response.content.startswith(b"%PDF-")
-    text, _ = text_of(response.content)
-    assert "127.0.0.1" in text and "Content-Security-Policy header is missing" in text
-    audit = local_client.get(f"{API}/audit-events?event_type=report.exported").json()
-    assert audit["total"] == 1
-
-
-def test_viewers_may_export_pdf_and_unknown_formats_are_rejected(
-    local_client: TestClient, mock_server: str
-) -> None:
-    org = local_client.get(f"{API}/auth/me").json()["organizations"][0]["id"]
-    scan = run_scan(local_client, mock_server)
-    viewer = member_client(local_client, org, "viewer@example.com", "VIEWER")
-    assert viewer.get(f"{API}/scans/{scan['id']}/report?format=pdf").status_code == 200
-    assert local_client.get(f"{API}/scans/{scan['id']}/report?format=docx").status_code == 422
-
-
-@pytest.mark.parametrize("status", [ScanStatus.QUEUED, ScanStatus.RUNNING])
-def test_unfinished_scans_have_no_report(status: ScanStatus, local_client: TestClient) -> None:
-    state = local_client.app.state.s  # type: ignore[attr-defined]
-    org = local_client.get(f"{API}/auth/me").json()["organizations"][0]["id"]
-    user = local_client.get(f"{API}/auth/me").json()["id"]
-    scan_id = state.repo.create_scan(org, user, "https://a.example/", "a.example")
-    if status is ScanStatus.RUNNING:
-        state.repo.mark_running(scan_id)
-    assert local_client.get(f"{API}/scans/{scan_id}/report?format=pdf").status_code == 409
+    assert pages > 4
+    assert f"Page {pages} of {pages}" in text
+    assert f"{ID}" in text and "SS-TEST-030" in text

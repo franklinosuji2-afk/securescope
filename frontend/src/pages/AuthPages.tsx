@@ -529,3 +529,62 @@ export function AcceptInvitePage({ token }: { token: string | null }) {
     </Shell>
   );
 }
+
+/** Shown instead of the dashboard while the signed-in address is not confirmed. The server enforces this too;
+ * this page only explains it and offers the way forward. */
+export function ConfirmEmailPage() {
+  const { user, reload, signOut } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  async function resend() {
+    setBusy(true);
+    try {
+      await api.resendVerification();
+      setNote(
+        "Sent. Open the link in that email, then press the button below.",
+      );
+    } catch (err) {
+      setNote(message(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Shell title="Confirm your email address">
+      <p>
+        We sent a confirmation link to <strong>{user?.email}</strong>. Open it
+        to start using SecureScope. Check your spam folder if you cannot find
+        it.
+      </p>
+      <p>
+        <button
+          type="button"
+          className="btn-ghost"
+          disabled={busy}
+          onClick={() => void resend()}
+        >
+          Send the email again
+        </button>
+      </p>
+      {note && (
+        <div className="notice notice-info" role="status">
+          {note}
+        </div>
+      )}
+      <p>
+        <button type="button" className="btn" onClick={() => void reload()}>
+          I have confirmed my email
+        </button>{" "}
+        <button
+          type="button"
+          className="btn-link"
+          onClick={() => void signOut()}
+        >
+          Sign out
+        </button>
+      </p>
+    </Shell>
+  );
+}

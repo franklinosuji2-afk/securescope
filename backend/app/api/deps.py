@@ -18,6 +18,7 @@ from app.middleware.ratelimit import SlidingWindowLimiter
 from app.observability.metrics import RequestMetrics
 from app.repositories.accounts import AccountRepository, AuditRepository, SessionRecord, UserRecord
 from app.repositories.analytics import AnalyticsRepository
+from app.repositories.reports import ReportRepository
 from app.repositories.scans import ScanRepository
 from app.repositories.targets import TargetRepository
 from app.security.ownership import TxtLookup, system_txt_lookup
@@ -27,6 +28,7 @@ from app.services.auth import AuthService
 from app.services.invitations import InvitationService
 from app.services.mailer import Mailer, build_mailer
 from app.services.oauth import OAuthService
+from app.services.reports import ReportService
 
 SESSION_COOKIE = "ss_session"
 CSRF_COOKIE = "ss_csrf"
@@ -65,6 +67,16 @@ class AppState:
         # Invitation emails per person per hour, and invitation link lookups per client per 15 minutes.
         self.invite_send_limiter = SlidingWindowLimiter(20)
         self.invite_link_limiter = SlidingWindowLimiter(60, FIFTEEN_MIN)
+        # Signed PDF download links, and the cost of building a report (one at a time on a small host).
+        self.download_key = (
+            settings.download_signing_key.get_secret_value().encode()
+            if settings.download_signing_key
+            else secrets.token_bytes(32)
+        )
+        self.report_service = ReportService(ReportRepository(self.engine), settings, self.download_key)
+        self.report_semaphore = asyncio.Semaphore(1)
+        self.report_limiter = SlidingWindowLimiter(30)
+        self.password_change_limiter = SlidingWindowLimiter(5, FIFTEEN_MIN)
         self.metrics = RequestMetrics()
         self.verify_limiter = SlidingWindowLimiter(settings.target_verifications_per_target_per_hour)
         # Seams so tests never touch real DNS or the network; production keeps the defaults.
@@ -171,6 +183,11 @@ class OrgContext:
 async def _resolve_organization(principal: Principal, state: AppState, requested: str | None) -> OrgContext:
     """The id comes from the client but is only accepted if the authenticated user is a member; it is
     never trusted on its own."""
+    if state.settings.require_verified_email and not principal.user.email_verified:
+        raise HTTPException(
+            status_code=403,
+            detail="Please confirm your email address first. We sent you a link when you signed up.",
+        )
     memberships = await asyncio.to_thread(state.accounts.memberships_for_user, principal.user.id)
     if not memberships:
         raise HTTPException(status_code=403, detail="You do not belong to any organization.")

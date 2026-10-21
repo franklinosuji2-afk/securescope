@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import UTC, datetime
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
@@ -9,8 +10,19 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from app.api.deps import OrgContext, StateDep, client_key, download_organization_context, request_id, require
 from app.core.logging import log_event
 from app.reporting import reports
+from app.reporting.pdf import affected_url
+from app.reporting.risk import overall_risk, severity_counts
+from app.repositories.reports import ReportIntegrityError
 from app.scanner.runner import execute_scan
-from app.schemas.scan import ScanCreate, ScanDetail, ScanList, ScanStatus
+from app.schemas.scan import (
+    ReportLink,
+    ResultFinding,
+    ScanCreate,
+    ScanDetail,
+    ScanList,
+    ScanResults,
+    ScanStatus,
+)
 from app.security.permissions import Permission
 from app.security.target import TargetError, parse_target_url, validate_target
 
@@ -142,6 +154,120 @@ async def get_scan(scan_id: str, state: StateDep, ctx: CanRead) -> ScanDetail:
     return await _load(state, ctx, scan_id)
 
 
+@router.get("/{scan_id}/results", response_model=ScanResults)
+async def get_results(scan_id: str, state: StateDep, ctx: CanRead) -> ScanResults:
+    """The findings of one finished scan, with the overall risk rating and a severity summary."""
+    detail = await _load(state, ctx, scan_id)
+    if detail.status in (ScanStatus.QUEUED, ScanStatus.RUNNING):
+        raise HTTPException(status_code=409, detail="The scan has not finished yet.")
+    risk = overall_risk(detail)
+    return ScanResults(
+        scan_id=detail.id,
+        host=detail.host,
+        target_url=detail.target_url,
+        status=detail.status,
+        scanned_at=detail.created_at,
+        error=detail.error,
+        risk_level=risk.level,
+        risk_label=risk.label,
+        risk_summary=risk.summary,
+        score=detail.score,
+        grade=detail.grade,
+        severity_counts=severity_counts(detail),
+        findings=[ResultFinding(**f.model_dump(), affected_url=affected_url(detail, f)) for f in detail.findings],
+    )
+
+
+@router.get("/{scan_id}/report/pdf", response_model=ReportLink)
+async def report_pdf_link(scan_id: str, request: Request, state: StateDep, ctx: CanExport) -> ReportLink:
+    """Makes the PDF report for a completed scan (once; it is kept) and returns a link that expires."""
+    detail = await _load(state, ctx, scan_id)
+    if detail.status is not ScanStatus.COMPLETED:
+        raise HTTPException(
+            status_code=409,
+            detail="A report is available once a scan has finished successfully.",
+        )
+    user_id = ctx.principal.user.id
+    if not state.report_limiter.check(user_id):
+        raise HTTPException(status_code=429, detail="Too many report requests. Try again in a little while.")
+    state.report_limiter.record(user_id)
+    existing = await asyncio.to_thread(state.report_service.reports.get_meta, scan_id, ctx.organization_id)
+    if existing is None:
+        # Building a PDF is CPU work: one at a time, and off the event loop.
+        async with state.report_semaphore:
+            try:
+                meta = await asyncio.to_thread(
+                    state.report_service.ensure_report, detail, ctx.organization_id, user_id
+                )
+            except Exception:  # noqa: BLE001 - any rendering fault is reported the same way
+                logger.exception("report generation failed", extra={"scan_id": scan_id})
+                raise HTTPException(
+                    status_code=500, detail="The report could not be created. Please try again."
+                ) from None
+        await _audit(state, request, ctx, "report.created", scan_id)
+    else:
+        meta = existing
+    link = state.report_service.sign(meta.id, user_id, ctx.organization_id)
+    url = (
+        f"/api/v1/scans/{scan_id}/report/pdf/download"
+        f"?org={ctx.organization_id}&expires={link.expires}&sig={link.signature}"
+    )
+    return ReportLink(
+        report_id=meta.id,
+        url=url,
+        expires_at=datetime.fromtimestamp(link.expires, UTC),
+        size_bytes=meta.size_bytes,
+        created_at=meta.created_at,
+    )
+
+
+@router.get("/{scan_id}/report/pdf/download")
+async def report_pdf_download(
+    scan_id: str,
+    request: Request,
+    state: StateDep,
+    ctx: CanExport,
+    expires: Annotated[int, Query(ge=0)],
+    sig: Annotated[str, Query(min_length=64, max_length=64, pattern="^[0-9a-f]+$")],
+) -> Response:
+    """Serves the stored PDF. Needs the signed-in session, an unexpired link issued to this same person for
+    this organization, and ownership of the scan. Anything else looks like a missing report."""
+    detail = await _load(state, ctx, scan_id)
+    meta = await asyncio.to_thread(state.report_service.reports.get_meta, scan_id, ctx.organization_id)
+    user_id = ctx.principal.user.id
+    if meta is None or not state.report_service.is_valid(meta.id, user_id, ctx.organization_id, expires, sig):
+        raise HTTPException(
+            status_code=403, detail="This download link is invalid or has expired. Please request a new one."
+        )
+    try:
+        loaded = await asyncio.to_thread(state.report_service.reports.get_file, meta.id, ctx.organization_id)
+    except ReportIntegrityError:
+        logger.error("stored report failed its checksum", extra={"report_id": meta.id})
+        raise HTTPException(status_code=500, detail="This report could not be read.") from None
+    if loaded is None:
+        raise HTTPException(status_code=404, detail="Report not found.")
+    _, content = loaded
+    await asyncio.to_thread(
+        state.audit.record,
+        "report.downloaded",
+        organization_id=ctx.organization_id,
+        actor_user_id=user_id,
+        resource_type="scan",
+        resource_id=scan_id,
+        request_id=request_id(request),
+    )
+    filename = f"{meta.id}-{reports.safe_filename(detail, 'pdf')}"
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
 @router.post("/{scan_id}/cancel", response_model=ScanDetail)
 async def cancel_scan(scan_id: str, request: Request, state: StateDep, ctx: CanCreate) -> ScanDetail:
     detail = await _load(state, ctx, scan_id)
@@ -198,7 +324,7 @@ async def export_report(
     request: Request,
     state: StateDep,
     ctx: CanExport,
-    format: Literal["json", "md", "html", "pdf"] = "json",  # noqa: A002
+    format: Literal["json", "md", "html"] = "json",  # noqa: A002
 ) -> Response:
     detail = await _load(state, ctx, scan_id)
     if detail.status in (ScanStatus.QUEUED, ScanStatus.RUNNING):
@@ -207,7 +333,6 @@ async def export_report(
         "json": ("application/json", "json", reports.to_json),
         "md": ("text/markdown; charset=utf-8", "md", reports.to_markdown),
         "html": ("text/html; charset=utf-8", "html", reports.to_html),
-        "pdf": ("application/pdf", "pdf", reports.to_pdf),
     }[format]
     headers = {"Content-Disposition": f'attachment; filename="{reports.safe_filename(detail, extension)}"'}
     if format == "html":
@@ -221,6 +346,5 @@ async def export_report(
         resource_id=scan_id,
         request_id=request_id(request),
     )
-    # Building a PDF is CPU work, so it runs off the event loop.
     content = await asyncio.to_thread(render, detail)
     return Response(content=content, media_type=media, headers=headers)

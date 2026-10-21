@@ -10,6 +10,7 @@ import type {
   Organization,
   OrganizationDetail,
   ReportFormat,
+  ReportLink,
   Role,
   ScanDetail,
   ScanList,
@@ -157,6 +158,23 @@ export const verifyEmail = (token: string) =>
     body: JSON.stringify({ token }),
   });
 
+// --- account ------------------------------------------------------------------------------------
+
+export const changePassword = (
+  current_password: string,
+  new_password: string,
+) =>
+  request<void>("/account/password", {
+    method: "PATCH",
+    body: JSON.stringify({ current_password, new_password }),
+  });
+/** Deletes the signed-in person's account for good. `confirm` must be the word DELETE. */
+export const deleteAccount = (password: string, confirm: string) =>
+  request<void>("/account", {
+    method: "DELETE",
+    body: JSON.stringify({ password, confirm }),
+  });
+
 // --- organizations ------------------------------------------------------------------------------
 
 export const createOrganization = (name: string) =>
@@ -272,6 +290,10 @@ export function reportUrl(
     : "";
   return `${BASE}/scans/${encodeURIComponent(id)}/report?format=${format}${org}`;
 }
+
+/** Makes the PDF report for a finished scan (once; it is kept) and returns a link that expires. */
+export const createPdfReport = (scanId: string) =>
+  request<ReportLink>(`/scans/${encodeURIComponent(scanId)}/report/pdf`);
 
 // --- targets ------------------------------------------------------------------------------------
 

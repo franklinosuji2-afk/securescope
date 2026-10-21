@@ -166,6 +166,38 @@ class ScanDetail(ScanSummary):
     )
 
 
+class ResultFinding(Finding):
+    """A finding as the client sees it in the results: it also says which address it concerns."""
+
+    affected_url: str
+
+
+class ScanResults(BaseModel):
+    scan_id: str
+    host: str
+    target_url: str
+    status: ScanStatus
+    scanned_at: datetime
+    error: str | None = None
+    risk_level: Literal["critical", "high", "medium", "low", "minimal"]
+    risk_label: str
+    risk_summary: str
+    score: int | None = None
+    grade: str | None = None
+    severity_counts: dict[str, int]
+    findings: list[ResultFinding]
+
+
+class ReportLink(BaseModel):
+    """A short-lived, signed address for downloading one report. Only the person it was issued to can use it."""
+
+    report_id: str
+    url: str
+    expires_at: datetime
+    size_bytes: int
+    created_at: datetime
+
+
 class ScanList(BaseModel):
     items: list[ScanSummary]
     total: int

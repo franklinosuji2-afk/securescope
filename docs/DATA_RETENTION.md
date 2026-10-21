@@ -1,11 +1,17 @@
-# Data retention policy (v0.1, self-hosted)
+# Data retention
+
+**Stored per account:** email address, a salted hash of the password (or none, for accounts that only use Google or GitHub), whether the email is confirmed, workspace memberships, and the audit log of what happened in a workspace.
 
 **Stored per scan:** id, target URL and host, timestamps, status, score/grade, finding metadata (id, title, severity, description, redacted evidence, remediation), target metadata (final URL, resolved addresses, status code, content type, redirect chain, timing).
 
-**Not stored:** response bodies, cookie values, credentials. No user accounts or contact details are collected.
+**Stored per report:** the first time someone downloads the PDF of a finished scan, the file is made and kept in the database (table `reports`, one per scan) with its checksum. It is only ever served through the signed-in API, never from a public address.
 
-**Retention:** scans older than `SECURESCOPE_RETENTION_DAYS` (default 30) are deleted by a background job at start-up and periodically. Scans interrupted by a restart are marked failed.
+**Not stored:** response bodies, cookie values, credentials, or a second copy of a report outside the database.
 
-**Deletion on demand:** `docker compose down -v` removes the data volume.
+**Retention:** scans older than `SECURESCOPE_RETENTION_DAYS` (default 30) are deleted by a background job at start-up and periodically, **together with their reports**. Deleting a scan deletes its report. Scans interrupted by a restart are marked failed. Used, revoked and expired invitations are deleted a month after they expire.
 
-**Before any hosted offering:** define a privacy notice, lawful basis, user-initiated deletion and processor terms. This document is not legal advice.
+**Deletion on demand:** under **Account** a person can delete their own account (password and the word DELETE required). A workspace nobody else belongs to is erased with everything in it: sites, scans, findings, reports, invitations and its audit log. In a shared workspace only that person's membership goes; what they did there stays but no longer points at them. A person who is the only owner of a workspace other people still use must hand over ownership first. Deletion is immediate and cannot be undone; the audit event `account.deleted` is written without the email address.
+
+**Backups:** a backup taken before a deletion still contains the data until that backup is replaced (see `docs/OPERATIONS.md`).
+
+This document is not legal advice.

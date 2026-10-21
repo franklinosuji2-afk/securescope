@@ -439,13 +439,9 @@ describe("BentoGrid states", () => {
       "href",
       "#/findings?scan=scan-a.test&finding=SS-HDR-HSTS-001",
     );
-    const pdf = screen.getByRole("link", {
-      name: "Download PDF report for a.test",
-    });
-    expect(pdf).toHaveAttribute(
-      "href",
-      "/api/v1/scans/scan-a.test/report?format=pdf&org=org1",
-    );
+    expect(
+      screen.getByRole("button", { name: "Download PDF report for a.test" }),
+    ).toBeInTheDocument();
     expect(
       await screen.findByRole("link", { name: /a.test.*score 70, 3 findings/ }),
     ).toHaveAttribute("href", "#/history?scan=s9");

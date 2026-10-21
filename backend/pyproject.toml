@@ -25,7 +25,7 @@ testpaths = ["app/tests"]
 timeout = 60
 addopts = "-q -W ignore::DeprecationWarning"
 
-# reportlab ships no type information.
+# WeasyPrint ships no type information.
 [[tool.mypy.overrides]]
-module = ["reportlab", "reportlab.*"]
+module = ["weasyprint", "weasyprint.*"]
 ignore_missing_imports = true

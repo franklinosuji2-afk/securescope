@@ -53,7 +53,13 @@ Verification is exact-host: `example.com` does not authorise `www.example.com` o
 
 ## PDF reports
 
-Evidence in a report can contain anything a remote server sent. In the PDF, control characters are dropped, markup is escaped so it prints as text, characters outside the built-in fonts print as `?`, and no links, actions or scripts are ever written (tests: `app/tests/test_pdf_report.py`).
+Reports are made on the server from an HTML template (WeasyPrint). Every scan value goes into the template as data and is escaped, so evidence a remote server sent can never become markup, and the renderer is not allowed to fetch anything: no remote images, stylesheets or fonts, whatever the text contains (tests: `app/tests/test_pdf_report.py`). A report is built once per finished scan, one at a time, off the event loop, and only for a scan that completed (a failed or cancelled scan has no report).
+
+Reports are stored privately in the database with a SHA-256 checksum that is verified on every read. They are never served from a fixed address. `GET /scans/{id}/report/pdf` returns a link that expires after 5 minutes (`SECURESCOPE_DOWNLOAD_URL_TTL_SECONDS`), signed for that person, that organization and that report; the download route also needs the signed-in session, membership of the organization and ownership of the scan, and anything else looks like a missing report. A link is a bearer token only together with the session, so a copied link is useless to someone else. It is not single-use: it can be opened again until it expires. Without `SECURESCOPE_DOWNLOAD_SIGNING_KEY` the key is random per start, so links stop working after a restart and people ask for a new one.
+
+## Email confirmation
+
+An account must confirm its email address before it can use targets, scans, results or reports. The server enforces this (`SECURESCOPE_REQUIRE_VERIFIED_EMAIL`, on by default); the app only explains it. Google and GitHub sign-in count as confirmed because the provider has verified the address.
 
 ## Scanner safety
 

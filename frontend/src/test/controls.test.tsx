@@ -191,16 +191,15 @@ describe("cancelling and retrying from a scan", () => {
     window.location.hash = "#/?scan=abc123";
     renderApp();
     const group = await screen.findByRole("group", { name: "Export report" });
-    const pdf = within(group).getByRole("link", { name: "PDF" });
-    expect(pdf).toHaveAttribute(
-      "href",
-      "/api/v1/scans/abc123/report?format=pdf&org=org1",
-    );
+    // The PDF is made on request and downloaded through a short-lived link, so it is a button.
+    expect(
+      within(group).getByRole("button", { name: "Download PDF report" }),
+    ).toBeInTheDocument();
     expect(
       within(group)
         .getAllByRole("link")
         .map((a) => a.textContent),
-    ).toEqual(["PDF", "HTML", "Markdown", "JSON"]);
+    ).toEqual(["HTML", "Markdown", "JSON"]);
   });
 });
 

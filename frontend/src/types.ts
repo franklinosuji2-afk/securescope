@@ -91,7 +91,16 @@ export interface ScanList {
   total: number;
 }
 
-export type ReportFormat = "json" | "md" | "html" | "pdf";
+export type ReportFormat = "json" | "md" | "html";
+
+/** A short-lived link to one PDF report. It only works for the person who asked for it. */
+export interface ReportLink {
+  report_id: string;
+  url: string;
+  expires_at: string;
+  size_bytes: number;
+  created_at: string;
+}
 
 export type Role = "OWNER" | "ADMIN" | "SECURITY_ANALYST" | "MEMBER" | "VIEWER";
 export const ROLES: readonly Role[] = [

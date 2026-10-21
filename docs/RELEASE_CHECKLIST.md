@@ -19,4 +19,8 @@
 - [ ] Before a release that adds a migration: take a backup (`scripts/backup-db.ps1`) and confirm the file verifies.
 - [ ] Uptime monitor on `/api/v1/ready` is active and alerts reach a mailbox you read (`docs/OPERATIONS.md` section 1).
 - [ ] If Google or GitHub sign-in is enabled: the redirect URIs match `docs/OAUTH_SETUP.md`, the Google consent screen is **In production**, and both a new and an existing account can sign in.
+- [ ] PDF reports: the Docker image builds, and downloading a PDF for a finished scan works on the live site (open it; check the logo, the findings and the page breaks). Try the PDF button as a Viewer too.
+- [ ] Account page: change the password of a test account (other devices are signed out), then delete a throwaway account and confirm it can no longer sign in.
+- [ ] A signed-in account whose email is not confirmed sees the "Confirm your email address" page, not the dashboard.
+- [ ] After a release, a tab left open shows "A new version of SecureScope is available" within 15 minutes (or on returning to the tab).
 - [ ] If invitations are used: invite a second address as Viewer, accept it in a private window, and confirm it is read-only (`docs/INVITATIONS.md`).

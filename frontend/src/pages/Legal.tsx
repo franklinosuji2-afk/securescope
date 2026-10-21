@@ -165,9 +165,11 @@ function Privacy() {
         </li>
         <li>
           <strong>Scan data:</strong> the domains you add, the ownership
-          verification status, scan results and reports. Needed to provide the
-          service (Art. 6(1)(b) GDPR). Scan results are deleted automatically
-          after a retention period (currently 30 days).
+          verification status, scan results and PDF reports. A report is made
+          the first time you download it and is kept, in our database and
+          nowhere else, until its scan is deleted. Needed to provide the service
+          (Art. 6(1)(b) GDPR). Scan results and their reports are deleted
+          automatically after a retention period (currently 30 days).
         </li>
         <li>
           <strong>Audit log and security data:</strong> actions in your
@@ -247,10 +249,11 @@ function Privacy() {
       <p>
         You can ask for access, correction, deletion, restriction or export of
         your data, and object to processing based on legitimate interest. To
-        delete your account and its data, email us. We keep account data until
-        you ask us to delete it. You can also complain to a supervisory
-        authority, for Berlin the Berliner Beauftragte für Datenschutz und
-        Informationsfreiheit.
+        delete your account and its data, use <strong>Account</strong> in the
+        app (it needs your password and takes effect at once), or email us. We
+        keep account data until you delete the account or ask us to. You can
+        also complain to a supervisory authority, for Berlin the Berliner
+        Beauftragte für Datenschutz und Informationsfreiheit.
       </p>
 
       <h2>Scanning other people&apos;s sites</h2>
@@ -300,8 +303,9 @@ function Terms() {
       </p>
       <h2>6. Ending your use</h2>
       <p>
-        You can stop using SecureScope at any time and ask us to delete your
-        account. We may end access for accounts that break these terms.
+        You can stop using SecureScope at any time and delete your account
+        yourself under Account, or ask us to. We may end access for accounts
+        that break these terms.
       </p>
       <h2>7. Governing law</h2>
       <p>

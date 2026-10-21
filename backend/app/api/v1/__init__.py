@@ -7,6 +7,7 @@ from fastapi import APIRouter, Response
 
 from app.api.deps import StateDep
 from app.api.v1 import (
+    account,
     analytics,
     audit,
     auth,
@@ -20,7 +21,7 @@ from app.api.v1 import (
 )
 from app.schemas.scan import HealthResponse
 
-VERSION = "0.10.0"
+VERSION = "0.11.0"
 logger = logging.getLogger("securescope.api")
 
 router = APIRouter(prefix="/api/v1")
@@ -44,6 +45,7 @@ async def ready(state: StateDep, response: Response) -> dict[str, str]:
 
 
 router.include_router(auth.router)
+router.include_router(account.router)
 router.include_router(oauth.router)
 router.include_router(organizations.router)
 router.include_router(invitations.router)

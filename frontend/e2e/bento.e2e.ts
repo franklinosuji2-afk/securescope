@@ -171,8 +171,8 @@ for (const scheme of ["dark", "light"] as const) {
       bento.getByRole("link", { name: /Investigate the failed scan/ }),
     ).toBeVisible();
     await expect(
-      bento.getByRole("link", { name: /Download PDF report/ }),
-    ).toHaveAttribute("href", /\/scans\/s2\/report\?format=pdf/);
+      bento.getByRole("button", { name: /Download PDF report/ }),
+    ).toBeVisible();
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
       .analyze();

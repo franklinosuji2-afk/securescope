@@ -10,7 +10,7 @@ from sqlalchemy import Engine, delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.database.session import make_session_factory
-from app.models.scan import FindingRow, FindingStateRow, ScanRow
+from app.models.scan import FindingRow, FindingStateRow, ReportRow, ScanRow
 from app.scanner.fingerprint import fingerprint
 from app.scanner.scoring import count_by_severity
 from app.schemas.scan import (
@@ -123,6 +123,7 @@ class ScanRepository:
                 return False
             # Delete findings explicitly so behaviour does not depend on the DB enforcing FKs.
             session.execute(delete(FindingRow).where(FindingRow.scan_id == scan_id))
+            session.execute(delete(ReportRow).where(ReportRow.scan_id == scan_id))
             session.execute(delete(ScanRow).where(ScanRow.id == scan_id))
             return True
 
@@ -273,6 +274,7 @@ class ScanRepository:
             # Delete findings explicitly so behaviour does not depend on the DB enforcing FKs.
             old_ids = select(ScanRow.id).where(ScanRow.created_at < cutoff)
             session.execute(delete(FindingRow).where(FindingRow.scan_id.in_(old_ids)))
+            session.execute(delete(ReportRow).where(ReportRow.scan_id.in_(old_ids)))
             result = session.execute(delete(ScanRow).where(ScanRow.created_at < cutoff))
             return int(result.rowcount or 0)  # type: ignore[attr-defined]
 

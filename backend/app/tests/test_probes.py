@@ -151,6 +151,7 @@ def test_fetch_probe_rejects_non_fixed_paths(make_settings) -> None:  # type: ig
 
 def test_skipped_checks_appear_in_reports(db_url: str) -> None:
     from app.reporting import reports
+    from app.reporting.pdf import render_pdf
     from app.schemas.scan import SkippedCheck
     from app.tests.test_db_and_reports import completed_detail
 
@@ -165,7 +166,7 @@ def test_skipped_checks_appear_in_reports(db_url: str) -> None:
     )
     assert "Not checked: No exposed .git directory or .env file" in reports.to_markdown(detail)
     assert "Not checked" in reports.to_html(detail)
-    assert reports.to_pdf(detail)[:4] == b"%PDF"
+    assert render_pdf(detail, "SSR-TESTREPORT").content[:4] == b"%PDF"
 
 
 def test_missing_security_txt_is_not_listed_as_passed(db_url: str) -> None:

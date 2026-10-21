@@ -190,7 +190,7 @@ describe("email confirmation", () => {
     const m = mockApi({ ...base, email_verified: false });
     renderApp();
     await userEvent.click(
-      await screen.findByRole("button", { name: "Send confirmation email" }),
+      await screen.findByRole("button", { name: "Send the email again" }),
     );
     expect(await screen.findByText(/^Sent\./)).toBeInTheDocument();
     expect(

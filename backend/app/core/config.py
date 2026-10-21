@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     login_attempts_per_email_per_15min: int = Field(5, ge=1)
     registrations_per_ip_per_hour: int = Field(10, ge=1)
     password_reset_requests_per_ip_per_hour: int = Field(5, ge=1)
+    # A new account must confirm its email address before it can use the dashboard (targets, scans,
+    # results, reports). Turn this off only for local development or tests.
+    require_verified_email: bool = True
+    # PDF download links are signed and expire. The key is optional: without one a random key is made at
+    # start-up, so links stop working after a restart (users simply ask for a new one).
+    download_signing_key: SecretStr | None = None
+    download_url_ttl_seconds: int = Field(300, ge=30, le=3600)
     # Base URL used in verification/reset links written to the (development) mailer log.
     public_base_url: str = "http://localhost:8080"
 

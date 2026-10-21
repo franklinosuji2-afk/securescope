@@ -3,6 +3,7 @@ import { rescanLabel } from "./RescanButton";
 import { ApiError, cancelScan, deleteScan, reportUrl, retryScan } from "../api";
 import { useAuth } from "../auth";
 import Checklist from "./Checklist";
+import PdfReportButton from "./PdfReportButton";
 import { formatDate } from "../format";
 import type { ScanDetail } from "../types";
 import { isActive } from "../types";
@@ -13,9 +14,7 @@ export function ReportButtons({ scanId }: { scanId: string }) {
   return (
     <div className="row" role="group" aria-label="Export report">
       <span className="muted small">Export:</span>
-      <a className="btn-ghost" href={reportUrl(scanId, "pdf", org)} download>
-        PDF
-      </a>
+      <PdfReportButton scanId={scanId} />
       <a className="btn-ghost" href={reportUrl(scanId, "html", org)} download>
         HTML
       </a>

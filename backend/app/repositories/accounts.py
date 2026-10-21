@@ -24,6 +24,8 @@ from app.models.account import (
     SessionRow,
     UserRow,
 )
+from app.models.scan import FindingRow, FindingStateRow, ReportRow, ScanRow
+from app.models.target import TargetRow
 from app.schemas.audit import AuditEntry
 from app.security.permissions import Role
 from app.security.tokens import constant_time_equal, hash_token
@@ -339,6 +341,82 @@ class AccountRepository:
                 .values(revoked_at=_now())
             )
             return int(result.rowcount or 0)  # type: ignore[attr-defined]
+
+    def revoke_other_sessions(self, user_id: str, keep_session_id: str) -> int:
+        with self._session.begin() as session:
+            result = session.execute(
+                update(SessionRow)
+                .where(
+                    SessionRow.user_id == user_id,
+                    SessionRow.id != keep_session_id,
+                    SessionRow.revoked_at.is_(None),
+                )
+                .values(revoked_at=_now())
+            )
+            return int(result.rowcount or 0)  # type: ignore[attr-defined]
+
+    # --- deleting an account ----------------------------------------------------------
+
+    def organizations_blocking_deletion(self, user_id: str) -> list[str]:
+        """Names of workspaces this person owns alone while other people still belong to them.
+
+        Deleting the account would leave those people without an owner, so the person must hand over
+        ownership or remove the members first.
+        """
+        with self._session() as session:
+            blocking: list[str] = []
+            memberships = session.scalars(select(MemberRow).where(MemberRow.user_id == user_id)).all()
+            for membership in memberships:
+                if membership.role != Role.OWNER.value:
+                    continue
+                members = session.scalar(
+                    select(func.count()).select_from(MemberRow).where(
+                        MemberRow.organization_id == membership.organization_id
+                    )
+                )
+                if (members or 0) > 1 and self._owner_count(session, membership.organization_id) <= 1:
+                    org = session.get(OrganizationRow, membership.organization_id)
+                    blocking.append(org.name if org else membership.organization_id)
+            return blocking
+
+    def delete_account(self, user_id: str) -> None:
+        """Erases the account. A workspace nobody else belongs to is erased with everything in it (sites,
+        scans, findings, reports, invitations, its audit log); in a shared workspace only this person's
+        membership goes. Deletes are explicit so behaviour does not depend on the database enforcing FKs."""
+        with self._session.begin() as session:
+            memberships = session.scalars(select(MemberRow).where(MemberRow.user_id == user_id)).all()
+            for membership in memberships:
+                org_id = membership.organization_id
+                members = session.scalar(
+                    select(func.count()).select_from(MemberRow).where(MemberRow.organization_id == org_id)
+                )
+                if (members or 0) > 1:
+                    continue
+                scan_ids = select(ScanRow.id).where(ScanRow.organization_id == org_id)
+                session.execute(delete(ReportRow).where(ReportRow.organization_id == org_id))
+                session.execute(delete(FindingRow).where(FindingRow.scan_id.in_(scan_ids)))
+                session.execute(delete(ScanRow).where(ScanRow.organization_id == org_id))
+                session.execute(delete(FindingStateRow).where(FindingStateRow.organization_id == org_id))
+                session.execute(delete(TargetRow).where(TargetRow.organization_id == org_id))
+                session.execute(delete(InvitationRow).where(InvitationRow.organization_id == org_id))
+                session.execute(delete(AuditEventRow).where(AuditEventRow.organization_id == org_id))
+                session.execute(delete(MemberRow).where(MemberRow.organization_id == org_id))
+                session.execute(delete(OrganizationRow).where(OrganizationRow.id == org_id))
+            session.execute(delete(MemberRow).where(MemberRow.user_id == user_id))
+            # What this person did in workspaces that continue stays, but no longer points at them.
+            for model, column in (
+                (ScanRow, "requested_by"),
+                (TargetRow, "created_by"),
+                (FindingStateRow, "updated_by"),
+                (ReportRow, "generated_by"),
+                (InvitationRow, "invited_by"),
+                (AuditEventRow, "actor_user_id"),
+            ):
+                session.execute(update(model).where(getattr(model, column) == user_id).values({column: None}))
+            session.execute(delete(SessionRow).where(SessionRow.user_id == user_id))
+            session.execute(delete(AccountTokenRow).where(AccountTokenRow.user_id == user_id))
+            session.execute(delete(OAuthIdentityRow).where(OAuthIdentityRow.user_id == user_id))
+            session.execute(delete(UserRow).where(UserRow.id == user_id))
 
     def purge_expired_sessions(self) -> int:
         cutoff = _now() - timedelta(days=1)

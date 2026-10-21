@@ -6,6 +6,7 @@ import type { Page } from "./router";
 import { LEGAL_PAGES, PUBLIC_PAGES, buildHash, useRoute } from "./router";
 import {
   AcceptInvitePage,
+  ConfirmEmailPage,
   ForgotPasswordPage,
   LoginPage,
   RegisterPage,
@@ -16,48 +17,16 @@ import LegalPage, { LegalLinks } from "./pages/Legal";
 import Targets from "./pages/Targets";
 import Team from "./pages/Team";
 import Findings from "./pages/Findings";
-import { ApiError, resendVerification } from "./api";
 import Analytics from "./pages/Analytics";
 import Health from "./pages/Health";
 import Audit from "./pages/Audit";
 import History from "./pages/History";
 import NotFound from "./pages/NotFound";
+import Account from "./pages/Account";
 import Overview from "./pages/Overview";
 import { forgetInvite, pendingInvite } from "./pendingInvite";
 import { canReadAudit } from "./types";
 import { trackPageView, trackedPageName } from "./tracking";
-
-function ConfirmEmail() {
-  const [note, setNote] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  async function send() {
-    setBusy(true);
-    try {
-      await resendVerification();
-      setNote("Sent. Open the link in the email, then reload this page.");
-    } catch (err) {
-      setNote(
-        err instanceof ApiError ? err.message : "Could not send the email.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <div className="small" role="status">
-      Email not confirmed.{" "}
-      <button
-        type="button"
-        className="btn-link"
-        disabled={busy}
-        onClick={() => void send()}
-      >
-        Send confirmation email
-      </button>
-      {note && <div className="muted">{note}</div>}
-    </div>
-  );
-}
 
 const NAV: { page: Page; label: string }[] = [
   { page: "overview", label: "Overview" },
@@ -65,6 +34,7 @@ const NAV: { page: Page; label: string }[] = [
   { page: "findings", label: "Findings" },
   { page: "history", label: "Scan History" },
   { page: "team", label: "Team" },
+  { page: "account", label: "Account" },
   { page: "audit", label: "Audit log" },
   { page: "analytics", label: "Analytics" },
   { page: "health", label: "Platform Health" },
@@ -191,6 +161,15 @@ export default function App() {
     );
   }
 
+  if (!user.email_verified) {
+    // The server refuses the dashboard's requests too; this explains it instead of showing errors.
+    return (
+      <main id="main">
+        <ConfirmEmailPage />
+      </main>
+    );
+  }
+
   return (
     <div className="shell">
       <a className="skip-link" href="#main">
@@ -273,7 +252,6 @@ export default function App() {
               {user.email}
               {organization ? ` · ${organization.role}` : ""}
             </div>
-            {!user.email_verified && <ConfirmEmail />}
             <button
               className="btn-ghost"
               type="button"
@@ -317,6 +295,7 @@ export default function App() {
           <History onOpen={(id) => navigate("findings", id)} />
         )}
         {route.page === "team" && <Team />}
+        {route.page === "account" && <Account />}
         {route.page === "audit" && <Audit />}
         {route.page === "analytics" && user.is_admin === true && <Analytics />}
         {route.page === "health" && user.is_admin === true && <Health />}

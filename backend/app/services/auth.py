@@ -20,6 +20,19 @@ VERIFY_TTL = timedelta(hours=24)
 RESET_TTL = timedelta(hours=1)
 
 
+LINK_INTRO = {
+    "verify_email": (
+        "Welcome to SecureScope.\n\nPlease confirm your email address to start using your dashboard. "
+        "The link below works for {hours} hours. If you did not create an account, you can ignore this email."
+    ),
+    "reset_password": (  # noqa: S105  # nosec B105
+        "We received a request to reset your SecureScope password.\n\nOpen the link below to choose a "
+        "new one. It works for {hours} hour. If you did not ask for this, you can ignore this email; "
+        "your password has not changed."
+    ),
+}
+
+
 class EmailTakenError(Exception):
     pass
 
@@ -55,7 +68,9 @@ class AuthService:
         token = new_token()
         self.accounts.create_account_token(user.id, kind, token, ttl)
         link = f"{self.settings.public_base_url.rstrip('/')}/{path}?token={token}"
-        self.mailer.send(user.email, subject, f"Open this link: {link}")
+        hours = int(ttl.total_seconds() // 3600)
+        intro = LINK_INTRO[kind].format(hours=hours)
+        self.mailer.send(user.email, subject, f"{intro}\n\n{link}")
 
     def register(self, email: str, password: str, organization_name: str | None) -> NewSession:
         try:

@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { reportUrl } from "../../api";
+import PdfReportButton from "../PdfReportButton";
 import { formatDate } from "../../format";
 import { chartPoints, deltaText, historySummary } from "../../overview";
 import { buildHash } from "../../router";
@@ -35,7 +36,6 @@ const SCAN_RECORD_LABEL: Record<ScanRecord, string> = {
 };
 
 const FORMATS: { format: ReportFormat; label: string }[] = [
-  { format: "pdf", label: "PDF" },
   { format: "html", label: "HTML" },
   { format: "md", label: "Markdown" },
   { format: "json", label: "JSON" },
@@ -357,6 +357,10 @@ export default function BentoGrid({
                 recorded in the audit log.
               </p>
               <div className="row">
+                <PdfReportButton
+                  scanId={exportSite.latest_scan_id}
+                  host={exportSite.host}
+                />
                 {FORMATS.map(({ format, label }) => (
                   <a
                     key={format}

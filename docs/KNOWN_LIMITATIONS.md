@@ -17,6 +17,9 @@
 - Ownership verification: the HTTP-file method was confirmed once end to end on a real domain (2026-10-18, the author's own site, followed by a real scan and report). The DNS TXT method has only been tested with mocked lookups and error mapping, not against a live domain.
 - DNS TXT verification trusts the resolver the server is configured with.
 - Invitations are emailed, single-use links that expire after 7 days and only work for the invited address once that account has a confirmed email. If the email provider rejects a message the inviter is not told (the failure is logged); they can send the invitation again. The Team page can also not resend an invitation without typing the address again. A person with an existing account is invited the same way; there is no silent add in the interface (the API still has one).
+- PDF reports are stored in the database, which counts against the free Neon storage; each is roughly tens of kilobytes. They are deleted with their scan (30 days by default) and with the account.
+- PDF download links last 5 minutes and are not single-use. Without `SECURESCOPE_DOWNLOAD_SIGNING_KEY` they also stop working after an API restart.
+- The report renderer needs system libraries that are installed in the Docker image (`backend/Dockerfile`). The image build has not been run in the authoring environment; run `docker compose build backend` (or watch the first Render build) before relying on PDFs.
 - Users cannot list or revoke individual sessions. (The audit log is available to owners and administrators through the API and the Audit page.)
 - Use the app only via the configured origin (`http://localhost:8080`); other origins are refused for POSTs.
 - Docker images were authored and the Compose file validated, but image builds were not executed in the authoring environment. Run `docker compose up --build` and the release checklist before relying on them.

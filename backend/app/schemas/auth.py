@@ -119,3 +119,20 @@ class InvitationAccepted(BaseModel):
 
 class OrganizationDetail(OrganizationOut):
     members: list[MemberOut]
+
+
+class PasswordChange(_Strict):
+    current_password: str = Field(max_length=MAX_LENGTH)
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _password(cls, value: str) -> str:
+        return _check_password(value)
+
+
+class AccountDelete(_Strict):
+    """Deleting an account needs the password (when the account has one) and the word DELETE."""
+
+    password: str = Field(default="", max_length=MAX_LENGTH)
+    confirm: str = Field(max_length=20)

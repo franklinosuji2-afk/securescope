@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -84,3 +84,24 @@ class FindingStateRow(Base):
         UniqueConstraint("organization_id", "fingerprint", name="uq_finding_states_org_fingerprint"),
         Index("ix_finding_states_org_host", "organization_id", "host"),
     )
+
+
+class ReportRow(Base):
+    """A generated PDF report, kept as a snapshot of the scan at the time it was made.
+
+    The file is stored in the database, not on disk, so it is covered by the same backups and the same
+    deletion rules as the scan itself, and it is only ever served through the authenticated API.
+    """
+
+    __tablename__ = "reports"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    scan_id: Mapped[str] = mapped_column(ForeignKey("scans.id", ondelete="CASCADE"), unique=True)
+    organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"))
+    generated_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    sha256: Mapped[str] = mapped_column(String(64))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    content: Mapped[bytes] = mapped_column(LargeBinary)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (Index("ix_reports_organization_id", "organization_id"),)

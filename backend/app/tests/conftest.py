@@ -112,7 +112,13 @@ def db_url(tmp_path: Path) -> str:
 @pytest.fixture
 def make_settings(db_url: str):  # type: ignore[no-untyped-def]
     def factory(**overrides: object) -> Settings:
-        values: dict[str, object] = {"database_url": db_url, "cookie_secure": False}
+        # Most tests are not about email verification, so it is off by default here; test_client_accounts.py
+        # turns it on and tests the real behavior.
+        values: dict[str, object] = {
+            "database_url": db_url,
+            "cookie_secure": False,
+            "require_verified_email": False,
+        }
         values.update(overrides)
         return Settings(**values)  # type: ignore[arg-type]
 
