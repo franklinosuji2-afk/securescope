@@ -25,6 +25,8 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
+      - name: System libraries and fonts for PDF reports
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 fonts-dejavu-core
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -76,6 +78,8 @@ jobs:
       E2E_DATABASE_URL: postgresql+psycopg://securescope:ci-only-password@localhost:5432/securescope_e2e
     steps:
       - uses: actions/checkout@v4
+      - name: System libraries and fonts for PDF reports
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 fonts-dejavu-core
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
