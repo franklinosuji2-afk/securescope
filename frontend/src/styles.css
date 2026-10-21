@@ -1,19 +1,19 @@
 /* Design tokens. Every colour, space, radius and duration used below comes from here. */
 :root {
   color-scheme: dark;
-  --bg: #070d14;
-  --glow: rgba(45, 212, 191, 0.1);
-  --rail: #0e1722;
-  --bar: rgba(14, 23, 34, 0.74);
-  --surface: #0e1722;
-  --surface-2: #132131;
-  --border: #213243;
-  --border-strong: #35495c;
-  --control: #6f8497;
-  --text: #e6eef5;
-  --muted: #93a7b9;
-  --accent: #3a68d6;
-  --accent-hover: #2f58bc;
+  --bg: #050505;
+  --glow: rgba(45, 212, 191, 0.045);
+  --rail: #0d0d0d;
+  --bar: rgba(16, 16, 16, 0.78);
+  --surface: #0d0d0d;
+  --surface-2: #161616;
+  --border: #262626;
+  --border-strong: #444444;
+  --control: #7a7a7a;
+  --text: #ededed;
+  --muted: #a1a1a1;
+  --accent: #0f766e;
+  --accent-hover: #0b5f58;
   --accent-soft: #2dd4bf;
   --on-accent: #ffffff;
   --ok: #34d399;
@@ -25,8 +25,8 @@
   --sev-high: #fb923c;
   --sev-medium: #fbbf24;
   --sev-low: #60a5fa;
-  --sev-info: #93a7b9;
-  --hover: rgba(148, 200, 220, 0.08);
+  --sev-info: #a1a1a1;
+  --hover: rgba(255, 255, 255, 0.07);
   --shadow-1:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
     0 18px 50px -20px rgba(0, 0, 0, 0.7);
@@ -267,6 +267,7 @@ code,
   padding: 28px clamp(16px, 3vw, 40px) 56px;
   max-width: 1560px;
   width: 100%;
+  margin: 0 auto;
 }
 .page-head {
   display: flex;
