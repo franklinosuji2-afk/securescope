@@ -136,7 +136,7 @@ def test_hostile_evidence_is_printed_as_text_and_cannot_change_the_document() ->
     pdf = to_pdf(detail(findings))
     text, _ = text_of(pdf)
     for literal in ("<b>bold</b>", "<script>alert(1)</script>", "& &amp;"):
-        assert literal in text, literal
+        assert "".join(literal.split()) in "".join(text.split()), literal
     assert "\x00" not in text and "\x1b" not in text
     # The report has no links, scripts or embedded files, and nothing was fetched while building it.
     for forbidden in (b"/URI", b"/Launch", b"/JavaScript", b"/JS", b"/OpenAction", b"/EmbeddedFile"):

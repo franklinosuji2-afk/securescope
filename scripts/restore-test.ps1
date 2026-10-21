@@ -12,7 +12,7 @@ $container = "securescope-restore-test"
 # Remove a leftover container from an earlier run (checked first, so no error output is needed).
 $left = docker ps -aq --filter "name=^$container$"
 if ($left) { docker rm -f $container | Out-Null }
-docker run -d --name $container -e POSTGRES_PASSWORD=restore-test-only -e POSTGRES_DB=restore postgres:16-alpine | Out-Null
+docker run -d --name $container -e POSTGRES_PASSWORD=restore-test-only -e POSTGRES_DB=restore postgres:18-alpine | Out-Null
 try {
     for ($i = 0; $i -lt 30; $i++) {
         docker exec $container pg_isready -U postgres -d restore | Out-Null

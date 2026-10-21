@@ -24,13 +24,13 @@ $file = "securescope-$stamp.dump"
 # does not appear on any command line.
 $env:PGURL = $url
 $dump = 'pg_dump --format=custom --no-owner --no-privileges --dbname "$PGURL" --file /out/' + $file
-docker run --rm -e PGURL -v "${dir}:/out" postgres:16-alpine sh -c $dump
+docker run --rm -e PGURL -v "${dir}:/out" postgres:18-alpine sh -c $dump
 Remove-Item Env:PGURL
 if ($LASTEXITCODE -ne 0) { throw "pg_dump failed. No backup was made." }
 
 # A backup that cannot be read is not a backup: list its contents.
 $check = 'pg_restore --list /out/' + $file + ' > /dev/null'
-docker run --rm -v "${dir}:/out" postgres:16-alpine sh -c $check
+docker run --rm -v "${dir}:/out" postgres:18-alpine sh -c $check
 if ($LASTEXITCODE -ne 0) { throw "The backup file could not be read back. Do not rely on it." }
 
 $size = (Get-Item (Join-Path $dir $file)).Length
