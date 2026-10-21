@@ -1,0 +1,290 @@
+/* Bento dashboard. Built from the app's own tokens so both themes work; nothing here sets a raw colour. */
+.bento-wrap {
+  container-type: inline-size;
+}
+.bento {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1fr);
+}
+.bento-card,
+.bento-cell > .card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  transition: border-color var(--dur-fast) ease;
+}
+.bento-card:hover,
+.bento-card:focus-within {
+  border-color: var(--border-strong);
+}
+.bento-cell {
+  display: grid;
+  min-width: 0;
+}
+.bento-cell > .card {
+  border-left: 3px solid var(--accent);
+}
+.bento-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.bento-card p {
+  margin: 0;
+}
+
+/* The centrepiece: a faint dot grid and one soft light, both decorative and behind the content. */
+.bento-score {
+  background:
+    radial-gradient(
+      circle at 18% 0%,
+      color-mix(in srgb, var(--accent) 14%, transparent),
+      transparent 55%
+    ),
+    var(--surface);
+}
+.bento-score::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--text) 9%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 18px 18px;
+  mask-image: linear-gradient(to bottom, #000, transparent 70%);
+  pointer-events: none;
+}
+.bento-score > * {
+  position: relative;
+}
+.bento-score-body {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+.bento-score-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+.bento-host {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+.bento-big {
+  font-size: 1.4rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The ownership chip floats over the card's corner on wide cards and sits in the flow on narrow ones. */
+.bento-chip {
+  align-self: flex-start;
+  padding: 3px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.bento-chip-verified::before {
+  content: "✓ ";
+  color: var(--ok);
+}
+.bento-chip-pending::before,
+.bento-chip-expired::before,
+.bento-chip-reverify::before {
+  content: "! ";
+  color: var(--sev-medium);
+}
+
+.gauge {
+  position: relative;
+  width: 148px;
+  height: 148px;
+  flex: none;
+}
+.gauge-svg {
+  width: 100%;
+  height: 100%;
+}
+.gauge-track {
+  fill: none;
+  stroke: var(--surface-2);
+  stroke-width: 10;
+}
+.gauge-arc {
+  fill: none;
+  stroke: var(--accent-soft);
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 700ms ease;
+}
+.gauge-fair .gauge-arc {
+  stroke: var(--sev-medium);
+}
+.gauge-poor .gauge-arc {
+  stroke: var(--sev-high);
+}
+.gauge-read {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+}
+.gauge-num {
+  font-size: 2.2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.gauge-of {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.bento-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.bento-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color var(--dur-fast) ease,
+    background-color var(--dur-fast) ease;
+}
+.bento-row:hover {
+  border-color: var(--border-strong);
+  background: var(--hover);
+}
+.bento-row:focus-visible,
+.bento-select select:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+.bento-row-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.bento-row-title {
+  font-weight: 550;
+}
+.bento-inv {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.bento-select {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--muted);
+}
+.bento-select select {
+  min-height: 44px;
+  max-width: 100%;
+}
+.bento-exports .btn-ghost,
+.bento-card > .btn-ghost {
+  align-self: flex-start;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Wider than ~44rem of room (container, not screen: the side rail takes space): two columns. */
+@container (min-width: 44rem) {
+  .bento {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .bento-score,
+  .bento-fix,
+  .bento-issues,
+  .bento-exports {
+    grid-column: span 12;
+  }
+  .bento-actions,
+  .bento-activity,
+  .bento-targets {
+    grid-column: span 6;
+  }
+  .bento-chip {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+  }
+}
+/* Roomy: the asymmetrical layout. */
+@container (min-width: 70rem) {
+  .bento-score {
+    grid-column: span 5;
+    grid-row: span 2;
+  }
+  .bento-chip {
+    position: static;
+  }
+  .bento-fix,
+  .bento-issues {
+    grid-column: span 7;
+  }
+  .bento-actions,
+  .bento-activity,
+  .bento-targets {
+    grid-column: span 4;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bento-card,
+  .bento-row,
+  .gauge-arc {
+    transition: none;
+  }
+}
+.bento-spark {
+  width: 168px;
+  max-width: 100%;
+  height: auto;
+}
+.bento-spark polyline {
+  stroke: var(--accent-soft);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}

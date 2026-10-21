@@ -1,4 +1,5 @@
 import { useAuth } from "../auth";
+import BentoGrid from "../components/bento/BentoGrid";
 import Posture from "../components/Posture";
 import ScanForm from "../components/ScanForm";
 import ScanView from "../components/ScanView";
@@ -54,11 +55,21 @@ export default function Overview({
       {scanned && (
         <SummaryCards overview={data.overview} targets={data.targets} />
       )}
+      {scanned && (
+        <BentoGrid
+          overview={data.overview}
+          targets={data.targets}
+          refreshKey={`${route.scanId ?? ""}:${scan?.status ?? ""}`}
+          canManage={role ? canManageTargets(role) : false}
+          canRun={allowed}
+        />
+      )}
       <div className={scanned ? "overview-grid" : "stack"}>
         {scanned && (
           <Posture
             overview={data.overview}
             onScanAgain={allowed ? onStarted : undefined}
+            showFixFirst={false}
           />
         )}
         {allowed ? (

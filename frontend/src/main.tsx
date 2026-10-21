@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { AuthProvider } from "./auth";
 import "./styles.css";
+import "./bento.css";
 
 // Links from emails look like /reset-password?token=... ; the app uses hash routes.
 const emailLink = /^\/(reset-password|verify-email)$/.exec(

@@ -122,13 +122,15 @@ export function SiteCard({
 export default function Posture({
   overview,
   onScanAgain,
+  showFixFirst = true,
 }: {
   overview: Overview;
   onScanAgain?: (scanId: string) => void;
+  showFixFirst?: boolean;
 }) {
   return (
     <div className="stack">
-      <FixFirstPanel overview={overview} />
+      {showFixFirst && <FixFirstPanel overview={overview} />}
       <ul className="site-grid" aria-label="Your sites">
         {overview.sites.map((site) => (
           <SiteCard key={site.host} site={site} onScanAgain={onScanAgain} />
