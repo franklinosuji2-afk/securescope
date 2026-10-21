@@ -26,3 +26,5 @@ services:
         sync: false
       - key: SECURESCOPE_MAIL_FROM_EMAIL
         sync: false # a sender address you verified with the mail provider
+      - key: SECURESCOPE_MAIL_REPLY_TO
+        value: support@getsecurescope.com # replies to service emails reach a mailbox that is read

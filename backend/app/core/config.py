@@ -54,6 +54,8 @@ class Settings(BaseSettings):
     mail_api_key: SecretStr | None = None
     mail_from_email: str | None = None
     mail_from_name: str = "SecureScope"
+    # Optional address that replies go to (for example a support mailbox). Not a secret.
+    mail_reply_to: str | None = None
     mail_timeout_seconds: float = Field(10.0, gt=0, le=30)
 
     target_verifications_per_target_per_hour: int = Field(10, ge=1)

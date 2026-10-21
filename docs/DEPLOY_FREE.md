@@ -35,7 +35,7 @@ Never commit these and never paste them into chat. Each lives only in the provid
 
 Brevo: create an account, verify one sender address (no domain needed), create an API key. Resend: only sends to arbitrary recipients from a domain you verified.
 
-Set `SECURESCOPE_MAIL_PROVIDER` (`brevo` or `resend`), `SECURESCOPE_MAIL_API_KEY` and `SECURESCOPE_MAIL_FROM_EMAIL` (the verified sender). If the provider is down or the key is wrong, sign-ups still work and the log shows `mail send failed` with the status code (never the message or key).
+Set `SECURESCOPE_MAIL_PROVIDER` (`brevo` or `resend`), `SECURESCOPE_MAIL_API_KEY` and `SECURESCOPE_MAIL_FROM_EMAIL` (the verified sender). If the provider is down or the key is wrong, sign-ups still work and the log shows `mail send failed` with the status code (never the message or key). Optionally set `SECURESCOPE_MAIL_REPLY_TO` (for example `support@getsecurescope.com`) so replies to service email reach a mailbox that is read. Incoming addresses and DNS are described in `docs/EMAIL_SETUP.md`.
 
 ## 3. Render (API)
 

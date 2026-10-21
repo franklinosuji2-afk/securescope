@@ -80,6 +80,19 @@ def test_resend_request_shape() -> None:
     assert body["from"] == "SecureScope <no-reply@example.org>" and body["to"] == ["u@example.com"]
 
 
+def test_reply_to_is_sent_only_when_configured() -> None:
+    for provider, field in (("brevo", "replyTo"), ("resend", "reply_to")):
+        transport, seen = capture()
+        ApiMailer(mail_settings(provider), transport).send("u@example.com", "Hi", "text")
+        assert field not in json.loads(seen[0].content)
+        transport, seen = capture()
+        ApiMailer(mail_settings(provider, mail_reply_to="support@example.org"), transport).send(
+            "u@example.com", "Hi", "text"
+        )
+        sent = json.loads(seen[0].content)[field]
+        assert sent in ({"email": "support@example.org"}, "support@example.org")
+
+
 @pytest.mark.parametrize("failure", ["status", "network"])
 def test_a_provider_failure_never_raises_and_never_logs_secrets(
     failure: str, caplog: pytest.LogCaptureFixture

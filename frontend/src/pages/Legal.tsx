@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Page } from "../router";
 import { useAuth } from "../auth";
+import { CONTACT, mailto, type ContactKind } from "../contact";
 import { buildHash } from "../router";
 
 // Legal text for the operator. Update these constants if the operator's details change.
@@ -8,14 +9,17 @@ const OPERATOR = "Franklin Chinonso Osuji";
 // TODO before sharing the site publicly: replace with an office or forwarding address that can receive post.
 const STREET = "[Service address to be added]";
 const CITY = "Berlin";
-const EMAIL = "franklin.c.osuji@gmx.de";
-const UPDATED = "20 October 2026";
+const UPDATED = "21 October 2026";
 
 const TABS: { page: Page; label: string }[] = [
   { page: "impressum", label: "Impressum" },
   { page: "privacy", label: "Privacy" },
   { page: "terms", label: "Terms" },
 ];
+
+function Mail({ kind }: { kind: ContactKind }) {
+  return <a href={mailto(kind)}>{CONTACT[kind]}</a>;
+}
 
 function Doc({
   page,
@@ -100,8 +104,19 @@ function Impressum() {
       </p>
       <h2>Contact</h2>
       <p>
-        Email: <a href={`mailto:${EMAIL}`}>{EMAIL}</a>
+        Email: <Mail kind="general" />
       </p>
+      <ul>
+        <li>
+          Questions about the service: <Mail kind="support" />
+        </li>
+        <li>
+          Privacy and data requests: <Mail kind="privacy" />
+        </li>
+        <li>
+          Security reports: <Mail kind="security" />
+        </li>
+      </ul>
       <p>
         Operated by an individual freelancer. No VAT identification number has
         been issued.
@@ -129,8 +144,8 @@ function Privacy() {
       </p>
       <h2>Who is responsible</h2>
       <p>
-        {OPERATOR}, {STREET}, {CITY}, Germany. Contact:{" "}
-        <a href={`mailto:${EMAIL}`}>{EMAIL}</a>.
+        {OPERATOR}, {STREET}, {CITY}, Germany. Contact for privacy questions and
+        data requests: <Mail kind="privacy" />.
       </p>
 
       <h2>What we store and why</h2>
@@ -271,7 +286,7 @@ function Terms() {
       <h2>8. Changes and contact</h2>
       <p>
         We may update these terms; the date above shows the latest version.
-        Questions: <a href={`mailto:${EMAIL}`}>{EMAIL}</a>.
+        Questions: <Mail kind="support" />.
       </p>
     </Doc>
   );

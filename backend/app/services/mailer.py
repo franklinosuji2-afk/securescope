@@ -59,6 +59,7 @@ class ApiMailer:
         self._key = settings.mail_api_key.get_secret_value()
         self._from_email = settings.mail_from_email
         self._from_name = settings.mail_from_name
+        self._reply_to = settings.mail_reply_to
         self._client = httpx.Client(
             timeout=settings.mail_timeout_seconds, transport=transport, trust_env=False
         )
@@ -72,6 +73,8 @@ class ApiMailer:
                 "subject": subject,
                 "textContent": body,
             }
+            if self._reply_to:
+                payload["replyTo"] = {"email": self._reply_to}
         else:
             headers = {"Authorization": f"Bearer {self._key}"}
             payload = {
@@ -80,6 +83,8 @@ class ApiMailer:
                 "subject": subject,
                 "text": body,
             }
+            if self._reply_to:
+                payload["reply_to"] = self._reply_to
         return headers, payload
 
     def send(self, to: str, subject: str, body: str) -> None:
