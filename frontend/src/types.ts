@@ -125,6 +125,21 @@ export interface Member {
   joined_at: string;
 }
 
+export interface Invitation {
+  id: string;
+  email: string;
+  role: Role;
+  invited_by_email: string | null;
+  created_at: string;
+  expires_at: string;
+}
+
+export interface InvitationPreview {
+  organization_name: string;
+  email: string;
+  role: Role;
+}
+
 export interface OrganizationDetail extends Organization {
   members: Member[];
 }

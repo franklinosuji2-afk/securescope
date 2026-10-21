@@ -16,6 +16,7 @@ from app.database.session import make_session_factory
 from app.models.account import (
     AccountTokenRow,
     AuditEventRow,
+    InvitationRow,
     MemberRow,
     OAuthIdentityRow,
     OAuthStateRow,
@@ -81,6 +82,26 @@ class MemberRecord:
     email: str
     role: Role
     joined_at: datetime
+
+
+@dataclass(frozen=True)
+class InvitationRecord:
+    id: str
+    organization_id: str
+    organization_name: str
+    email: str
+    role: Role
+    invited_by_email: str | None
+    created_at: datetime
+    expires_at: datetime
+
+
+@dataclass(frozen=True)
+class InvitationAcceptance:
+    """`status` is "ok", "invalid" (unknown, used, revoked, expired) or "wrong_email"."""
+
+    status: str
+    organization_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -428,6 +449,154 @@ class AccountRepository:
     def purge_expired_oauth_states(self) -> int:
         with self._session.begin() as session:
             result = session.execute(delete(OAuthStateRow).where(OAuthStateRow.expires_at < _now()))
+            return int(result.rowcount or 0)  # type: ignore[attr-defined]
+
+    # --- invitations ------------------------------------------------------------------
+
+    def _open_invitation_filter(self, now: datetime):  # type: ignore[no-untyped-def]
+        return (
+            InvitationRow.accepted_at.is_(None),
+            InvitationRow.revoked_at.is_(None),
+            InvitationRow.expires_at > now,
+        )
+
+    def _invitation_record(self, session: Session, row: InvitationRow) -> InvitationRecord:
+        org = session.get(OrganizationRow, row.organization_id)
+        inviter = session.get(UserRow, row.invited_by) if row.invited_by else None
+        return InvitationRecord(
+            id=row.id,
+            organization_id=row.organization_id,
+            organization_name=org.name if org else "",
+            email=row.email,
+            role=Role(row.role),
+            invited_by_email=inviter.email if inviter else None,
+            created_at=_aware(row.created_at),
+            expires_at=_aware(row.expires_at),
+        )
+
+    def create_invitation(
+        self, organization_id: str, email: str, role: Role, invited_by: str, token: str, ttl: timedelta
+    ) -> InvitationRecord:
+        """Stores a new invitation. Any earlier open one for the same address is revoked, so only the newest link works."""
+        now = _now()
+        address = email.strip().lower()
+        with self._session.begin() as session:
+            session.execute(
+                update(InvitationRow)
+                .where(
+                    InvitationRow.organization_id == organization_id,
+                    InvitationRow.email == address,
+                    *self._open_invitation_filter(now),
+                )
+                .values(revoked_at=now)
+            )
+            row = InvitationRow(
+                id=_id(),
+                organization_id=organization_id,
+                email=address,
+                role=role.value,
+                token_hash=hash_token(token),
+                invited_by=invited_by,
+                created_at=now,
+                expires_at=now + ttl,
+            )
+            session.add(row)
+            session.flush()
+            return self._invitation_record(session, row)
+
+    def list_pending_invitations(self, organization_id: str) -> list[InvitationRecord]:
+        now = _now()
+        with self._session() as session:
+            rows = session.scalars(
+                select(InvitationRow)
+                .where(InvitationRow.organization_id == organization_id, *self._open_invitation_filter(now))
+                .order_by(InvitationRow.created_at.desc(), InvitationRow.id)
+            ).all()
+            return [self._invitation_record(session, row) for row in rows]
+
+    def revoke_invitation(self, organization_id: str, invitation_id: str) -> bool:
+        now = _now()
+        with self._session.begin() as session:
+            result = session.execute(
+                update(InvitationRow)
+                .where(
+                    InvitationRow.id == invitation_id,
+                    InvitationRow.organization_id == organization_id,
+                    *self._open_invitation_filter(now),
+                )
+                .values(revoked_at=now)
+            )
+            return bool(result.rowcount)  # type: ignore[attr-defined]
+
+    def open_invitation(self, token: str) -> InvitationRecord | None:
+        """The invitation behind a link, if it can still be used."""
+        now = _now()
+        with self._session() as session:
+            row = session.scalar(
+                select(InvitationRow).where(
+                    InvitationRow.token_hash == hash_token(token), *self._open_invitation_filter(now)
+                )
+            )
+            org = session.get(OrganizationRow, row.organization_id) if row else None
+            if row is None or org is None or org.status != "ACTIVE":
+                return None
+            return self._invitation_record(session, row)
+
+    def accept_invitation(self, token: str, user_id: str, user_email: str) -> InvitationAcceptance:
+        """Single use and atomic. The account's email must be the address that was invited."""
+        now = _now()
+        with self._session.begin() as session:
+            row = session.scalar(select(InvitationRow).where(InvitationRow.token_hash == hash_token(token)))
+            org = session.get(OrganizationRow, row.organization_id) if row else None
+            if (
+                row is None
+                or org is None
+                or org.status != "ACTIVE"
+                or row.accepted_at is not None
+                or row.revoked_at is not None
+                or _aware(row.expires_at) <= now
+            ):
+                return InvitationAcceptance("invalid")
+            if row.email.lower() != user_email.strip().lower():
+                return InvitationAcceptance("wrong_email")
+            claimed = session.execute(
+                update(InvitationRow)
+                .where(
+                    InvitationRow.id == row.id,
+                    InvitationRow.accepted_at.is_(None),
+                    InvitationRow.revoked_at.is_(None),
+                )
+                .values(accepted_at=now)
+            )
+            if claimed.rowcount != 1:  # type: ignore[attr-defined]
+                return InvitationAcceptance("invalid")
+            already = session.scalar(
+                select(MemberRow.id).where(
+                    MemberRow.organization_id == row.organization_id, MemberRow.user_id == user_id
+                )
+            )
+            if already is None:
+                try:
+                    with session.begin_nested():
+                        session.add(
+                            MemberRow(
+                                id=_id(),
+                                organization_id=row.organization_id,
+                                user_id=user_id,
+                                role=row.role,
+                                created_at=now,
+                            )
+                        )
+                except IntegrityError:
+                    pass  # joined by another route at the same moment; the invitation is still used up
+            return InvitationAcceptance("ok", row.organization_id)
+
+    def purge_old_invitations(self) -> int:
+        """Invitations live at most a week, so anything a month past its expiry is gone for good."""
+        with self._session.begin() as session:
+            result = session.execute(
+                delete(InvitationRow).where(InvitationRow.expires_at < _now() - timedelta(days=30))
+            )
             return int(result.rowcount or 0)  # type: ignore[attr-defined]
 
 

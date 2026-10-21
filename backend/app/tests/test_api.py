@@ -21,7 +21,7 @@ def wait_for(client: TestClient, scan_id: str, timeout: float = 15.0) -> dict:  
 
 def test_health(strict_client: TestClient) -> None:
     body = strict_client.get("/api/v1/health").json()
-    assert body == {"status": "ok", "version": "0.9.0"}
+    assert body == {"status": "ok", "version": "0.10.0"}
 
 
 def test_security_headers_on_api_responses(strict_client: TestClient) -> None:

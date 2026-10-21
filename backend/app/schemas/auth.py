@@ -89,5 +89,33 @@ class MemberUpdate(_Strict):
     role: Role
 
 
+class InvitationCreate(_Strict):
+    email: EmailStr
+    role: Role = Role.VIEWER
+
+
+class InvitationOut(BaseModel):
+    id: str
+    email: str
+    role: Role
+    invited_by_email: str | None
+    created_at: datetime
+    expires_at: datetime
+
+
+class InvitationPreview(BaseModel):
+    organization_name: str
+    email: str
+    role: Role
+
+
+class InvitationAccept(_Strict):
+    token: str = Field(min_length=10, max_length=200, pattern=r"^[A-Za-z0-9_-]+$")
+
+
+class InvitationAccepted(BaseModel):
+    organization_id: str
+
+
 class OrganizationDetail(OrganizationOut):
     members: list[MemberOut]

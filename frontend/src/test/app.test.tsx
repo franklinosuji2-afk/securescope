@@ -546,14 +546,17 @@ describe("Team", () => {
 
   it("lets owners manage members", async () => {
     window.location.hash = "#/team";
-    mockApi(() => detail, userWith("OWNER"));
+    mockApi(
+      (url) => (url.endsWith("/invitations") ? [] : detail),
+      userWith("OWNER"),
+    );
     renderApp();
     expect(await screen.findByText("bob@example.org")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Remove bob@example.org" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Add a member" }),
+      screen.getByRole("heading", { name: "Invite by email" }),
     ).toBeInTheDocument();
   });
 
@@ -563,7 +566,7 @@ describe("Team", () => {
     renderApp();
     expect(await screen.findByText("bob@example.org")).toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { name: "Add a member" }),
+      screen.queryByRole("heading", { name: "Invite by email" }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Remove bob@example.org" }),

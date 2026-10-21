@@ -16,7 +16,7 @@
 - Domain ownership proof expires after 180 days (`SECURESCOPE_TARGET_VERIFICATION_VALID_DAYS`, 0 = never); the site then needs a fresh challenge before it can be scanned again. Between re-verifications a domain that changes hands stays authorised. Verification is exact-host (no wildcard/subdomain scope), and only domain names are supported (no IP targets).
 - Ownership verification: the HTTP-file method was confirmed once end to end on a real domain (2026-10-18, the author's own site, followed by a real scan and report). The DNS TXT method has only been tested with mocked lookups and error mapping, not against a live domain.
 - DNS TXT verification trusts the resolver the server is configured with.
-- Members can only be added if they already have an account; there are no emailed invitations.
+- Invitations are emailed, single-use links that expire after 7 days and only work for the invited address once that account has a confirmed email. If the email provider rejects a message the inviter is not told (the failure is logged); they can send the invitation again. The Team page can also not resend an invitation without typing the address again. A person with an existing account is invited the same way; there is no silent add in the interface (the API still has one).
 - Users cannot list or revoke individual sessions. (The audit log is available to owners and administrators through the API and the Audit page.)
 - Use the app only via the configured origin (`http://localhost:8080`); other origins are refused for POSTs.
 - Docker images were authored and the Compose file validated, but image builds were not executed in the authoring environment. Run `docker compose up --build` and the release checklist before relying on them.

@@ -62,6 +62,25 @@ class SessionRow(Base):
     __table_args__ = (Index("ix_sessions_user_id", "user_id"),)
 
 
+class InvitationRow(Base):
+    """An invitation to join an organization, sent to one email address. Only a digest of the link token is kept."""
+
+    __tablename__ = "invitations"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"))
+    email: Mapped[str] = mapped_column(String(320))
+    role: Mapped[str] = mapped_column(String(24))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    invited_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (Index("ix_invitations_organization_id", "organization_id"),)
+
+
 class AccountTokenRow(Base):
     """One-time tokens: email verification and password reset."""
 

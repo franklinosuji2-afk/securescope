@@ -15,6 +15,7 @@ export type Page =
   | "forgot-password"
   | "reset-password"
   | "verify-email"
+  | "accept-invite"
   | "impressum"
   | "privacy"
   | "terms";
@@ -32,6 +33,7 @@ const PAGES: readonly Page[] = [
   "forgot-password",
   "reset-password",
   "verify-email",
+  "accept-invite",
   "impressum",
   "privacy",
   "terms",
@@ -43,6 +45,7 @@ export const PUBLIC_PAGES: readonly Page[] = [
   "forgot-password",
   "reset-password",
   "verify-email",
+  "accept-invite",
 ];
 export interface Route {
   page: Page;

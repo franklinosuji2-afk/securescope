@@ -156,6 +156,14 @@ function Privacy() {
           Needed to provide your account (Art. 6(1)(b) GDPR).
         </li>
         <li>
+          <strong>Invitations:</strong> when someone invites you to a workspace,
+          we store your email address, the role offered and who invited you
+          until the invitation is used, revoked or has expired (7 days), and
+          delete it a month after that. The invitation email is sent through our
+          email provider. Needed to carry out the invitation (Art. 6(1)(b) and
+          (f) GDPR).
+        </li>
+        <li>
           <strong>Scan data:</strong> the domains you add, the ownership
           verification status, scan results and reports. Needed to provide the
           service (Art. 6(1)(b) GDPR). Scan results are deleted automatically

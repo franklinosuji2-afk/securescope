@@ -5,6 +5,7 @@ import { Loading } from "./components/ui";
 import type { Page } from "./router";
 import { LEGAL_PAGES, PUBLIC_PAGES, buildHash, useRoute } from "./router";
 import {
+  AcceptInvitePage,
   ForgotPasswordPage,
   LoginPage,
   RegisterPage,
@@ -22,6 +23,7 @@ import Audit from "./pages/Audit";
 import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 import Overview from "./pages/Overview";
+import { forgetInvite, pendingInvite } from "./pendingInvite";
 import { canReadAudit } from "./types";
 import { trackPageView, trackedPageName } from "./tracking";
 
@@ -105,6 +107,17 @@ export default function App() {
     if (signedInOnAuthForm) window.location.hash = buildHash("overview", null);
   }, [signedInOnAuthForm]);
 
+  // An invitation opened while signed out is picked up again once the person is signed in, even after a trip
+  // to Google or GitHub.
+  useEffect(() => {
+    if (!user || route.page === "accept-invite") return;
+    const token = pendingInvite();
+    if (!token) return;
+    // Used once: the invitation page takes the token from the address from here on.
+    forgetInvite();
+    window.location.hash = `#/accept-invite?token=${token}`;
+  }, [user, route.page]);
+
   // Count visits to the public pages only. Nobody who is signed in is counted, and nothing is sent until
   // we know whether someone is signed in.
   const lastTracked = useRef<string | null>(null);
@@ -169,6 +182,8 @@ export default function App() {
           <ResetPasswordPage token={route.token} />
         ) : route.page === "verify-email" ? (
           <VerifyEmailPage token={route.token} />
+        ) : route.page === "accept-invite" ? (
+          <AcceptInvitePage token={route.token} />
         ) : (
           <LoginPage onDone={done} />
         )}

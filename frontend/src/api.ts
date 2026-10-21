@@ -3,6 +3,8 @@ import type {
   PlatformHealth,
   AuditList,
   FindingStatus,
+  Invitation,
+  InvitationPreview,
   Member,
   Overview,
   Organization,
@@ -184,6 +186,30 @@ export const removeMember = (orgId: string, userId: string) =>
       method: "DELETE",
     },
   );
+
+export const listInvitations = (orgId: string) =>
+  request<Invitation[]>(
+    `/organizations/${encodeURIComponent(orgId)}/invitations`,
+  );
+export const createInvitation = (orgId: string, email: string, role: Role) =>
+  request<Invitation>(
+    `/organizations/${encodeURIComponent(orgId)}/invitations`,
+    { method: "POST", body: JSON.stringify({ email, role }) },
+  );
+export const revokeInvitation = (orgId: string, invitationId: string) =>
+  request<void>(
+    `/organizations/${encodeURIComponent(orgId)}/invitations/${encodeURIComponent(invitationId)}`,
+    { method: "DELETE" },
+  );
+export const previewInvitation = (token: string) =>
+  request<InvitationPreview>(
+    `/invitations/preview?token=${encodeURIComponent(token)}`,
+  );
+export const acceptInvitation = (token: string) =>
+  request<{ organization_id: string }>("/invitations/accept", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
 
 // --- scans --------------------------------------------------------------------------------------
 

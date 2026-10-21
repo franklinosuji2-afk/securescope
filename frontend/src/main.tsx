@@ -8,8 +8,8 @@ import "./styles.css";
 import "./bento.css";
 import "./dashboard.css";
 
-// Links from emails look like /reset-password?token=... ; the app uses hash routes.
-const emailLink = /^\/(reset-password|verify-email)$/.exec(
+// Links from emails look like /reset-password?token=... or /accept-invite?token=... ; the app uses hash routes.
+const emailLink = /^\/(reset-password|verify-email|accept-invite)$/.exec(
   window.location.pathname,
 );
 if (emailLink) {

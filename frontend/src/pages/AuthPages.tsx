@@ -3,7 +3,9 @@ import * as api from "../api";
 import { ApiError } from "../api";
 import { useAuth } from "../auth";
 import { ErrorNotice } from "../components/ui";
+import { forgetInvite, rememberInvite } from "../pendingInvite";
 import { buildHash, parseOAuthError, type OAuthErrorCode } from "../router";
+import type { InvitationPreview, Role } from "../types";
 import { LegalLinks } from "./Legal";
 
 function Shell({ title, children }: { title: string; children: ReactNode }) {
@@ -369,6 +371,130 @@ export function VerifyEmailPage({ token }: { token: string | null }) {
         </div>
       )}
       {state === "error" && error && <ErrorNotice message={error} />}
+    </Shell>
+  );
+}
+
+const ROLE_TEXT: Record<Role, string> = {
+  OWNER: "an owner",
+  ADMIN: "an administrator",
+  SECURITY_ANALYST: "a security analyst",
+  MEMBER: "a member who can read results and start scans",
+  VIEWER: "a viewer with read-only access",
+};
+
+/** Opens an invitation from an email. Works signed out (sign in or create an account first) and signed in. */
+export function AcceptInvitePage({ token }: { token: string | null }) {
+  const { user, loading, reload, setOrganizationId, signOut } = useAuth();
+  const [preview, setPreview] = useState<InvitationPreview | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [joined, setJoined] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    api
+      .previewInvitation(token)
+      .then((p) => !cancelled && setPreview(p))
+      .catch((err: unknown) => !cancelled && setProblem(message(err)));
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  // Signed out: keep the link for after sign-in, which may take a trip to Google or GitHub.
+  const signedOut = !loading && !user;
+  useEffect(() => {
+    if (token && signedOut && preview) rememberInvite(token);
+  }, [token, signedOut, preview]);
+
+  async function accept() {
+    if (!token) return;
+    setBusy(true);
+    setProblem(null);
+    try {
+      const result = await api.acceptInvitation(token);
+      forgetInvite();
+      await reload();
+      setOrganizationId(result.organization_id);
+      setJoined(result.organization_id);
+    } catch (err) {
+      setProblem(message(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const mismatch =
+    !!user &&
+    !!preview &&
+    user.email.toLowerCase() !== preview.email.toLowerCase();
+
+  return (
+    <Shell title="Join a workspace">
+      {!token && (
+        <ErrorNotice message="This link is missing its invitation code." />
+      )}
+      {problem && !joined && <ErrorNotice message={problem} />}
+      {token && !preview && !problem && <p className="muted">Loading…</p>}
+      {preview && !joined && (
+        <>
+          <p>
+            You are invited to join <strong>{preview.organization_name}</strong>{" "}
+            as {ROLE_TEXT[preview.role]}.
+          </p>
+          <p className="muted small">
+            This invitation is for <strong>{preview.email}</strong>. It only
+            works with that email address.
+          </p>
+          {signedOut && (
+            <>
+              <p className="small">
+                Sign in or create an account with {preview.email} to accept.
+              </p>
+              <p>
+                <a className="btn" href={buildHash("login", null)}>
+                  Sign in
+                </a>{" "}
+                <a className="btn-ghost" href={buildHash("register", null)}>
+                  Create an account
+                </a>
+              </p>
+            </>
+          )}
+          {user && mismatch && (
+            <div className="notice notice-warn" role="alert">
+              You are signed in as {user.email}, but this invitation is for{" "}
+              {preview.email}.{" "}
+              <button
+                type="button"
+                className="btn-link"
+                onClick={() => void signOut()}
+              >
+                Sign out
+              </button>{" "}
+              and use the invited address.
+            </div>
+          )}
+          {user && !mismatch && (
+            <button
+              className="btn"
+              type="button"
+              disabled={busy}
+              onClick={() => void accept()}
+            >
+              Accept and join
+            </button>
+          )}
+        </>
+      )}
+      {joined && preview && (
+        <div className="notice notice-info" role="status">
+          You joined {preview.organization_name}.{" "}
+          <a href={buildHash("overview", null)}>Open the workspace</a>
+        </div>
+      )}
     </Shell>
   );
 }

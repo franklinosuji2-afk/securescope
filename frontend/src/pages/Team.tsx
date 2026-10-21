@@ -4,7 +4,7 @@ import { ApiError } from "../api";
 import { useAuth } from "../auth";
 import { ErrorNotice, Loading } from "../components/ui";
 import { formatDate } from "../format";
-import type { OrganizationDetail, Role } from "../types";
+import type { Invitation, OrganizationDetail, Role } from "../types";
 import { ROLES, canManageMembers } from "../types";
 
 export default function Team() {
@@ -12,14 +12,23 @@ export default function Team() {
   const [detail, setDetail] = useState<OrganizationDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<Role>("MEMBER");
+  const [role, setRole] = useState<Role>("VIEWER");
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [notice, setNotice] = useState<string | null>(null);
   const orgId = organization?.id ?? null;
 
   const load = useCallback(async () => {
     if (!orgId) return;
     try {
-      setDetail(await api.getOrganization(orgId));
+      const next = await api.getOrganization(orgId);
+      setDetail(next);
       setError(null);
+      if (canManageMembers(next.role)) {
+        const pending = await api.listInvitations(orgId);
+        setInvitations(Array.isArray(pending) ? pending : []);
+      } else {
+        setInvitations([]);
+      }
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "Could not load the team.",
@@ -32,7 +41,15 @@ export default function Team() {
     if (orgId) {
       api
         .getOrganization(orgId)
-        .then((d) => !cancelled && setDetail(d))
+        .then(async (d) => {
+          if (cancelled) return;
+          setDetail(d);
+          if (canManageMembers(d.role)) {
+            const pending = await api.listInvitations(orgId);
+            if (!cancelled)
+              setInvitations(Array.isArray(pending) ? pending : []);
+          }
+        })
         .catch(
           (err: unknown) =>
             !cancelled &&
@@ -48,21 +65,28 @@ export default function Team() {
     };
   }, [orgId]);
 
-  async function run(action: () => Promise<unknown>) {
+  async function run(action: () => Promise<unknown>): Promise<boolean> {
     setError(null);
     try {
       await action();
       await load();
+      return true;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "That did not work.");
+      return false;
     }
   }
 
-  async function add(e: FormEvent) {
+  async function invite(e: FormEvent) {
     e.preventDefault();
     if (!orgId) return;
-    await run(() => api.addMember(orgId, email.trim(), role));
-    setEmail("");
+    const address = email.trim();
+    setNotice(null);
+    // On a failure `run` shows the reason and the address stays in the field.
+    if (await run(() => api.createInvitation(orgId, address, role))) {
+      setEmail("");
+      setNotice(`Invitation sent to ${address}.`);
+    }
   }
 
   const manage = organization ? canManageMembers(organization.role) : false;
@@ -159,19 +183,69 @@ export default function Team() {
           </table>
         </div>
       )}
+      {manage && invitations.length > 0 && (
+        <div
+          className="card table-wrap"
+          role="region"
+          tabIndex={0}
+          aria-label="Pending invitations (scrolls sideways on small screens)"
+        >
+          <h2>Pending invitations</h2>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Email</th>
+                <th scope="col">Role</th>
+                <th scope="col">Expires</th>
+                <th scope="col">
+                  <span className="visually-hidden">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {invitations.map((i) => (
+                <tr key={i.id}>
+                  <td style={{ overflowWrap: "anywhere" }}>{i.email}</td>
+                  <td>{i.role}</td>
+                  <td>{formatDate(i.expires_at)}</td>
+                  <td>
+                    <button
+                      className="btn-ghost"
+                      type="button"
+                      aria-label={`Revoke invitation for ${i.email}`}
+                      onClick={() =>
+                        void run(() => api.revokeInvitation(orgId ?? "", i.id))
+                      }
+                    >
+                      Revoke
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       {manage && (
-        <form className="card scan-form" onSubmit={add}>
-          <h2>Add a member</h2>
+        <form className="card scan-form" onSubmit={invite}>
+          <h2>Invite by email</h2>
           <p className="muted small">
-            The person must already have a SecureScope account. Email
-            invitations are not implemented yet.
+            We email a single-use link that works for 7 days and only for this
+            address. The person signs in with Google, GitHub or a password, or
+            creates an account, and joins as the role you choose. Use Viewer for
+            clients who should only read results.
           </p>
+          {notice && (
+            <div className="notice notice-info" role="status">
+              {notice}
+            </div>
+          )}
           <div className="input-row">
             <input
               className="input"
               type="email"
-              placeholder="colleague@example.com"
-              aria-label="Member email"
+              placeholder="client@example.com"
+              aria-label="Email to invite"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -183,14 +257,14 @@ export default function Team() {
               value={role}
               onChange={(e) => setRole(e.target.value as Role)}
             >
-              {ROLES.map((r) => (
+              {ROLES.filter((r) => r !== "OWNER").map((r) => (
                 <option key={r} value={r}>
                   {r}
                 </option>
               ))}
             </select>
             <button className="btn" type="submit">
-              Add
+              Send invitation
             </button>
           </div>
         </form>

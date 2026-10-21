@@ -7,6 +7,8 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.api.deps import PrincipalDep, StateDep, request_id
 from app.repositories.accounts import LastOwnerError
 from app.schemas.auth import (
+    InvitationCreate,
+    InvitationOut,
     MemberAdd,
     MemberOut,
     MemberUpdate,
@@ -15,6 +17,7 @@ from app.schemas.auth import (
     OrganizationOut,
 )
 from app.security.permissions import Permission, Role, can, may_assign
+from app.services.invitations import MAX_PENDING_PER_ORGANIZATION
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
 
@@ -159,6 +162,95 @@ async def remove_member(
         actor_user_id=principal.user.id,
         resource_type="user",
         resource_id=user_id,
+        request_id=request_id(request),
+    )
+    return Response(status_code=204)
+
+
+def _invitation_out(record) -> InvitationOut:  # type: ignore[no-untyped-def]
+    return InvitationOut(
+        id=record.id,
+        email=record.email,
+        role=record.role,
+        invited_by_email=record.invited_by_email,
+        created_at=record.created_at,
+        expires_at=record.expires_at,
+    )
+
+
+@router.get("/{organization_id}/invitations", response_model=list[InvitationOut])
+async def list_invitations(
+    organization_id: str, principal: PrincipalDep, state: StateDep
+) -> list[InvitationOut]:
+    me = await _membership(state, principal, organization_id)
+    if not can(me.role, Permission.ORG_MANAGE_MEMBERS):
+        raise _forbidden()
+    items = await asyncio.to_thread(state.accounts.list_pending_invitations, organization_id)
+    return [_invitation_out(item) for item in items]
+
+
+@router.post("/{organization_id}/invitations", response_model=InvitationOut, status_code=201)
+async def create_invitation(
+    organization_id: str,
+    body: InvitationCreate,
+    principal: PrincipalDep,
+    request: Request,
+    state: StateDep,
+) -> InvitationOut:
+    me = await _membership(state, principal, organization_id)
+    if not can(me.role, Permission.ORG_MANAGE_MEMBERS) or not may_assign(me.role, body.role):
+        raise _forbidden()
+    if body.role is Role.OWNER:
+        raise HTTPException(
+            status_code=400,
+            detail="An invitation cannot make someone an owner. Invite them first, then change the role.",
+        )
+    if not state.invite_send_limiter.check(principal.user.id):
+        raise HTTPException(status_code=429, detail="Too many invitations sent. Try again later.")
+    address = body.email.lower()
+    members = await asyncio.to_thread(state.accounts.list_members, organization_id)
+    if any(m.email.lower() == address for m in members):
+        raise HTTPException(status_code=409, detail="That person is already a member.")
+    pending = await asyncio.to_thread(state.accounts.list_pending_invitations, organization_id)
+    if len(pending) >= MAX_PENDING_PER_ORGANIZATION and not any(p.email == address for p in pending):
+        raise HTTPException(status_code=409, detail="Too many pending invitations. Revoke some first.")
+    state.invite_send_limiter.record(principal.user.id)
+    record = await asyncio.to_thread(
+        state.invitations.invite, organization_id, address, body.role, principal.user
+    )
+    await asyncio.to_thread(
+        state.audit.record,
+        "org.invitation.created",
+        organization_id=organization_id,
+        actor_user_id=principal.user.id,
+        resource_type="invitation",
+        resource_id=record.id,
+        request_id=request_id(request),
+    )
+    return _invitation_out(record)
+
+
+@router.delete("/{organization_id}/invitations/{invitation_id}", status_code=204)
+async def revoke_invitation(
+    organization_id: str,
+    invitation_id: str,
+    principal: PrincipalDep,
+    request: Request,
+    state: StateDep,
+) -> Response:
+    me = await _membership(state, principal, organization_id)
+    if not can(me.role, Permission.ORG_MANAGE_MEMBERS):
+        raise _forbidden()
+    revoked = await asyncio.to_thread(state.accounts.revoke_invitation, organization_id, invitation_id)
+    if not revoked:
+        raise HTTPException(status_code=404, detail="Invitation not found.")
+    await asyncio.to_thread(
+        state.audit.record,
+        "org.invitation.revoked",
+        organization_id=organization_id,
+        actor_user_id=principal.user.id,
+        resource_type="invitation",
+        resource_id=invitation_id,
         request_id=request_id(request),
     )
     return Response(status_code=204)

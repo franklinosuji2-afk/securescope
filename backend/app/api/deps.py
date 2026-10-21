@@ -24,6 +24,7 @@ from app.security.ownership import TxtLookup, system_txt_lookup
 from app.security.permissions import Permission, Role, can
 from app.security.tokens import constant_time_equal
 from app.services.auth import AuthService
+from app.services.invitations import InvitationService
 from app.services.mailer import Mailer, build_mailer
 from app.services.oauth import OAuthService
 
@@ -49,6 +50,7 @@ class AppState:
         self.audit = AuditRepository(self.engine)
         self.auth = AuthService(self.accounts, settings, mailer or build_mailer(settings))
         self.oauth = OAuthService(self.accounts, settings, self.auth.begin_session)
+        self.invitations = InvitationService(self.accounts, settings, self.auth.mailer)
         self.semaphore = asyncio.Semaphore(settings.max_concurrent_scans)
         self.client_limiter = SlidingWindowLimiter(settings.scans_per_client_per_hour)
         self.target_limiter = SlidingWindowLimiter(settings.scans_per_target_per_hour)
@@ -60,6 +62,9 @@ class AppState:
         self.register_limiter = SlidingWindowLimiter(settings.registrations_per_ip_per_hour)
         self.reset_limiter = SlidingWindowLimiter(settings.password_reset_requests_per_ip_per_hour)
         self.resend_limiter = SlidingWindowLimiter(3)
+        # Invitation emails per person per hour, and invitation link lookups per client per 15 minutes.
+        self.invite_send_limiter = SlidingWindowLimiter(20)
+        self.invite_link_limiter = SlidingWindowLimiter(60, FIFTEEN_MIN)
         self.metrics = RequestMetrics()
         self.verify_limiter = SlidingWindowLimiter(settings.target_verifications_per_target_per_hour)
         # Seams so tests never touch real DNS or the network; production keeps the defaults.
