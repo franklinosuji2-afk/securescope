@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, fetchPlatformHealth } from "../api";
+import { ColumnChart, Kpi } from "../components/charts";
 import { ErrorNotice, Loading } from "../components/ui";
 import { formatDate } from "../format";
 import type { PlatformHealth } from "../types";
@@ -46,24 +47,6 @@ export function attention(h: PlatformHealth): string[] {
   return out;
 }
 
-function Metric({
-  label,
-  value,
-  note,
-}: {
-  label: string;
-  value: string;
-  note?: string;
-}) {
-  return (
-    <li className="card summary-card">
-      <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
-      {note && <div className="muted small">{note}</div>}
-    </li>
-  );
-}
-
 export default function Health() {
   const [data, setData] = useState<PlatformHealth | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +76,7 @@ export default function Health() {
 
   const problems = data ? attention(data) : [];
   return (
-    <div className="stack">
+    <div className="stack dash">
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h1>Platform health</h1>
         <button type="button" className="btn-ghost" onClick={load}>
@@ -131,7 +114,8 @@ export default function Health() {
             )}
           </section>
           <ul className="summary-grid" aria-label="Key figures">
-            <Metric
+            <Kpi
+              tone="cyan"
               label="Database"
               value={data.database.ok ? "Reachable" : "Down"}
               note={
@@ -140,12 +124,14 @@ export default function Health() {
                   : `answered in ${data.database.latency_ms} ms`
               }
             />
-            <Metric
+            <Kpi
+              tone="green"
               label="Uptime"
               value={duration(data.uptime_seconds)}
               note={`since ${formatDate(data.started_at)}`}
             />
-            <Metric
+            <Kpi
+              tone="pink"
               label="Server error rate"
               value={
                 data.requests.error_rate === null
@@ -154,13 +140,64 @@ export default function Health() {
               }
               note={`${data.requests.server_errors} of ${data.requests.requests} requests, last ${duration(data.requests.window_seconds)}`}
             />
-            <Metric
+            <Kpi
+              tone="violet"
               label="Latency p95"
               value={ms(data.requests.p95_ms)}
               note={`median ${ms(data.requests.p50_ms)}, p99 ${ms(data.requests.p99_ms)}`}
             />
           </ul>
           <div className="an-grid">
+            <section className="card">
+              <h2>Request latency</h2>
+              {data.requests.p50_ms === null ||
+              data.requests.p95_ms === null ||
+              data.requests.p99_ms === null ? (
+                <p className="muted small">No requests measured yet.</p>
+              ) : (
+                <ColumnChart
+                  unit="ms"
+                  label={`Latency: median ${data.requests.p50_ms} ms, p95 ${data.requests.p95_ms} ms, p99 ${data.requests.p99_ms} ms`}
+                  columns={[
+                    {
+                      label: "median",
+                      value: data.requests.p50_ms,
+                      tone: "cyan",
+                    },
+                    {
+                      label: "p95",
+                      value: data.requests.p95_ms,
+                      tone: "violet",
+                    },
+                    { label: "p99", value: data.requests.p99_ms, tone: "pink" },
+                  ]}
+                />
+              )}
+            </section>
+            <section className="card">
+              <h2>Scan outcomes, last {data.scans.window_hours} hours</h2>
+              <ColumnChart
+                label="Scans by outcome"
+                columns={[
+                  {
+                    label: "completed",
+                    value: data.scans.completed,
+                    tone: "green",
+                  },
+                  { label: "error", value: data.scans.failed, tone: "pink" },
+                  {
+                    label: "cancelled",
+                    value: data.scans.cancelled,
+                    tone: "amber",
+                  },
+                  {
+                    label: "running",
+                    value: data.scans.in_progress,
+                    tone: "cyan",
+                  },
+                ]}
+              />
+            </section>
             <section className="card an-list">
               <h2>Scans, last {data.scans.window_hours} hours</h2>
               <ul>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ApiError, fetchAnalytics } from "../api";
+import { DailyHistogram, Kpi } from "../components/charts";
 import { EmptyState, ErrorNotice, Loading } from "../components/ui";
 import { formatDate } from "../format";
 import type { AnalyticsCount, AnalyticsSummary } from "../types";
@@ -23,24 +24,6 @@ export function change(current: number, previous: number): string {
   const pct = Math.round(((current - previous) / previous) * 100);
   if (pct === 0) return "no change";
   return `${pct > 0 ? "+" : ""}${pct}% vs previous period`;
-}
-
-function Stat({
-  label,
-  value,
-  note,
-}: {
-  label: string;
-  value: number;
-  note: string;
-}) {
-  return (
-    <li className="card summary-card">
-      <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
-      <div className="muted small">{note}</div>
-    </li>
-  );
 }
 
 function Bars({
@@ -82,50 +65,14 @@ function Bars({
 
 function DailyChart({ data }: { data: AnalyticsSummary }) {
   const series = data.current.series;
-  const max = Math.max(1, ...series.map((d) => d.views));
-  const W = 640;
-  const H = 140;
-  const gap = 2;
-  const bar = Math.max(2, (W - gap * (series.length - 1)) / series.length);
   const total = `${data.current.visitors} visitors and ${data.current.views} page views in ${series.length} days`;
   return (
     <section className="card">
       <h2>Daily visitors and views</h2>
-      <svg
-        viewBox={`0 0 ${W} ${H + 4}`}
-        className="an-chart"
-        role="img"
-        aria-label={total}
-      >
-        {series.map((d, i) => {
-          const x = i * (bar + gap);
-          const hv = (d.views / max) * H;
-          const hu = (d.visitors / max) * H;
-          return (
-            <g key={d.date}>
-              <title>{`${d.date}: ${d.visitors} visitors, ${d.views} views`}</title>
-              <rect
-                x={x}
-                y={H - hv}
-                width={bar}
-                height={hv}
-                className="an-views"
-              />
-              <rect
-                x={x}
-                y={H - hu}
-                width={bar}
-                height={hu}
-                className="an-visitors"
-              />
-            </g>
-          );
-        })}
-        <line x1="0" x2={W} y1={H} y2={H} className="trend-base" />
-      </svg>
-      <p className="muted small">
-        <span className="an-key an-key-visitors" aria-hidden="true" /> Visitors
-        <span className="an-key an-key-views" aria-hidden="true" /> Page views
+      <DailyHistogram series={series} label={total} />
+      <p className="chart-legend">
+        <span>Visitors</span>
+        <span>Page views</span>
       </p>
       <details className="trend-table">
         <summary className="small">Show as a table</summary>
@@ -184,7 +131,7 @@ export default function Analytics() {
 
   const loading = data === null && error === null;
   return (
-    <div className="stack">
+    <div className="stack dash">
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h1>Website analytics</h1>
         <div role="group" aria-label="Time range" className="row">
@@ -227,22 +174,26 @@ export default function Analytics() {
             </EmptyState>
           ) : null}
           <ul className="summary-grid" aria-label="Visitors">
-            <Stat
+            <Kpi
+              tone="cyan"
               label="Visitors today"
               value={data.today.visitors}
               note={`${data.today.views} page views`}
             />
-            <Stat
+            <Kpi
+              tone="violet"
               label="Visitors yesterday"
               value={data.yesterday.visitors}
               note={`${data.yesterday.views} page views`}
             />
-            <Stat
+            <Kpi
+              tone="pink"
               label={`Visitors, ${days} days`}
               value={data.current.visitors}
               note={change(data.current.visitors, data.previous.visitors)}
             />
-            <Stat
+            <Kpi
+              tone="lime"
               label={`Page views, ${days} days`}
               value={data.current.views}
               note={change(data.current.views, data.previous.views)}
