@@ -1,5 +1,7 @@
+import { coverage } from "../../overview";
 import { buildHash } from "../../router";
 import type {
+  Overview,
   ScanSummary,
   Severity,
   SitePosture,
@@ -49,9 +51,44 @@ export interface PriorityAction {
   href: string;
 }
 
+/** Hosts with a completed scan on record, or `null` when the server did not say (an older server). */
+export function scannedHostSet(overview: Overview): ReadonlySet<string> | null {
+  return overview.scanned_hosts ? new Set(overview.scanned_hosts) : null;
+}
+
+/**
+ * What is known about a host's scans. The overview lists only the most recently scanned sites, so not
+ * being listed is not proof of anything: `never` needs the server's full list, otherwise it is `unknown`.
+ */
+export type ScanRecord = "listed" | "unlisted" | "never" | "unknown";
+
+export function scanRecord(
+  host: string,
+  sites: readonly SitePosture[],
+  scanned: ReadonlySet<string> | null,
+): ScanRecord {
+  if (sites.some((s) => s.host === host)) return "listed";
+  if (scanned === null) return "unknown";
+  return scanned.has(host) ? "unlisted" : "never";
+}
+
+/** Who the score card is about, saying so when it compares only some of the sites. */
+export function scoreScope(overview: Overview): string {
+  const { listed, total, partial } = coverage(overview);
+  if (partial)
+    return `Lowest score among the ${listed} most recently scanned sites (${total} scanned)`;
+  if (listed > 1)
+    return total === null
+      ? "Lowest-scoring site listed"
+      : "Lowest-scoring site";
+  return "Your site";
+}
+
 export interface ActionInput {
   targets: readonly Target[];
   sites: readonly SitePosture[];
+  /** From `scannedHostSet`. `null` when unknown: the "never scanned" rule is then skipped. */
+  scannedHosts: ReadonlySet<string> | null;
   /** Recent scans, newest first. `null` when they could not be loaded: the scan rules are then skipped. */
   scans: readonly ScanSummary[] | null;
   canManage: boolean;
@@ -63,7 +100,7 @@ export function priorityActions(
   input: ActionInput,
   limit = 5,
 ): PriorityAction[] {
-  const { targets, sites, scans, canManage, canRun } = input;
+  const { targets, sites, scannedHosts, scans, canManage, canRun } = input;
   const out: PriorityAction[] = [];
 
   if (canManage) {
@@ -115,14 +152,14 @@ export function priorityActions(
       });
   }
 
-  if (canRun) {
-    const scanned = new Set(sites.map((s) => s.host));
+  // Only when the server's full list says so: missing from the capped site list proves nothing.
+  if (canRun && scannedHosts) {
     for (const t of targets)
-      if (t.status === "verified" && !scanned.has(t.hostname))
+      if (t.status === "verified" && !scannedHosts.has(t.hostname))
         out.push({
           id: `scan-${t.id}`,
-          label: `Run the first scan of ${t.hostname}`,
-          detail: "Verified, but never scanned.",
+          label: `Run a scan of ${t.hostname}`,
+          detail: "Verified, with no completed scan on record.",
           href: buildHash("overview", null),
         });
   }

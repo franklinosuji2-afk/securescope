@@ -222,9 +222,12 @@ export interface SitePosture {
 }
 
 export interface Overview {
+  /** Capped (the most recently scanned few), so a host missing here may still have been scanned. */
   sites: SitePosture[];
   fix_first: TopFinding | null;
   other_open: number;
+  /** Every host with a completed scan on record. Absent from older servers: then it is unknown. */
+  scanned_hosts?: string[];
 }
 
 export interface AnalyticsDay {

@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -58,7 +59,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }, [user, orgId]);
 
-  useEffect(() => {
+  // A layout effect, not a plain effect: React runs every layout effect of a render before any component's
+  // plain effects, and the pages start their requests in plain effects. With a plain effect here, a page's
+  // first requests went out without the organization and the server answered for its default one.
+  useLayoutEffect(() => {
     api.setActiveOrganization(organization?.id ?? null);
   }, [organization]);
 

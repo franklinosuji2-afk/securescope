@@ -9,8 +9,12 @@ import { ErrorNotice, Loading, SeverityBadge, StatusPill } from "../ui";
 import {
   priorityActions,
   scanOutcome,
+  scannedHostSet,
+  scanRecord,
+  scoreScope,
   topIssues,
   weakestSite,
+  type ScanRecord,
 } from "./bentoLogic";
 import SecurityScoreGauge from "./SecurityScoreGauge";
 import { useRecentScans } from "./useRecentScans";
@@ -20,6 +24,14 @@ const TARGET_LABEL: Record<Target["status"], string> = {
   pending: "Ownership not verified yet",
   expired: "Verification expired",
   reverify: "Needs re-verification",
+};
+
+/** Listed hosts show their score instead; the other labels say only what is known. */
+const SCAN_RECORD_LABEL: Record<ScanRecord, string> = {
+  listed: "in this overview",
+  unlisted: "scanned, not among the sites listed here",
+  never: "no completed scan on record",
+  unknown: "not in this overview",
 };
 
 const FORMATS: { format: ReportFormat; label: string }[] = [
@@ -79,21 +91,26 @@ export default function BentoGrid({
   refreshKey,
   canManage,
   canRun,
+  organizationId,
 }: {
   overview: Overview;
   targets: Target[];
   refreshKey: string;
   canManage: boolean;
   canRun: boolean;
+  /** The active organization, named in report links (plain links cannot send it as a header). */
+  organizationId: string | null;
 }) {
   const recent = useRecentScans(refreshKey);
   const [exportHost, setExportHost] = useState<string | null>(null);
 
   const site = weakestSite(overview.sites);
   const issues = topIssues(overview.sites);
+  const scannedHosts = scannedHostSet(overview);
   const actions = priorityActions({
     targets,
     sites: overview.sites,
+    scannedHosts,
     scans: recent.error || recent.loading ? null : recent.items,
     canManage,
     canRun,
@@ -130,11 +147,7 @@ export default function BentoGrid({
                 />
                 <div className="bento-score-text">
                   <p className="bento-host">
-                    <span className="muted small">
-                      {overview.sites.length > 1
-                        ? "Lowest-scoring site"
-                        : "Your site"}
-                    </span>
+                    <span className="muted small">{scoreScope(overview)}</span>
                     <code>{site.host}</code>
                   </p>
                   <p className="bento-big">
@@ -304,7 +317,9 @@ export default function BentoGrid({
                       {TARGET_LABEL[t.status]} ·{" "}
                       {s
                         ? `score ${s.score ?? "–"}, ${s.open_total} open`
-                        : "not scanned yet"}
+                        : SCAN_RECORD_LABEL[
+                            scanRecord(t.hostname, overview.sites, scannedHosts)
+                          ]}
                     </span>
                   </li>
                 );
@@ -346,7 +361,11 @@ export default function BentoGrid({
                   <a
                     key={format}
                     className="btn-ghost"
-                    href={reportUrl(exportSite.latest_scan_id, format)}
+                    href={reportUrl(
+                      exportSite.latest_scan_id,
+                      format,
+                      organizationId,
+                    )}
                     download
                     aria-label={`Download ${label} report for ${exportSite.host}`}
                   >

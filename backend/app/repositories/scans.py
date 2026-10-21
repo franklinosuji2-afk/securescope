@@ -392,6 +392,18 @@ class ScanRepository:
             hosts = list(by_host)[:max_sites]
             if not hosts:
                 return Overview()
+            # The listed sites are capped and drawn from a window of recent scans, so a host missing from
+            # them may still have been scanned. This answers that from every completed scan on record.
+            scanned_hosts = sorted(
+                session.scalars(
+                    select(ScanRow.host)
+                    .where(
+                        ScanRow.organization_id == organization_id,
+                        ScanRow.status == ScanStatus.COMPLETED.value,
+                    )
+                    .distinct()
+                ).all()
+            )
             states = {
                 state.fingerprint: state
                 for state in session.scalars(
@@ -459,7 +471,12 @@ class ScanRepository:
                     )
                 )
             best = min(candidates, key=_priority, default=None)
-            return Overview(sites=sites, fix_first=best, other_open=open_total - 1 if best else 0)
+            return Overview(
+                sites=sites,
+                fix_first=best,
+                other_open=open_total - 1 if best else 0,
+                scanned_hosts=scanned_hosts,
+            )
 
     def stats_since(self, since: datetime) -> dict[str, object]:
         """Scan outcomes since `since`, across all organizations (operator view; no identities)."""

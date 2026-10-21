@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { rescanLabel } from "./RescanButton";
 import { ApiError, cancelScan, deleteScan, reportUrl, retryScan } from "../api";
+import { useAuth } from "../auth";
 import Checklist from "./Checklist";
 import { formatDate } from "../format";
 import type { ScanDetail } from "../types";
@@ -8,19 +9,20 @@ import { isActive } from "../types";
 import { ErrorNotice, ScoreCard, SeverityBreakdown, StatusPill } from "./ui";
 
 export function ReportButtons({ scanId }: { scanId: string }) {
+  const org = useAuth().organization?.id ?? null;
   return (
     <div className="row" role="group" aria-label="Export report">
       <span className="muted small">Export:</span>
-      <a className="btn-ghost" href={reportUrl(scanId, "pdf")} download>
+      <a className="btn-ghost" href={reportUrl(scanId, "pdf", org)} download>
         PDF
       </a>
-      <a className="btn-ghost" href={reportUrl(scanId, "html")} download>
+      <a className="btn-ghost" href={reportUrl(scanId, "html", org)} download>
         HTML
       </a>
-      <a className="btn-ghost" href={reportUrl(scanId, "md")} download>
+      <a className="btn-ghost" href={reportUrl(scanId, "md", org)} download>
         Markdown
       </a>
-      <a className="btn-ghost" href={reportUrl(scanId, "json")} download>
+      <a className="btn-ghost" href={reportUrl(scanId, "json", org)} download>
         JSON
       </a>
     </div>

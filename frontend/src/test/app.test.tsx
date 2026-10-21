@@ -178,7 +178,7 @@ describe("Overview", () => {
     expect(screen.getByText("Heuristic score.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "JSON" })).toHaveAttribute(
       "href",
-      "/api/v1/scans/abc123/report?format=json",
+      "/api/v1/scans/abc123/report?format=json&org=org1",
     );
   });
 });

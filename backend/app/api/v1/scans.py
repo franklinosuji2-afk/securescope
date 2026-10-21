@@ -6,7 +6,7 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
-from app.api.deps import OrgContext, StateDep, client_key, request_id, require
+from app.api.deps import OrgContext, StateDep, client_key, download_organization_context, request_id, require
 from app.core.logging import log_event
 from app.reporting import reports
 from app.scanner.runner import execute_scan
@@ -21,7 +21,10 @@ REPORT_HTML_CSP = "default-src 'none'; style-src 'unsafe-inline'; frame-ancestor
 
 CanRead = Annotated[OrgContext, Depends(require(Permission.SCAN_READ))]
 CanCreate = Annotated[OrgContext, Depends(require(Permission.SCAN_CREATE))]
-CanExport = Annotated[OrgContext, Depends(require(Permission.REPORT_EXPORT))]
+# Reports are downloaded through plain links, so the active organization may come as ?org= as well.
+CanExport = Annotated[
+    OrgContext, Depends(require(Permission.REPORT_EXPORT, download_organization_context))
+]
 
 
 async def _start_scan(state: StateDep, request: Request, ctx: OrgContext, url: str) -> ScanDetail:

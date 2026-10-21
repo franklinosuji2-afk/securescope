@@ -194,7 +194,7 @@ describe("cancelling and retrying from a scan", () => {
     const pdf = within(group).getByRole("link", { name: "PDF" });
     expect(pdf).toHaveAttribute(
       "href",
-      "/api/v1/scans/abc123/report?format=pdf",
+      "/api/v1/scans/abc123/report?format=pdf&org=org1",
     );
     expect(
       within(group)

@@ -114,6 +114,35 @@ def test_history_is_capped_and_sites_are_capped(db_url: str) -> None:
     assert len(repo.overview(org, max_sites=2).sites) == 2
 
 
+def test_more_than_six_sites_still_reports_every_scanned_host(db_url: str) -> None:
+    repo = make_repo(db_url)
+    org, user = make_org(db_url)
+    other_org, other_user = make_org(db_url, "other@example.com")
+    hosts = [f"h{index}.example" for index in range(9)]
+    for host in hosts:
+        complete(repo, org, user, 70, [], host=host)
+    never = repo.create_scan(org, user, "https://failed-only.example/", "failed-only.example")
+    repo.fail_scan(never, "boom")
+    complete(repo, other_org, other_user, 50, [], host="other-org.example")
+
+    result = repo.overview(org)
+    assert len(result.sites) == 6  # the listed sites stay capped
+    assert result.scanned_hosts == sorted(hosts)  # but every completed host is reported
+    assert "failed-only.example" not in result.scanned_hosts  # a failed scan is not a completed one
+    assert "other-org.example" not in result.scanned_hosts
+
+
+def test_scanned_hosts_are_not_limited_by_the_recent_scan_window(db_url: str, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr("app.repositories.scans.OVERVIEW_SCAN_WINDOW", 2)
+    repo, (org, user) = make_repo(db_url), make_org(db_url)
+    complete(repo, org, user, 80, [], host="old.example")
+    for _ in range(3):
+        complete(repo, org, user, 60, [], host="busy.example")
+    result = repo.overview(org)
+    assert [s.host for s in result.sites] == ["busy.example"]  # old.example fell out of the window
+    assert result.scanned_hosts == ["busy.example", "old.example"]
+
+
 def test_other_organizations_never_appear(db_url: str) -> None:
     repo = make_repo(db_url)
     org_a, user_a = make_org(db_url, "a@example.com")
@@ -132,11 +161,17 @@ def test_api_requires_sign_in_and_is_open_to_every_role(
 ) -> None:
     assert anon_client.get(f"{API}/overview").status_code == 401
     org = local_client.get(f"{API}/auth/me").json()["organizations"][0]["id"]
-    assert local_client.get(f"{API}/overview").json() == {"sites": [], "fix_first": None, "other_open": 0}
+    assert local_client.get(f"{API}/overview").json() == {
+        "sites": [],
+        "fix_first": None,
+        "other_open": 0,
+        "scanned_hosts": [],
+    }
 
     run_scan(local_client, mock_server)
     body = local_client.get(f"{API}/overview").json()
     assert len(body["sites"]) == 1 and body["sites"][0]["history"][0]["score"] == body["sites"][0]["score"]
+    assert body["scanned_hosts"] == [body["sites"][0]["host"]]
     assert body["fix_first"]["scan_id"] == body["sites"][0]["latest_scan_id"]
 
     viewer = member_client(local_client, org, "viewer@example.com", "VIEWER")

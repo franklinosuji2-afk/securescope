@@ -220,3 +220,7 @@ class Overview(BaseModel):
     sites: list[SitePosture] = []
     fix_first: TopFinding | None = None
     other_open: int = Field(default=0, description="Open findings on the listed sites besides fix_first")
+    scanned_hosts: list[str] = Field(
+        default=[],
+        description="Every host with at least one completed scan on record, not only the listed sites",
+    )

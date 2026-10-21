@@ -122,6 +122,56 @@ def test_scans_are_scoped_to_the_active_organization(local_client: TestClient, m
     assert local_client.get(f"{API}/scans/{scan_id}", headers=in_second).status_code == 200
 
 
+def test_report_links_can_name_the_active_organization(local_client: TestClient, mock_server: str) -> None:
+    """Downloads are plain links without headers; ?org= selects the organization and is checked the same way."""
+    second = local_client.post(f"{API}/organizations", json={"name": "Second Org"}).json()
+    in_second = {"X-Organization-Id": second["id"]}
+    trust_host(local_client, "127.0.0.1", second["id"])
+    scan_id = finished_scan(local_client, mock_server, in_second)
+    report = f"{API}/scans/{scan_id}/report?format=json"
+
+    assert local_client.get(report).status_code == 404  # no org given: the default org has no such scan
+    assert local_client.get(f"{report}&org={second['id']}").status_code == 200
+    assert local_client.get(f"{report}&org={second['id']}", headers=in_second).status_code == 200
+    conflicting = local_client.get(f"{report}&org={org_of(local_client)}", headers=in_second)
+    assert conflicting.status_code == 400
+    assert local_client.get(f"{report}&org=not-a-real-org").status_code == 403
+
+    events = local_client.get(f"{API}/audit-events?event_type=report.exported", headers=in_second).json()
+    assert {e["resource_id"] for e in events["items"]} == {scan_id}  # recorded in the right organization
+    default_events = local_client.get(f"{API}/audit-events?event_type=report.exported").json()
+    assert default_events["total"] == 0
+
+
+def test_report_org_parameter_does_not_grant_access_to_outsiders(
+    local_client: TestClient, mock_server: str
+) -> None:
+    bob = new_user(local_client, "bob@example.com")
+    alice_org = org_of(local_client)
+    scan_id = finished_scan(local_client, mock_server)
+    report = f"{API}/scans/{scan_id}/report?format=json"
+
+    assert bob.get(f"{report}&org={alice_org}").status_code == 403
+    assert bob.get(f"{report}&org={org_of(bob)}").status_code == 404  # his own org has no such scan
+    # The query parameter is only honoured for report downloads, not for other reads.
+    assert bob.get(f"{API}/scans/{scan_id}?org={alice_org}").status_code == 404
+    assert bob.get(f"{API}/overview?org={alice_org}").json()["sites"] == []
+
+
+def test_overview_follows_the_active_organization(local_client: TestClient, mock_server: str) -> None:
+    second = local_client.post(f"{API}/organizations", json={"name": "Second Org"}).json()
+    in_second = {"X-Organization-Id": second["id"]}
+    trust_host(local_client, "127.0.0.1", second["id"])
+    finished_scan(local_client, mock_server, in_second)
+
+    first = local_client.get(f"{API}/overview").json()
+    other = local_client.get(f"{API}/overview", headers=in_second).json()
+    assert first["sites"] == [] and first["scanned_hosts"] == []
+    assert [s["host"] for s in other["sites"]] == ["127.0.0.1"] and other["scanned_hosts"] == ["127.0.0.1"]
+    outsider = new_user(local_client, "eve@example.com")
+    assert outsider.get(f"{API}/overview", headers=in_second).status_code == 403
+
+
 def test_removed_member_loses_access_immediately(local_client: TestClient, mock_server: str) -> None:
     carol = new_user(local_client, "carol@example.com")
     org = org_of(local_client)

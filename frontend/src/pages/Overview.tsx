@@ -62,6 +62,7 @@ export default function Overview({
           refreshKey={`${route.scanId ?? ""}:${scan?.status ?? ""}`}
           canManage={role ? canManageTargets(role) : false}
           canRun={allowed}
+          organizationId={organization?.id ?? null}
         />
       )}
       <div className={scanned ? "overview-grid" : "stack"}>

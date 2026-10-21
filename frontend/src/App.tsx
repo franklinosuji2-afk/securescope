@@ -230,7 +230,11 @@ export default function App() {
                 className="input"
                 aria-label="Active organization"
                 value={organization?.id ?? ""}
-                onChange={(e) => setOrganizationId(e.target.value)}
+                onChange={(e) => {
+                  setOrganizationId(e.target.value);
+                  // A scan in the address belongs to the organization being left.
+                  if (route.scanId) navigate(route.page);
+                }}
               >
                 {user.organizations.map((o) => (
                   <option key={o.id} value={o.id}>
@@ -268,7 +272,14 @@ export default function App() {
           <LegalLinks />
         </div>
       </aside>
-      <main className="main" id="main" tabIndex={-1}>
+      {/* Keyed by organization: switching remounts every page, so nothing loaded for the previous
+          organization stays on screen and its unfinished requests are ignored. */}
+      <main
+        className="main"
+        id="main"
+        tabIndex={-1}
+        key={organization?.id ?? "none"}
+      >
         {route.page === "overview" && (
           <Overview
             route={route}

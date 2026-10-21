@@ -93,7 +93,11 @@ export function useRoute(): [
     return () => window.removeEventListener("hashchange", onChange);
   }, []);
   const navigate = useCallback((page: Page, scanId: string | null = null) => {
-    window.location.hash = buildHash(page, scanId);
+    const hash = buildHash(page, scanId);
+    window.location.hash = hash;
+    // At once, not on the later hashchange event, so a change made alongside it (such as switching
+    // organization) renders together with the new route.
+    setRoute(parseHash(hash));
   }, []);
   return [route, navigate];
 }

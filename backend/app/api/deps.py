@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Annotated
 
 import httpx
-from fastapi import Depends, Header, HTTPException, Request
+from fastapi import Depends, Header, HTTPException, Query, Request
 
 from app.core.config import Settings
 from app.database.session import make_engine
@@ -160,31 +160,53 @@ class OrgContext:
     role: Role
 
 
-async def organization_context(
-    principal: PrincipalDep,
-    state: StateDep,
-    x_organization_id: Annotated[str | None, Header()] = None,
-) -> OrgContext:
-    """Resolves the active organization. The id comes from the client but is only accepted if the
-    authenticated user is a member; it is never trusted on its own."""
+async def _resolve_organization(principal: Principal, state: AppState, requested: str | None) -> OrgContext:
+    """The id comes from the client but is only accepted if the authenticated user is a member; it is
+    never trusted on its own."""
     memberships = await asyncio.to_thread(state.accounts.memberships_for_user, principal.user.id)
     if not memberships:
         raise HTTPException(status_code=403, detail="You do not belong to any organization.")
-    if x_organization_id is None:
+    if requested is None:
         chosen = memberships[0]
     else:
-        match = [m for m in memberships if m.organization_id == x_organization_id]
+        match = [m for m in memberships if m.organization_id == requested]
         if not match:
             raise HTTPException(status_code=403, detail="You are not a member of that organization.")
         chosen = match[0]
     return OrgContext(principal, chosen.organization_id, chosen.role)
 
 
+async def organization_context(
+    principal: PrincipalDep,
+    state: StateDep,
+    x_organization_id: Annotated[str | None, Header()] = None,
+) -> OrgContext:
+    """Resolves the active organization from the X-Organization-Id header."""
+    return await _resolve_organization(principal, state, x_organization_id)
+
+
+async def download_organization_context(
+    principal: PrincipalDep,
+    state: StateDep,
+    x_organization_id: Annotated[str | None, Header()] = None,
+    org: Annotated[str | None, Query(max_length=64)] = None,
+) -> OrgContext:
+    """For downloads opened as plain links, which cannot send headers: the active organization may also
+    come as `?org=`. It is checked exactly like the header, and the two must agree when both are sent."""
+    if x_organization_id is not None and org is not None and org != x_organization_id:
+        raise HTTPException(status_code=400, detail="Conflicting organization in header and query.")
+    return await _resolve_organization(principal, state, x_organization_id or org)
+
+
 OrgDep = Annotated[OrgContext, Depends(organization_context)]
 
 
-def require(permission: Permission) -> Callable[[OrgContext], Awaitable[OrgContext]]:
-    async def checker(ctx: OrgDep) -> OrgContext:
+def require(
+    permission: Permission,
+    context: Callable[..., Awaitable[OrgContext]] = organization_context,
+) -> Callable[[OrgContext], Awaitable[OrgContext]]:
+    # A default, not Annotated: annotations are strings here and cannot see the closure's `context`.
+    async def checker(ctx: OrgContext = Depends(context)) -> OrgContext:  # noqa: B008
         if not can(ctx.role, permission):
             raise HTTPException(status_code=403, detail="Your role does not allow this action.")
         return ctx

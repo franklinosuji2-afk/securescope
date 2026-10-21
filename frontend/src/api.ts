@@ -216,8 +216,19 @@ export function listAuditEvents(
   );
 }
 
-export function reportUrl(id: string, format: ReportFormat): string {
-  return `${BASE}/scans/${encodeURIComponent(id)}/report?format=${format}`;
+/**
+ * Reports download through plain links, which cannot send the X-Organization-Id header, so the active
+ * organization goes in the query. The server accepts it only from a member of that organization.
+ */
+export function reportUrl(
+  id: string,
+  format: ReportFormat,
+  organizationId: string | null,
+): string {
+  const org = organizationId
+    ? `&org=${encodeURIComponent(organizationId)}`
+    : "";
+  return `${BASE}/scans/${encodeURIComponent(id)}/report?format=${format}${org}`;
 }
 
 // --- targets ------------------------------------------------------------------------------------

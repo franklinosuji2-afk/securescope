@@ -1,4 +1,4 @@
-import type { Target } from "./types";
+import type { Overview, Target } from "./types";
 
 /** Pure logic behind the Overview page, kept apart from React so it can be tested directly. */
 
@@ -74,6 +74,22 @@ export function setupSteps(
     }
   });
   return steps;
+}
+
+export interface Coverage {
+  /** Sites the overview lists; the server caps this. */
+  listed: number;
+  /** Hosts with a completed scan on record, or null when the server did not say. */
+  total: number | null;
+  /** True only when it is known that some scanned sites are not listed. */
+  partial: boolean;
+}
+
+/** How much of the organization the listed sites cover, so totals and comparisons can say so. */
+export function coverage(overview: Overview): Coverage {
+  const listed = overview.sites.length;
+  const total = overview.scanned_hosts ? overview.scanned_hosts.length : null;
+  return { listed, total, partial: total !== null && total > listed };
 }
 
 export function deltaText(delta: number | null): string {

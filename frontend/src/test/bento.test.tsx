@@ -1,12 +1,15 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import BentoGrid from "../components/bento/BentoGrid";
 import {
   priorityActions,
   scanOutcome,
+  scanRecord,
+  scoreScope,
   topIssues,
   weakestSite,
 } from "../components/bento/bentoLogic";
+import SummaryCards from "../components/SummaryCards";
 import type {
   Overview,
   ScanSummary,
@@ -108,6 +111,7 @@ describe("bento rules", () => {
         target("fresh.test", "verified"),
       ],
       sites: [site("a.test", { open_counts: { critical: 1, high: 2 } })],
+      scannedHosts: new Set(["a.test"]),
       scans: [scan("s1", "a.test", "failed")],
       canManage: true,
       canRun: true,
@@ -127,6 +131,7 @@ describe("bento rules", () => {
     const base = {
       targets: [target("new.test", "pending"), target("v.test", "verified")],
       sites: [],
+      scannedHosts: null,
     };
     expect(
       priorityActions({
@@ -159,6 +164,7 @@ describe("bento rules", () => {
     const actions = priorityActions({
       targets: [],
       sites: [],
+      scannedHosts: null,
       scans: [
         scan("old", "a.test", "failed", "2026-10-10T00:00:00Z"),
         scan("new", "a.test", "completed", "2026-10-18T00:00:00Z"),
@@ -176,6 +182,156 @@ describe("bento rules", () => {
     expect(scanOutcome(scan("a", "x.test", "failed"))).toBe("Did not complete");
     expect(scanOutcome(scan("a", "x.test", "cancelled"))).toBe("Cancelled");
     expect(scanOutcome(scan("a", "x.test", "running"))).toBe("In progress");
+  });
+});
+
+describe("more scanned sites than the overview lists", () => {
+  // The server lists at most six sites; h6 to h8 were scanned but are not listed.
+  const hosts = Array.from({ length: 9 }, (_, i) => `h${i}.test`);
+  const listed = hosts.slice(0, 6).map((h, i) => site(h, { score: 90 - i }));
+  const targets = [...hosts, "fresh.test"].map((h) => target(h, "verified"));
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("never calls a scanned but unlisted site unscanned", () => {
+    const actions = priorityActions({
+      targets,
+      sites: listed,
+      scannedHosts: new Set(hosts),
+      scans: [],
+      canManage: true,
+      canRun: true,
+    });
+    expect(actions.map((a) => a.id)).toEqual(["scan-fresh.test"]);
+    expect(actions[0]!.detail).toBe(
+      "Verified, with no completed scan on record.",
+    );
+  });
+
+  it("makes no unscanned claim at all when the server did not say", () => {
+    const actions = priorityActions({
+      targets,
+      sites: listed,
+      scannedHosts: null,
+      scans: [],
+      canManage: true,
+      canRun: true,
+    });
+    expect(actions.filter((a) => a.id.startsWith("scan-"))).toEqual([]);
+  });
+
+  it("classifies each host by what is actually known", () => {
+    const known = new Set(hosts);
+    expect(scanRecord("h0.test", listed, known)).toBe("listed");
+    expect(scanRecord("h7.test", listed, known)).toBe("unlisted");
+    expect(scanRecord("fresh.test", listed, known)).toBe("never");
+    expect(scanRecord("h7.test", listed, null)).toBe("unknown");
+    expect(scanRecord("h0.test", listed, null)).toBe("listed");
+  });
+
+  it("says when the score comparison covers only some sites", () => {
+    const base: Overview = { sites: listed, fix_first: null, other_open: 0 };
+    expect(scoreScope({ ...base, scanned_hosts: hosts })).toBe(
+      "Lowest score among the 6 most recently scanned sites (9 scanned)",
+    );
+    expect(scoreScope({ ...base, scanned_hosts: hosts.slice(0, 6) })).toBe(
+      "Lowest-scoring site",
+    );
+    expect(scoreScope(base)).toBe("Lowest-scoring site listed");
+    expect(
+      scoreScope({
+        ...base,
+        sites: listed.slice(0, 1),
+        scanned_hosts: ["h0.test"],
+      }),
+    ).toBe("Your site");
+  });
+
+  it("renders unlisted, unscanned and unknown hosts honestly", async () => {
+    stubScans(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ items: [], total: 0 }),
+    }));
+    const inventory = [
+      target("h0.test", "verified"),
+      target("h7.test", "verified"),
+      target("fresh.test", "verified"),
+    ];
+    const { rerender } = render(
+      <BentoGrid
+        overview={{
+          sites: listed,
+          fix_first: null,
+          other_open: 0,
+          scanned_hosts: hosts,
+        }}
+        targets={inventory}
+        refreshKey="x"
+        canManage
+        canRun
+        organizationId="org1"
+      />,
+    );
+    await screen.findByText("No scans yet.");
+    expect(
+      screen.getByText(/Lowest score among the 6 most recently scanned/),
+    ).toBeInTheDocument();
+    const inv = within(screen.getByRole("region", { name: "Site inventory" }));
+    expect(inv.getByText(/score 90, 0 open/)).toBeInTheDocument(); // h0 is listed
+    expect(
+      inv.getByText(/scanned, not among the sites listed here/),
+    ).toBeInTheDocument();
+    expect(inv.getByText(/no completed scan on record/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Run a scan of fresh\.test/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /Run a scan of h7\.test/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/not scanned yet|never/i),
+    ).not.toBeInTheDocument();
+
+    // An older server without the full list: nothing is claimed either way.
+    rerender(
+      <BentoGrid
+        overview={{ sites: listed, fix_first: null, other_open: 0 }}
+        targets={inventory}
+        refreshKey="x"
+        canManage
+        canRun
+        organizationId="org1"
+      />,
+    );
+    expect(
+      within(
+        screen.getByRole("region", { name: "Site inventory" }),
+      ).getAllByText(/not in this overview/),
+    ).toHaveLength(2);
+    expect(
+      screen.queryByRole("link", { name: /Run a scan of/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("summary notes say when totals cover only the listed sites", () => {
+    render(
+      <SummaryCards
+        overview={{
+          sites: listed,
+          fix_first: null,
+          other_open: 0,
+          scanned_hosts: hosts,
+        }}
+        targets={targets}
+      />,
+    );
+    expect(screen.getByText("9 scanned")).toBeInTheDocument();
+    expect(
+      screen.getByText("none on the 6 most recently scanned sites"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("of the 6 most recently scanned sites; a heuristic"),
+    ).toBeInTheDocument();
   });
 });
 
@@ -201,6 +357,7 @@ describe("BentoGrid states", () => {
         refreshKey="x"
         canManage
         canRun
+        organizationId="org1"
       />,
     );
     expect(screen.getByText(/No scored scan yet/)).toBeInTheDocument();
@@ -228,6 +385,7 @@ describe("BentoGrid states", () => {
         refreshKey="x"
         canManage
         canRun
+        organizationId="org1"
       />,
     );
     expect(await screen.findByRole("alert")).toHaveTextContent("boom");
@@ -266,6 +424,7 @@ describe("BentoGrid states", () => {
         refreshKey="x"
         canManage
         canRun
+        organizationId="org1"
       />,
     );
     expect(
@@ -285,7 +444,7 @@ describe("BentoGrid states", () => {
     });
     expect(pdf).toHaveAttribute(
       "href",
-      expect.stringContaining("/scans/scan-a.test/report?format=pdf"),
+      "/api/v1/scans/scan-a.test/report?format=pdf&org=org1",
     );
     expect(
       await screen.findByRole("link", { name: /a.test.*score 70, 3 findings/ }),
