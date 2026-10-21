@@ -75,4 +75,16 @@ describe("legal pages use the product addresses", () => {
       `mailto:${CONTACT.privacy}`,
     );
   });
+
+  it("the Impressum shows a real postal address, not a placeholder", () => {
+    const { container } = render(
+      <AuthProvider>
+        <LegalPage page="impressum" />
+      </AuthProvider>,
+    );
+    const text = container.textContent ?? "";
+    expect(text).toContain("Mariendorfer Weg 52");
+    expect(text).toContain("12051 Berlin");
+    expect(text).not.toMatch(/\[[^\]]*to be added[^\]]*\]/i);
+  });
 });

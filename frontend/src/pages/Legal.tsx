@@ -6,9 +6,8 @@ import { buildHash } from "../router";
 
 // Legal text for the operator. Update these constants if the operator's details change.
 const OPERATOR = "Franklin Chinonso Osuji";
-// TODO before sharing the site publicly: replace with an office or forwarding address that can receive post.
-const STREET = "[Service address to be added]";
-const CITY = "Berlin";
+const STREET = "Mariendorfer Weg 52";
+const CITY = "12051 Berlin";
 const UPDATED = "21 October 2026";
 
 const TABS: { page: Page; label: string }[] = [
