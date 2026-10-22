@@ -47,6 +47,8 @@ def clean_probes(**overrides: ProbeResponse) -> dict[str, ProbeResponse]:
         "/.well-known/security.txt": probe("/.well-known/security.txt", 200, SECURITY_TXT),
         "/.git/HEAD": probe("/.git/HEAD", 404),
         "/.env": probe("/.env", 404),
+        "/robots.txt": probe("/robots.txt", 404),
+        "/sitemap.xml": probe("/sitemap.xml", 404),
     }
     probes.update(overrides)
     return probes
@@ -302,12 +304,14 @@ SCENARIOS = [
             "/.well-known/security.txt": probe("/.well-known/security.txt", None),
             "/.git/HEAD": probe("/.git/HEAD", 503),
             "/.env": probe("/.env", 429),
+            "/robots.txt": probe("/robots.txt", 502),
+            "/sitemap.xml": probe("/sitemap.xml", 404),
         },
         good_tls(),
         {},
         100,
         "A",
-        {"exposed-files", "security-txt"},
+        {"exposed-files", "security-txt", "robots-sitemap"},
     ),
     Scenario(
         "TLS check that could not run is skipped, not passed",
@@ -345,7 +349,12 @@ def test_every_reported_finding_is_complete_and_evidenced(scenario: Scenario) ->
 def test_skipped_checks_protect_earlier_findings_from_being_marked_resolved() -> None:
     scenario = next(s for s in SCENARIOS if s.name.startswith("probes that fail"))
     assessment = assess(scenario.result, scenario.tls, scenario.probes)
-    assert set(assessment.unverified_prefixes) == {"SS-EXPOSE-", "SS-DISC-SEC-"}
+    assert set(assessment.unverified_prefixes) == {
+        "SS-EXPOSE-",
+        "SS-DISC-SEC-",
+        "SS-DISC-ROBOTS-",
+        "SS-DISC-SITEMAP-",
+    }
 
 
 def test_scanning_the_same_site_twice_gives_the_same_answer() -> None:
@@ -391,5 +400,11 @@ def test_certificate_failure_ids_are_unique() -> None:
     assert len(seen) == len(set(seen)), seen
 
 
-def test_probe_paths_are_the_documented_fixed_three() -> None:
-    assert PROBE_PATHS == ("/.well-known/security.txt", "/.git/HEAD", "/.env")
+def test_probe_paths_are_the_documented_fixed_five() -> None:
+    assert PROBE_PATHS == (
+        "/.well-known/security.txt",
+        "/.git/HEAD",
+        "/.env",
+        "/robots.txt",
+        "/sitemap.xml",
+    )

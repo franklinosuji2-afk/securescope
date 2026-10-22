@@ -703,5 +703,339 @@
     ],
     "references": [],
     "limitations": "SecureScope makes one TLS connection to the scanned host. Other hosts, ports and certificates are not checked."
+  },
+  "SS-MIX-001": {
+    "impact": "Code, frames or form targets loaded over plain HTTP can be replaced by anyone on the network, so an attacker can run their own script on an otherwise secure page or read what a visitor types.",
+    "detection": "observed",
+    "detectionNote": "The page's HTML contained a script, stylesheet, frame, embed or form address that begins with http://, on a page served over HTTPS.",
+    "fixes": [
+      {
+        "label": "Find and change the address in the template",
+        "code": "<script src=\"https://cdn.example.net/app.js\"></script>\n<form action=\"https://www.example.com/contact\" method=\"post\">"
+      },
+      {
+        "label": "Ask browsers to upgrade leftovers while you fix them (CSP)",
+        "code": "Content-Security-Policy: upgrade-insecure-requests"
+      }
+    ],
+    "verify": [
+      "Open the page and view its source. Search for \"http://\" and confirm no script, link, iframe, embed or form uses it.",
+      "Open the browser's developer tools and check the Console for mixed content messages.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "MDN: Mixed content",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/Security/Mixed_content"
+      }
+    ],
+    "limitations": "Only the first part of the home page is read, and only resources written in the HTML. Addresses added later by scripts are not seen."
+  },
+  "SS-MIX-002": {
+    "impact": "Images and media loaded over HTTP can be swapped or observed on the network, and the browser may show the page as not fully secure.",
+    "detection": "observed",
+    "detectionNote": "The page's HTML contained an image, audio, video or similar address that begins with http://, on a page served over HTTPS.",
+    "fixes": [
+      {
+        "label": "Change the address to HTTPS",
+        "code": "<img src=\"https://www.example.com/images/logo.png\" alt=\"Logo\">"
+      }
+    ],
+    "verify": [
+      "View the page source and search for \"http://\".",
+      "Check the browser's developer tools for mixed content warnings.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "MDN: Mixed content",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/Security/Mixed_content"
+      }
+    ],
+    "limitations": "Only the first part of the home page is read, and only addresses written in the HTML."
+  },
+  "SS-SRI-001": {
+    "impact": "If a third-party host is compromised, the code it serves runs on your page with full access to it. An integrity hash makes the browser refuse a file that has changed.",
+    "detection": "observed",
+    "detectionNote": "The page's HTML loads a script or stylesheet from another host without an integrity attribute.",
+    "fixes": [
+      {
+        "label": "Add the hash and crossorigin to a fixed file",
+        "code": "<script src=\"https://cdn.example.net/lib-1.2.3.min.js\"\n  integrity=\"sha384-<hash of the file>\"\n  crossorigin=\"anonymous\"></script>"
+      },
+      {
+        "label": "Create the hash",
+        "code": "curl -s https://cdn.example.net/lib-1.2.3.min.js | openssl dgst -sha384 -binary | openssl base64 -A"
+      }
+    ],
+    "verify": [
+      "View the page source and confirm each third-party script and stylesheet has an integrity attribute, or is one you cannot pin.",
+      "Load the page and check the Console for integrity errors.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "MDN: Subresource Integrity",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity"
+      }
+    ],
+    "limitations": "Files that change without notice, such as many analytics and tag-manager scripts, cannot be pinned. Hosting a copy yourself is the alternative. Only addresses in the HTML are seen."
+  },
+  "SS-CORS-001": {
+    "impact": "A policy that allows any origin together with credentials shows no list of trusted sites exists. If a server fixes the error by echoing back any origin, other websites can read a signed-in visitor's data.",
+    "detection": "observed",
+    "detectionNote": "The response carried Access-Control-Allow-Origin: * and Access-Control-Allow-Credentials: true.",
+    "fixes": [
+      {
+        "label": "Allow named origins only",
+        "code": "Access-Control-Allow-Origin: https://app.example.com\nAccess-Control-Allow-Credentials: true\nVary: Origin"
+      }
+    ],
+    "verify": [
+      "Request the page and read the Access-Control-Allow-Origin header. It should be one named origin, not *.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "MDN: CORS",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"
+      }
+    ],
+    "limitations": "The scan sends no Origin header, so it cannot test whether the server echoes back arbitrary origins. It reports only what the page's own response says."
+  },
+  "SS-CORS-002": {
+    "impact": "Sandboxed frames, local files and some redirects send the origin \"null\". Allowing it lets pages anyone can build read responses from this site.",
+    "detection": "observed",
+    "detectionNote": "The response carried Access-Control-Allow-Origin: null.",
+    "fixes": [
+      {
+        "label": "Remove null from the allow list",
+        "code": "Access-Control-Allow-Origin: https://app.example.com\nVary: Origin"
+      }
+    ],
+    "verify": [
+      "Request the page and confirm the header is not null.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "MDN: CORS",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"
+      }
+    ],
+    "limitations": "Only the single response the scan fetched is read."
+  },
+  "SS-DISC-ROBOTS-001": {
+    "impact": "robots.txt is public. Listing an admin, backup or configuration path tells every visitor where to look, and hiding a path this way does not protect it.",
+    "detection": "heuristic",
+    "detectionNote": "A line in /robots.txt contains a word such as admin, backup, staging or config. This is a name match, not proof that the path is sensitive.",
+    "fixes": [
+      {
+        "label": "Protect the path, then drop it from robots.txt",
+        "code": "# Put the area behind a login or an IP allow-list on the server.\n# Keep robots.txt to what search engines should skip, for example:\nUser-agent: *\nDisallow: /search"
+      }
+    ],
+    "verify": [
+      "Open https://<your-host>/robots.txt and read the listed paths.",
+      "Open each path in a private window. It should ask for a login or return an error.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "RFC 9309: robots.txt",
+        "url": "https://www.rfc-editor.org/rfc/rfc9309"
+      }
+    ],
+    "limitations": "This is a good-practice item. A harmless path with an alarming name will match, so read the list before acting."
+  },
+  "SS-DISC-SITEMAP-001": {
+    "impact": "A sitemap is meant to list public pages. Admin, backup or configuration addresses in it are advertised to search engines and to anyone who opens the file.",
+    "detection": "heuristic",
+    "detectionNote": "An address in /sitemap.xml contains a word such as admin, backup, staging or config. This is a name match, not proof that the page is sensitive.",
+    "fixes": [
+      {
+        "label": "Remove the address from the sitemap",
+        "code": "<!-- Delete the <url> entry that points at the admin or backup address, and protect that address with a login. -->"
+      }
+    ],
+    "verify": [
+      "Open https://<your-host>/sitemap.xml and look for the listed addresses.",
+      "Open each in a private window. It should ask for a login or return an error.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "sitemaps.org protocol",
+        "url": "https://www.sitemaps.org/protocol.html"
+      }
+    ],
+    "limitations": "This is a good-practice item. Only /sitemap.xml itself is read; sitemap index files that point to others are not followed."
+  },
+  "SS-DNS-SPF-001": {
+    "impact": "Anyone can send email that claims to come from your domain, and your real mail is more likely to be marked as spam.",
+    "detection": "observed",
+    "detectionNote": "The domain's TXT records contain no record that starts with v=spf1.",
+    "fixes": [
+      {
+        "label": "Domain that sends email through a provider",
+        "code": "Type: TXT\nName: @\nValue: v=spf1 include:_spf.<your-mail-provider> ~all"
+      },
+      {
+        "label": "Domain that sends no email",
+        "code": "Type: TXT\nName: @\nValue: v=spf1 -all"
+      }
+    ],
+    "verify": [
+      "Run: dig +short TXT <your-domain> and look for one line starting with v=spf1.",
+      "Send a test mail to a mailbox you control and check that SPF passes in the message headers.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "RFC 7208: SPF",
+        "url": "https://www.rfc-editor.org/rfc/rfc7208"
+      }
+    ],
+    "limitations": "Only the domain you verified is read. Mail sent from subdomains has its own records. Whether the domain sends email at all is unknown to the scan."
+  },
+  "SS-DNS-SPF-002": {
+    "impact": "A record ending in +all or ?all lets every server send mail as your domain, or says nothing about it, so it gives no protection.",
+    "detection": "observed",
+    "detectionNote": "The SPF record ends in +all, ?all or a bare all.",
+    "fixes": [
+      {
+        "label": "End the record with a soft fail or reject",
+        "code": "v=spf1 include:_spf.<your-mail-provider> ~all"
+      }
+    ],
+    "verify": [
+      "Run: dig +short TXT <your-domain> and confirm the SPF record ends in ~all or -all.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "RFC 7208: SPF",
+        "url": "https://www.rfc-editor.org/rfc/rfc7208"
+      }
+    ],
+    "limitations": "List every real sender before using -all, or legitimate mail may be rejected."
+  },
+  "SS-DNS-SPF-003": {
+    "impact": "With more than one SPF record, receiving servers treat SPF as broken and ignore it, so it protects nothing.",
+    "detection": "observed",
+    "detectionNote": "The domain has more than one TXT record that starts with v=spf1.",
+    "fixes": [
+      {
+        "label": "Merge into one record",
+        "code": "v=spf1 include:_spf.provider-one.example include:_spf.provider-two.example ~all"
+      }
+    ],
+    "verify": [
+      "Run: dig +short TXT <your-domain> and confirm exactly one line starts with v=spf1.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "RFC 7208: SPF",
+        "url": "https://www.rfc-editor.org/rfc/rfc7208"
+      }
+    ],
+    "limitations": "Merging records can exceed the limit of ten DNS lookups. Check the result with an SPF validator."
+  },
+  "SS-DNS-DMARC-001": {
+    "impact": "Receiving servers have no instruction for mail that fails SPF and DKIM, so spoofed mail from your domain is delivered as normal, and you get no reports about misuse.",
+    "detection": "observed",
+    "detectionNote": "No TXT record starting with v=DMARC1 exists at _dmarc.<domain>.",
+    "fixes": [
+      {
+        "label": "Start by monitoring",
+        "code": "Type: TXT\nName: _dmarc\nValue: v=DMARC1; p=none; rua=mailto:dmarc-reports@<your-domain>"
+      }
+    ],
+    "verify": [
+      "Run: dig +short TXT _dmarc.<your-domain> and confirm the record is returned.",
+      "Read the reports for a few weeks, then move to p=quarantine and p=reject.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "RFC 7489: DMARC",
+        "url": "https://www.rfc-editor.org/rfc/rfc7489"
+      },
+      {
+        "label": "dmarc.org overview",
+        "url": "https://dmarc.org/overview/"
+      }
+    ],
+    "limitations": "Only the verified domain itself is read. DMARC for subdomains follows the parent's policy unless set separately."
+  },
+  "SS-DNS-DMARC-002": {
+    "impact": "p=none gathers reports without blocking anything. It is the right first step, but it does not stop anyone from sending mail as your domain.",
+    "detection": "observed",
+    "detectionNote": "The DMARC record has p=none.",
+    "fixes": [
+      {
+        "label": "Tighten the policy once reports look clean",
+        "code": "v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@<your-domain>"
+      }
+    ],
+    "verify": [
+      "Read the aggregate reports and confirm only your own senders appear.",
+      "Change p=none to p=quarantine, then p=reject.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "RFC 7489: DMARC",
+        "url": "https://www.rfc-editor.org/rfc/rfc7489"
+      }
+    ],
+    "limitations": "This is a good-practice item and does not reduce the score."
+  },
+  "SS-DNS-CAA-001": {
+    "impact": "Any public certificate authority can issue a certificate for the domain if it is tricked or compromised. A CAA record narrows that to the authorities you use.",
+    "detection": "observed",
+    "detectionNote": "The domain has no CAA record.",
+    "fixes": [
+      {
+        "label": "Allow one authority (example: Let's Encrypt)",
+        "code": "Type: CAA\nName: @\nValue: 0 issue \"letsencrypt.org\""
+      }
+    ],
+    "verify": [
+      "Run: dig +short CAA <your-domain> and confirm the record is returned.",
+      "Renew or issue a certificate to confirm it still works.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "RFC 8659: CAA",
+        "url": "https://www.rfc-editor.org/rfc/rfc8659"
+      }
+    ],
+    "limitations": "This is a good-practice item and does not reduce the score. Some hosts issue certificates from several authorities, so check before adding the record."
+  },
+  "SS-DNS-DNSSEC-001": {
+    "impact": "Without DNSSEC, a resolver cannot tell a forged DNS answer from a real one. This is a hardening step, not a flaw in your site.",
+    "detection": "observed",
+    "detectionNote": "The parent zone publishes no DS record for the domain.",
+    "fixes": [
+      {
+        "label": "Enable it at your DNS provider, then at the registrar",
+        "code": "1. Turn on DNSSEC in your DNS provider's dashboard.\n2. Copy the DS record it shows.\n3. Add that DS record at your domain registrar."
+      }
+    ],
+    "verify": [
+      "Run: dig +short DS <your-domain> and confirm a record is returned.",
+      "Check the domain with a DNSSEC checker such as dnsviz.net.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "ICANN: DNSSEC",
+        "url": "https://www.icann.org/resources/pages/dnssec-what-is-it-why-important-2019-03-05-en"
+      }
+    ],
+    "limitations": "This is a good-practice item and does not reduce the score. A mistake in the DS record can make the domain unreachable, so follow your provider's steps."
   }
 }

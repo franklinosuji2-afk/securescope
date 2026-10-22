@@ -27,7 +27,7 @@
       "grade": "D"
     }
   ],
-  "checks_run": 13,
+  "checks_run": 17,
   "checks_passed": [
     "The page was served over HTTPS",
     "X-Content-Type-Options is nosniff",
@@ -36,6 +36,10 @@
     "No software version shown in the Server or X-Powered-By headers",
     "No directory listing in the page",
     "Scan stayed on the verified site",
+    "The page loads nothing over plain HTTP",
+    "Scripts and styles from other sites carry integrity hashes",
+    "No risky cross-origin (CORS) headers",
+    "robots.txt and sitemap.xml do not point at sensitive paths",
     "No exposed .git directory or .env file",
     "TLS certificate is valid for this host and not close to expiry"
   ],

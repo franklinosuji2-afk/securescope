@@ -12,7 +12,10 @@ from app.schemas.scan import Finding
 from app.tests.test_scan_accuracy import GOOD_HEADERS, clean_probes, good_tls, page
 
 ROOT = Path(__file__).resolve().parents[3]
-CHECKS_SOURCE = (ROOT / "backend" / "app" / "scanner" / "checks.py").read_text(encoding="utf-8")
+CHECKS_SOURCE = " ".join(
+    (ROOT / "backend" / "app" / "scanner" / name).read_text(encoding="utf-8")
+    for name in ("checks.py", "page_checks.py", "dns_checks.py")
+)
 FRONTEND_COPY = ROOT / "frontend" / "src" / "guidance.json"
 
 

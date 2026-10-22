@@ -29,7 +29,7 @@ const GROUPS: Group[] = [
       },
       {
         label:
-          "Cookie flags, exposed .git and .env files, version disclosure, directory listing, security.txt",
+          "Cookie flags, exposed .git and .env files, version disclosure, directory listing, security.txt, mixed content, CORS, SPF, DMARC, CAA and DNSSEC",
         free: true,
         pro: true,
         agency: true,

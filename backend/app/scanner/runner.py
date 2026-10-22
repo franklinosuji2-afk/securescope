@@ -10,6 +10,7 @@ from app.core.config import Settings
 from app.core.logging import log_event
 from app.repositories.scans import ScanRepository
 from app.scanner.checks import PROBE_PATHS, assess
+from app.scanner.dns_checks import DnsObservation, eligible_domain, observe_dns
 from app.scanner.fetcher import FetchError, FetchResult, ProbeResponse, fetch_probe, fetch_target
 from app.scanner.scoring import compute_score
 from app.scanner.tls import TlsObservation, probe_tls
@@ -18,9 +19,26 @@ from app.schemas.scan import TargetMetadata
 logger = logging.getLogger("securescope.scan")
 
 
+NOT_A_MAIN_DOMAIN = (
+    "DNS and email checks apply to a main domain such as example.com. This site is a subdomain or not a "
+    "domain name, and the parent domain is not part of what was verified."
+)
+
+
+async def _dns(host: str, settings: Settings) -> DnsObservation | str:
+    """DNS and email records for the verified main domain, or the reason they were not looked at."""
+    domain = eligible_domain(host)
+    if domain is None:
+        return NOT_A_MAIN_DOMAIN
+    try:
+        return await asyncio.wait_for(observe_dns(domain), timeout=settings.request_timeout_seconds + 4)
+    except Exception:  # a DNS problem must never fail the scan; the checks are reported as skipped
+        return "The DNS lookup did not give a usable answer."
+
+
 async def _collect(
     url: str, settings: Settings
-) -> tuple[FetchResult, TlsObservation | None, dict[str, ProbeResponse] | None]:
+) -> tuple[FetchResult, TlsObservation | None, dict[str, ProbeResponse] | None, DnsObservation | str]:
     """The page fetch, one TLS observation and the fixed-path probes, all on the validated target."""
     result = await fetch_target(url, settings)
     tls: TlsObservation | None = None
@@ -36,8 +54,11 @@ async def _collect(
             ),
             timeout=settings.request_timeout_seconds + 2,
         )
-    responses = await asyncio.gather(*(fetch_probe(result, path, settings) for path in PROBE_PATHS))
-    return result, tls, {r.path: r for r in responses}
+    responses, dns = await asyncio.gather(
+        asyncio.gather(*(fetch_probe(result, path, settings) for path in PROBE_PATHS)),
+        _dns(result.host, settings),
+    )
+    return result, tls, {r.path: r for r in responses}, dns
 
 
 async def execute_scan(
@@ -53,10 +74,10 @@ async def execute_scan(
         if not await asyncio.to_thread(repo.mark_running, scan_id):
             return  # cancelled while it was waiting for a free slot
         try:
-            result, tls, probes = await asyncio.wait_for(
+            result, tls, probes, dns = await asyncio.wait_for(
                 _collect(url, settings), timeout=settings.max_scan_seconds
             )
-            assessment = assess(result, tls, probes)
+            assessment = assess(result, tls, probes, dns)
             findings = assessment.findings
             score, grade = compute_score(findings)
             metadata = TargetMetadata(

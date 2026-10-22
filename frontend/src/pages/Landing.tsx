@@ -68,7 +68,7 @@ const PROBLEMS = [
 
 const NUMBERS = [
   { value: "0", label: "attack payloads sent. Ever." },
-  { value: "6", label: "areas checked on every scan" },
+  { value: "9", label: "areas checked on every scan" },
   { value: "4", label: "steps from sign-up to first result" },
   { value: "3", label: "free scans every month" },
 ];
@@ -126,6 +126,21 @@ const CHECKS = [
     title: "Information leaks",
     icon: "eye",
     text: "Server and X-Powered-By headers that announce software and version numbers to anyone who asks.",
+  },
+  {
+    title: "Page content",
+    icon: "doc",
+    text: "Scripts and forms loaded over plain HTTP on an HTTPS page, and third-party scripts with no integrity check.",
+  },
+  {
+    title: "Cross-origin access",
+    icon: "users",
+    text: "CORS headers that let any website read logged-in responses, or trust the “null” origin.",
+  },
+  {
+    title: "Email and DNS",
+    icon: "log",
+    text: "SPF, DMARC, CAA and DNSSEC records on your main domain, so spoofed mail and mis-issued certificates are harder.",
   },
 ];
 

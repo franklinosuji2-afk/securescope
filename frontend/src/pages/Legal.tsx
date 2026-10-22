@@ -271,6 +271,8 @@ function Privacy() {
       <p>
         SecureScope sends ordinary web requests to domains you have verified as
         yours. It does not scan domains whose ownership has not been verified.
+        For a main domain it also looks up that domain&apos;s public DNS records
+        (SPF, DMARC, CAA and DNSSEC); no other domain is queried.
       </p>
     </Doc>
   );

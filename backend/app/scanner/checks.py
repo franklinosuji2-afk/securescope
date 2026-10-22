@@ -10,7 +10,20 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from app.scanner.dns_checks import (
+    DnsObservation,
+    check_caa,
+    check_dmarc,
+    check_dnssec,
+    check_spf,
+)
 from app.scanner.fetcher import FetchResult, ProbeResponse
+from app.scanner.page_checks import (
+    check_cors,
+    check_mixed_content,
+    check_robots_and_sitemap,
+    check_subresource_integrity,
+)
 from app.scanner.tls import TlsObservation
 from app.schemas.scan import Confidence, Finding, Severity, SkippedCheck, TlsSummary
 
@@ -386,7 +399,13 @@ def check_off_origin_redirect(result: FetchResult) -> list[Finding]:
 NOT_PASSED_AT_INFO: tuple[str, ...] = ("SS-DISC-SEC-",)
 
 # Paths requested once each, in addition to the page itself. Fixed here, never taken from user input.
-PROBE_PATHS: tuple[str, ...] = ("/.well-known/security.txt", "/.git/HEAD", "/.env")
+PROBE_PATHS: tuple[str, ...] = (
+    "/.well-known/security.txt",
+    "/.git/HEAD",
+    "/.env",
+    "/robots.txt",
+    "/sitemap.xml",
+)
 ENV_LINE = re.compile(rb"^[ \t]*(?:export[ \t]+)?[A-Za-z_][A-Za-z0-9_]*[ \t]*=", re.MULTILINE)
 GIT_HEAD = re.compile(rb"^ref: refs/[A-Za-z0-9._/-]+\s*$|^[0-9a-f]{40}\s*$")
 
@@ -399,8 +418,11 @@ def _is_html(response: ProbeResponse) -> bool:
 def probes_conclusive(probes: dict[str, ProbeResponse], path: str) -> bool:
     """Whether the probe gave an answer we can reason about (a 5xx or a transport error does not)."""
     response = probes.get(path)
-    return response is not None and response.error is None and response.status is not None and (
-        response.status < 500 and response.status != 429
+    return (
+        response is not None
+        and response.error is None
+        and response.status is not None
+        and (response.status < 500 and response.status != 429)
     )
 
 
@@ -618,6 +640,17 @@ CHECK_LABELS: dict[str, tuple[str, tuple[str, ...]]] = {
     ),
     "directory-index": ("No directory listing in the page", ("SS-DIR-",)),
     "scan-scope": ("Scan stayed on the verified site", ("SS-SCOPE-",)),
+    "mixed-content": ("The page loads nothing over plain HTTP", ("SS-MIX-",)),
+    "sri": ("Scripts and styles from other sites carry integrity hashes", ("SS-SRI-",)),
+    "cors": ("No risky cross-origin (CORS) headers", ("SS-CORS-",)),
+    "robots-sitemap": (
+        "robots.txt and sitemap.xml do not point at sensitive paths",
+        ("SS-DISC-ROBOTS-", "SS-DISC-SITEMAP-"),
+    ),
+    "email-spf": ("An SPF record limits who can send mail for the domain", ("SS-DNS-SPF-",)),
+    "email-dmarc": ("A DMARC policy is published", ("SS-DNS-DMARC-",)),
+    "dns-caa": ("A CAA record limits who can issue certificates", ("SS-DNS-CAA-",)),
+    "dnssec": ("DNSSEC is enabled for the domain", ("SS-DNS-DNSSEC-",)),
 }
 
 Check = Callable[[FetchResult], list[Finding]]
@@ -633,11 +666,14 @@ CHECKS: tuple[tuple[str, Check], ...] = (
     ("cookie-attributes", check_cookies),
     ("directory-index", check_directory_index),
     ("scan-scope", check_off_origin_redirect),
+    ("mixed-content", check_mixed_content),
+    ("sri", check_subresource_integrity),
+    ("cors", check_cors),
 )
 
 
 # Checks that match page markup or other signals instead of reading a header directly.
-HEURISTIC_FINDINGS: frozenset[str] = frozenset({"SS-DIR-001"})
+HEURISTIC_FINDINGS: frozenset[str] = frozenset({"SS-DIR-001", "SS-DISC-ROBOTS-001", "SS-DISC-SITEMAP-001"})
 
 
 @dataclass
@@ -659,11 +695,26 @@ def assess(
     result: FetchResult,
     tls: TlsObservation | None = None,
     probes: dict[str, ProbeResponse] | None = None,
+    dns: DnsObservation | str | None = None,
 ) -> Assessment:
-    """All passive checks. Checks that need extra observations run only when those are conclusive."""
+    """All passive checks. Checks that need extra observations run only when those are conclusive.
+
+    `dns` is the DNS observation, or a plain-language reason why DNS checks did not run, or None when the
+    caller does not do DNS checks at all.
+    """
     findings, names = run_checks(result)
     skipped: list[SkippedCheck] = []
     if probes is not None:
+        if all(probes_conclusive(probes, p) for p in ("/robots.txt", "/sitemap.xml")):
+            names.append("robots-sitemap")
+            for finding in check_robots_and_sitemap(result, probes):
+                findings.append(finding.model_copy(update={"confidence": Confidence.MEDIUM}))
+        else:
+            skipped.append(
+                SkippedCheck(
+                    name="robots-sitemap", reason="The site did not give a usable answer for the probe."
+                )
+            )
         for name, path, check in (
             ("exposed-files", "/.git/HEAD", check_exposed_files),
             ("security-txt", "/.well-known/security.txt", check_security_txt),
@@ -676,6 +727,23 @@ def assess(
                 skipped.append(
                     SkippedCheck(name=name, reason="The site did not give a usable answer for the probe.")
                 )
+    if isinstance(dns, str):
+        for name in ("email-spf", "email-dmarc", "dns-caa", "dnssec"):
+            skipped.append(SkippedCheck(name=name, reason=dns))
+    elif dns is not None:
+        for dns_name, answer, dns_check in (
+            ("email-spf", dns.txt, check_spf),
+            ("email-dmarc", dns.dmarc, check_dmarc),
+            ("dns-caa", dns.caa, check_caa),
+            ("dnssec", dns.ds, check_dnssec),
+        ):
+            if answer.status == "error":
+                skipped.append(
+                    SkippedCheck(name=dns_name, reason="The DNS lookup did not give a usable answer.")
+                )
+            else:
+                names.append(dns_name)
+                findings.extend(dns_check(dns))
     if result.final_scheme != "https":
         skipped.append(
             SkippedCheck(
