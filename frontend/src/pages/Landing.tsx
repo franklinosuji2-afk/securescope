@@ -43,6 +43,54 @@ function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
 
+const PROBLEMS = [
+  {
+    icon: "eye",
+    title: "Easy to overlook",
+    text: "A missing header, a cookie anyone’s script can read, a forgotten .env file. None of it looks broken, so nobody notices until someone else does.",
+  },
+  {
+    icon: "file",
+    title: "Hard to read",
+    text: "Big scanners can bury the two real problems under pages of jargon. You close the tab and promise yourself you’ll come back.",
+  },
+  {
+    icon: "users",
+    title: "Hard to prove",
+    text: "A client asks whether their site is secure. “I think so” is not an answer, and you have nothing to hand them.",
+  },
+];
+
+const NUMBERS = [
+  { value: "0", label: "attack payloads sent. Ever." },
+  { value: "6", label: "areas checked on every scan" },
+  { value: "4", label: "steps from sign-up to first result" },
+  { value: "3", label: "free scans every month" },
+];
+
+const BENEFITS = [
+  {
+    icon: "proof",
+    title: "Catch the quick wins",
+    text: "Most findings are a one-line setting. You fix them in minutes, not sprints.",
+  },
+  {
+    icon: "chart",
+    title: "Know what to fix first",
+    text: "Findings are ranked by severity, and your Overview points at the one to do next.",
+  },
+  {
+    icon: "doc",
+    title: "Show your work",
+    text: "Hand a client a clear PDF that says what was checked, what passed and what changed since last time.",
+  },
+  {
+    icon: "lock",
+    title: "Stay on the safe side",
+    text: "Only sites you have proven you own can be scanned, and the scan only reads what any visitor could.",
+  },
+];
+
 const CHECKS = [
   {
     title: "HTTPS and redirects",
@@ -176,6 +224,9 @@ export default function Landing() {
           SecureScope
         </div>
         <nav className="landing-links" aria-label="Sections">
+          <button type="button" onClick={() => scrollTo("problem")}>
+            Why
+          </button>
           <button type="button" onClick={() => scrollTo("checks")}>
             What we check
           </button>
@@ -261,6 +312,70 @@ export default function Landing() {
                 file
               </li>
             </ul>
+          </div>
+        </section>
+
+        <section
+          id="problem"
+          className="landing-section"
+          aria-labelledby="h-problem"
+        >
+          <p className="landing-eyebrow">The problem</p>
+          <h2 id="h-problem">
+            Website security fails in boring ways. That is exactly why it gets
+            missed.
+          </h2>
+          <p className="landing-sub muted">
+            The headline-grabbing attacks are rare. The everyday gaps are not: a
+            setting nobody switched on, a file nobody meant to publish, a
+            certificate that quietly runs out. They sit there for months because
+            checking for them has always been either expensive or exhausting.
+          </p>
+          <div className="landing-grid">
+            {PROBLEMS.map((c) => (
+              <article key={c.title} className="card landing-card">
+                <Icon name={c.icon} />
+                <h3>{c.title}</h3>
+                <p className="muted">{c.text}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="landing-solution" aria-labelledby="h-solution">
+          <p className="landing-eyebrow">The answer</p>
+          <h2 id="h-solution">
+            One calm place to see what is wrong, why it matters and how to fix
+            it.
+          </h2>
+          <p className="muted">
+            SecureScope does the small things well. It reads your site the way
+            any visitor would, checks the basics that attackers look for first,
+            and explains every result in plain language, with the evidence
+            beside it. No agents to install, no dashboards to learn, nothing
+            that touches your site.
+          </p>
+          <dl className="landing-numbers">
+            {NUMBERS.map((n) => (
+              <div key={n.label}>
+                <dt>{n.value}</dt>
+                <dd>{n.label}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section className="landing-section" aria-labelledby="h-benefits">
+          <p className="landing-eyebrow">Benefits</p>
+          <h2 id="h-benefits">Get the basics right, before they matter</h2>
+          <div className="landing-grid landing-benefits">
+            {BENEFITS.map((b) => (
+              <article key={b.title} className="card landing-card">
+                <Icon name={b.icon} />
+                <h3>{b.title}</h3>
+                <p className="muted">{b.text}</p>
+              </article>
+            ))}
           </div>
         </section>
 
