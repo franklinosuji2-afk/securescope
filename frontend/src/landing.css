@@ -259,6 +259,9 @@
 .landing-page .sev-medium {
   color: var(--sev-medium);
 }
+.landing-page .sev-info {
+  color: var(--text-muted, #9aa3b2);
+}
 .landing-page .sev-low {
   color: var(--sev-low);
 }

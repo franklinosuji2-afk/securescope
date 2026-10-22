@@ -347,25 +347,25 @@ export default function Landing() {
                 <span style={{ width: "82%" }} />
               </div>
               <p className="landing-sample-summary">
-                <span className="sev sev-high">1 High</span>
-                <span className="sev sev-medium">2 Medium</span>
-                <span className="sev sev-low">1 Low</span>
+                <span className="sev sev-medium">1 Medium</span>
+                <span className="sev sev-low">2 Low</span>
+                <span className="sev sev-info">1 Info</span>
               </p>
               <ul className="landing-sample-list">
                 <li>
-                  <span className="sev sev-high">High</span>
+                  <span className="sev sev-medium">Medium</span>
                   <span>Content-Security-Policy header is missing</span>
                 </li>
                 <li>
-                  <span className="sev sev-medium">Medium</span>
+                  <span className="sev sev-low">Low</span>
                   <span>Cookies set without the HttpOnly attribute</span>
                 </li>
                 <li>
-                  <span className="sev sev-medium">Medium</span>
+                  <span className="sev sev-low">Low</span>
                   <span>Strict-Transport-Security max-age is short</span>
                 </li>
                 <li>
-                  <span className="sev sev-low">Low</span>
+                  <span className="sev sev-info">Info</span>
                   <span>No security.txt contact file</span>
                 </li>
               </ul>

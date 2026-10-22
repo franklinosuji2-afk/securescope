@@ -528,7 +528,7 @@ _CERT_FAILURES: dict[str, tuple[str, str, str, str]] = {
         "intermediate chain.",
     ),
     "other": (
-        "SS-TLS-CERT-005",
+        "SS-TLS-CERT-006",
         "TLS certificate could not be verified",
         "Standard certificate verification failed for a reason other than expiry, host name or issuer.",
         "Inspect the certificate chain with a TLS checker and reissue the certificate if needed.",
