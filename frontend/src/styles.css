@@ -1517,3 +1517,32 @@ a.btn {
   font: 0.85rem/1.5 var(--mono);
   resize: vertical;
 }
+
+.plain-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 20px;
+}
+.plain-list li + li {
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.form-stack {
+  display: grid;
+  gap: 12px;
+  max-width: 520px;
+}
+.share-panel summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.share-panel .row {
+  margin: 8px 0;
+}
+.share-new {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}

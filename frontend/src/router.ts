@@ -18,6 +18,9 @@ export type Page =
   | "verify-email"
   | "accept-invite"
   | "sample-report"
+  | "agency-features"
+  | "shared"
+  | "clients"
   | "impressum"
   | "privacy"
   | "terms";
@@ -38,6 +41,9 @@ const PAGES: readonly Page[] = [
   "verify-email",
   "accept-invite",
   "sample-report",
+  "agency-features",
+  "shared",
+  "clients",
   "impressum",
   "privacy",
   "terms",

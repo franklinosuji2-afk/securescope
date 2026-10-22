@@ -1,5 +1,10 @@
 import type {
+  AgencyDashboard,
   AnalyticsSummary,
+  Client,
+  CreatedShare,
+  ShareLink,
+  SharedReportInfo,
   PlatformHealth,
   AuditList,
   FindingStatus,
@@ -344,3 +349,66 @@ export const fetchAnalytics = (days: number, timezone: string) =>
 
 export const fetchPlatformHealth = () =>
   request<PlatformHealth>("/platform/health");
+
+// --- agency workspace ---------------------------------------------------------------------------
+
+export interface ClientInput {
+  name: string;
+  contact_email: string | null;
+  notes: string | null;
+}
+
+/** Whether this workspace's plan includes client workspaces. Anything unexpected counts as "no". */
+export async function agencyAvailable(): Promise<boolean> {
+  try {
+    const result = await request<{ items?: unknown }>("/agency/clients");
+    return Array.isArray(result?.items);
+  } catch {
+    return false;
+  }
+}
+export const listClients = () =>
+  request<{ items: Client[] }>("/agency/clients").then((r) => r.items);
+export const createClient = (input: ClientInput) =>
+  request<Client>("/agency/clients", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+export const updateClient = (id: string, input: ClientInput) =>
+  request<Client>(`/agency/clients/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+export const deleteClient = (id: string) =>
+  request<void>(`/agency/clients/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+export const assignClient = (targetId: string, clientId: string | null) =>
+  request<void>(`/agency/targets/${encodeURIComponent(targetId)}/client`, {
+    method: "PUT",
+    body: JSON.stringify({ client_id: clientId }),
+  });
+export const getDashboard = () => request<AgencyDashboard>("/agency/dashboard");
+export const getBranding = () =>
+  request<{ agency_name: string | null }>("/agency/branding");
+export const setBranding = (agencyName: string | null) =>
+  request<{ agency_name: string | null }>("/agency/branding", {
+    method: "PUT",
+    body: JSON.stringify({ agency_name: agencyName }),
+  });
+export const listShares = (scanId: string) =>
+  request<{ items: ShareLink[] }>(
+    `/agency/scans/${encodeURIComponent(scanId)}/shares`,
+  ).then((r) => r.items);
+export const createShare = (scanId: string, days: 7 | 30 | 90) =>
+  request<CreatedShare>(`/agency/scans/${encodeURIComponent(scanId)}/shares`, {
+    method: "POST",
+    body: JSON.stringify({ days }),
+  });
+export const revokeShare = (scanId: string, shareId: string) =>
+  request<void>(
+    `/agency/scans/${encodeURIComponent(scanId)}/shares/${encodeURIComponent(shareId)}`,
+    { method: "DELETE" },
+  );
+export const getSharedReport = (token: string) =>
+  request<SharedReportInfo>(`/shared/${encodeURIComponent(token)}`);

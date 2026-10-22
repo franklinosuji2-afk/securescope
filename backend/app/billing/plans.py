@@ -21,6 +21,8 @@ class Plan:
     history_days: int
     can_invite: bool
     purchasable: bool
+    # Clients, agency dashboard, report branding and shared report links.
+    client_workspace: bool = False
 
 
 FREE = Plan(
@@ -45,6 +47,7 @@ AGENCY = Plan(
     history_days=365,
     can_invite=True,
     purchasable=True,
+    client_workspace=True,
 )
 # For the operator's own workspaces only. Assigned by the server, never offered to customers.
 INTERNAL = Plan(
@@ -56,6 +59,7 @@ INTERNAL = Plan(
     history_days=365,
     can_invite=True,
     purchasable=False,
+    client_workspace=True,
 )
 
 PLANS: dict[str, Plan] = {plan.id: plan for plan in (FREE, PROFESSIONAL, AGENCY, INTERNAL)}

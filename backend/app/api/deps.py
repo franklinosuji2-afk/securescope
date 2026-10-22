@@ -18,6 +18,7 @@ from app.database.session import make_engine
 from app.middleware.ratelimit import SlidingWindowLimiter
 from app.observability.metrics import RequestMetrics
 from app.repositories.accounts import AccountRepository, AuditRepository, SessionRecord, UserRecord
+from app.repositories.agency import AgencyRepository
 from app.repositories.analytics import AnalyticsRepository
 from app.repositories.plans import PlanRepository
 from app.repositories.reports import ReportRepository
@@ -39,6 +40,12 @@ FIFTEEN_MIN = 900.0
 
 
 class AppState:
+    def _agency_name_for_reports(self, organization_id: str) -> str | None:
+        """The agency name printed on new reports, only while the workspace's plan includes it."""
+        if not self.entitlements.plan_for(organization_id).client_workspace:
+            return None
+        return self.agency.agency_name(organization_id)
+
     def __init__(self, settings: Settings, mailer: Mailer | None = None) -> None:
         self.settings = settings
         self.engine = make_engine(settings.database_url)
@@ -77,9 +84,13 @@ class AppState:
             if settings.download_signing_key
             else secrets.token_bytes(32)
         )
-        self.report_service = ReportService(ReportRepository(self.engine), settings, self.download_key)
+        self.agency = AgencyRepository(self.engine)
+        self.report_service = ReportService(
+            ReportRepository(self.engine), settings, self.download_key, self._agency_name_for_reports
+        )
         self.report_semaphore = asyncio.Semaphore(1)
         self.report_limiter = SlidingWindowLimiter(30)
+        self.share_limiter = SlidingWindowLimiter(120)
         self.password_change_limiter = SlidingWindowLimiter(5, FIFTEEN_MIN)
         self.metrics = RequestMetrics()
         self.verify_limiter = SlidingWindowLimiter(settings.target_verifications_per_target_per_hour)

@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from app.core.config import Settings
@@ -30,8 +31,15 @@ class DownloadLink:
 
 
 class ReportService:
-    def __init__(self, reports: ReportRepository, settings: Settings, key: bytes) -> None:
+    def __init__(
+        self,
+        reports: ReportRepository,
+        settings: Settings,
+        key: bytes,
+        prepared_by: Callable[[str], str | None] | None = None,
+    ) -> None:
         self.reports = reports
+        self._prepared_by = prepared_by
         self.settings = settings
         self._key = key
 
@@ -40,7 +48,8 @@ class ReportService:
         if existing is not None:
             return existing
         report_id = new_report_id()
-        rendered = render_pdf(detail, report_id)
+        brand = self._prepared_by(organization_id) if self._prepared_by else None
+        rendered = render_pdf(detail, report_id, prepared_by=brand)
         return self.reports.save(rendered.report_id, detail.id, organization_id, user_id, rendered.content)
 
     def sign(self, report_id: str, user_id: str, organization_id: str) -> DownloadLink:

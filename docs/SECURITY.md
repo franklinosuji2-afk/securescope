@@ -32,6 +32,9 @@ Every scan row carries an `organization_id`. All reads go through repository met
 | Change a finding's status (accepted risk, false positive, reopen) | yes   | yes                    | yes              | no     | no     |
 | Cancel or retry scans                                             | yes   | yes                    | yes              | yes    | no     |
 | Read the audit log                                                | yes   | yes                    | no               | no     | no     |
+| Read clients and the dashboard (Agency plan)                      | yes   | yes                    | yes              | yes    | no     |
+| Create, edit, delete clients; assign sites; set agency name       | yes   | yes                    | no               | no     | no     |
+| Create and revoke report share links (Agency plan)                | yes   | yes                    | yes              | no     | no     |
 | Add / change / remove members                                     | yes   | yes (below ADMIN only) | no               | no     | no     |
 
 Admins cannot grant OWNER or ADMIN, cannot change or remove admins or owners, and cannot promote themselves. An organization always keeps at least one owner. Any member can leave. The matrix lives in `app/security/permissions.py`; the frontend mirrors it for display only.
@@ -74,3 +77,7 @@ Open a private security advisory on the GitHub repository.
 - **TLS certificate** (`SS-TLS-CERT-001..005`): one verified connection using Python's default context (verification is never disabled). Findings: expires within 30 days (high at 14 or fewer), expired, host name mismatch, untrusted chain, not yet valid.
 - **Fixed-path probes** (`SS-EXPOSE-GIT-001`, `SS-EXPOSE-ENV-001`, `SS-DISC-SEC-001`): constants in `scanner/checks.py`, never user input. They reuse the SSRF-validated, IP-pinned fetch path, do not follow redirects, read at most 4 KB, and store no file content.
 - Checks that could not run are listed under `metadata.checks_skipped` and shown as "Not checked".
+
+## Share links
+
+A share link is a random 256-bit token, stored only as a SHA-256 hash and shown once. It exposes one scan's PDF report and nothing else (never client notes). Links expire (default 14 days) and can be revoked. Unknown, revoked, expired and malformed tokens all return the same 404. Responses are `no-store`, `noindex` and `no-referrer`, the token lives in the URL fragment in the app, and the public routes are rate limited.

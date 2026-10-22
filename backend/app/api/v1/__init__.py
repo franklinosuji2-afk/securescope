@@ -8,6 +8,7 @@ from fastapi import APIRouter, Response
 from app.api.deps import StateDep
 from app.api.v1 import (
     account,
+    agency,
     analytics,
     audit,
     auth,
@@ -56,3 +57,5 @@ router.include_router(findings.router)
 router.include_router(overview.router)
 router.include_router(audit.router)
 router.include_router(analytics.router)
+router.include_router(agency.router)
+router.include_router(agency.public_router)

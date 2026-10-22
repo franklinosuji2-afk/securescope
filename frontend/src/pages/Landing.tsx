@@ -279,6 +279,7 @@ export default function Landing() {
               How it works
             </button>
             <a href="#/sample-report">Sample report</a>
+            <a href="#/agency-features">For agencies</a>
             <button type="button" onClick={() => go("pricing")}>
               Pricing
             </button>
@@ -566,7 +567,11 @@ export default function Landing() {
                   <li>150 scans per month</li>
                   <li>Scan history kept 365 days</li>
                   <li>Invite team members and clients</li>
+                  <li>Client dashboard, branded PDFs, share links</li>
                 </ul>
+                <a className="btn-ghost" href="#/agency-features">
+                  Explore Agency features
+                </a>
                 <p className="muted small landing-plan-note">
                   Not on sale yet.
                 </p>
@@ -619,6 +624,7 @@ export default function Landing() {
               How it works
             </button>
             <a href="#/sample-report">Sample report</a>
+            <a href="#/agency-features">For agencies</a>
             <button type="button" onClick={() => scrollTo("pricing")}>
               Pricing
             </button>

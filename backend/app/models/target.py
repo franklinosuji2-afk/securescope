@@ -24,6 +24,8 @@ class TargetRow(Base):
     last_check_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_check_error: Mapped[str | None] = mapped_column(Text)
     created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    # Which of the workspace's clients this site belongs to (agency workspaces only).
+    client_id: Mapped[str | None] = mapped_column(ForeignKey("clients.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (

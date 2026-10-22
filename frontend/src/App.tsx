@@ -25,14 +25,19 @@ import NotFound from "./pages/NotFound";
 import Account from "./pages/Account";
 import Overview from "./pages/Overview";
 import Landing from "./pages/Landing";
+import AgencyFeatures from "./pages/AgencyFeatures";
+import Clients from "./pages/Clients";
 import SampleReport from "./pages/SampleReport";
+import SharedReport from "./pages/SharedReport";
+import { useAgencyAvailable } from "./agency";
 import { forgetInvite, pendingInvite } from "./pendingInvite";
-import { canReadAudit } from "./types";
+import { canReadAudit, canReadClients } from "./types";
 import { trackPageView, trackedPageName } from "./tracking";
 
 const NAV: { page: Page; label: string }[] = [
   { page: "overview", label: "Overview" },
   { page: "targets", label: "Targets" },
+  { page: "clients", label: "Clients" },
   { page: "findings", label: "Findings" },
   { page: "history", label: "Scan History" },
   { page: "team", label: "Team" },
@@ -53,6 +58,10 @@ export default function App() {
   const menuOpen = openFor === routeKey;
   const setMenuOpen = (open: boolean) => setOpenFor(open ? routeKey : null);
   const menuButton = useRef<HTMLButtonElement>(null);
+  const agency = useAgencyAvailable(
+    organization?.id ?? null,
+    !!user && !!organization && canReadClients(organization.role),
+  );
   useEffect(() => {
     if (!menuOpen) return;
     const onKey = (event: KeyboardEvent) => {
@@ -106,6 +115,8 @@ export default function App() {
   }, [loading, user, route.page]);
 
   if (route.page === "sample-report") return <SampleReport />;
+  if (route.page === "agency-features") return <AgencyFeatures />;
+  if (route.page === "shared") return <SharedReport token={route.token} />;
 
   if (LEGAL_PAGES.includes(route.page)) {
     return (
@@ -216,10 +227,12 @@ export default function App() {
         <div className="rail-menu" id="rail-menu">
           <nav className="nav" aria-label="Primary">
             {NAV.filter((n) =>
-              n.page === "analytics" || n.page === "health"
-                ? user.is_admin === true
-                : n.page !== "audit" ||
-                  (organization ? canReadAudit(organization.role) : false),
+              n.page === "clients"
+                ? agency === true
+                : n.page === "analytics" || n.page === "health"
+                  ? user.is_admin === true
+                  : n.page !== "audit" ||
+                    (organization ? canReadAudit(organization.role) : false),
             ).map((n) => (
               <a
                 key={n.page}
@@ -296,6 +309,7 @@ export default function App() {
         )}
         {route.page === "not-found" && <NotFound />}
         {route.page === "targets" && <Targets />}
+        {route.page === "clients" && agency === true && <Clients />}
         {route.page === "findings" && <Findings route={route} />}
         {route.page === "history" && (
           <History onOpen={(id) => navigate("findings", id)} />

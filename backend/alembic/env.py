@@ -9,6 +9,7 @@ from sqlalchemy import create_engine
 from alembic import context
 from app.database.base import Base
 from app.models import account as _account  # noqa: F401  (registers tables on Base.metadata)
+from app.models import agency as _agency  # noqa: F401
 from app.models import analytics as _analytics  # noqa: F401
 from app.models import billing as _billing  # noqa: F401
 from app.models import scan as _scan  # noqa: F401

@@ -10,6 +10,7 @@ class PlanLimits(BaseModel):
     scans_per_month: int | None
     history_days: int
     can_invite: bool
+    client_workspace: bool = False
 
 
 class PlanUsage(BaseModel):

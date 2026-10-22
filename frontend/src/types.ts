@@ -347,6 +347,7 @@ export interface PlanInfo {
     scans_per_month: number | null;
     history_days: number;
     can_invite: boolean;
+    client_workspace?: boolean;
   };
   usage: {
     websites: number;
@@ -354,4 +355,86 @@ export interface PlanInfo {
     period_start: string;
     period_end: string;
   };
+}
+
+// --- agency workspace ---------------------------------------------------------------------------
+
+export interface Client {
+  id: string;
+  name: string;
+  contact_email: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  site_count: number;
+}
+
+export interface SeverityTotals {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  info: number;
+}
+
+export interface DashboardSite {
+  target_id: string;
+  hostname: string;
+  verified: boolean;
+  last_scan_id: string | null;
+  last_scan_at: string | null;
+  score: number | null;
+  grade: string | null;
+  open_findings: SeverityTotals;
+}
+
+export interface DashboardClient {
+  client_id: string | null;
+  name: string;
+  sites: DashboardSite[];
+  open_findings: SeverityTotals;
+  worst_grade: string | null;
+  last_scan_at: string | null;
+}
+
+export interface AgencyDashboard {
+  clients: DashboardClient[];
+  total_sites: number;
+  total_clients: number;
+}
+
+export interface ShareLink {
+  id: string;
+  created_at: string;
+  expires_at: string;
+  revoked_at: string | null;
+  last_viewed_at: string | null;
+  view_count: number;
+  status: "active" | "expired" | "revoked";
+}
+
+export interface CreatedShare extends ShareLink {
+  token: string;
+  path: string;
+}
+
+export interface SharedReportInfo {
+  host: string;
+  scanned_at: string;
+  score: number | null;
+  grade: string | null;
+  prepared_by: string | null;
+  expires_at: string;
+  download_path: string;
+}
+
+/** Mirrors backend/app/security/permissions.py. The server enforces; this only shapes the UI. */
+export function canManageClients(role: Role): boolean {
+  return role === "OWNER" || role === "ADMIN";
+}
+export function canShareReports(role: Role): boolean {
+  return role === "OWNER" || role === "ADMIN" || role === "SECURITY_ANALYST";
+}
+export function canReadClients(role: Role): boolean {
+  return role !== "VIEWER";
 }

@@ -103,7 +103,9 @@ def _ordered(detail: ScanDetail) -> list[Finding]:
     return sorted(counting_findings(detail), key=lambda f: (rank[f.severity], f.id))
 
 
-def build_context(detail: ScanDetail, report_id: str, generated_at: datetime) -> dict[str, object]:
+def build_context(
+    detail: ScanDetail, report_id: str, generated_at: datetime, prepared_by: str | None = None
+) -> dict[str, object]:
     risk: RiskRating = overall_risk(detail)
     counts = severity_counts(detail)
     ordered = _ordered(detail)
@@ -132,6 +134,7 @@ def build_context(detail: ScanDetail, report_id: str, generated_at: datetime) ->
             plan.append(item)
     return {
         "report_id": report_id,
+        "prepared_by": _clean(prepared_by) if prepared_by else None,
         "host": _clean(detail.host),
         "target_url": _clean(detail.target_url),
         "scan_date": f"{detail.created_at:%d %B %Y, %H:%M} UTC",
@@ -153,8 +156,10 @@ def build_context(detail: ScanDetail, report_id: str, generated_at: datetime) ->
     }
 
 
-def render_html(detail: ScanDetail, report_id: str, generated_at: datetime | None = None) -> str:
-    context = build_context(detail, report_id, generated_at or datetime.now(UTC))
+def render_html(
+    detail: ScanDetail, report_id: str, generated_at: datetime | None = None, prepared_by: str | None = None
+) -> str:
+    context = build_context(detail, report_id, generated_at or datetime.now(UTC), prepared_by)
     return _env.get_template("report.html").render(**context)
 
 
@@ -162,10 +167,12 @@ def _refuse_fetch(url: str, *args: object, **kwargs: object) -> dict[str, object
     raise ValueError(f"Report rendering may not load external resources: {url[:80]}")
 
 
-def render_pdf(detail: ScanDetail, report_id: str, generated_at: datetime | None = None) -> RenderedReport:
+def render_pdf(
+    detail: ScanDetail, report_id: str, generated_at: datetime | None = None, prepared_by: str | None = None
+) -> RenderedReport:
     # Imported here so the rest of the API (and its tests) start without the PDF libraries' native code.
     from weasyprint import HTML
 
-    html_text = render_html(detail, report_id, generated_at)
+    html_text = render_html(detail, report_id, generated_at, prepared_by)
     content = HTML(string=html_text, url_fetcher=_refuse_fetch).write_pdf()
     return RenderedReport(report_id, content)

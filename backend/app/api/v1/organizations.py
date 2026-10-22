@@ -100,6 +100,7 @@ async def get_plan(organization_id: str, principal: PrincipalDep, state: StateDe
             scans_per_month=plan.scans_per_month,
             history_days=plan.history_days,
             can_invite=plan.can_invite,
+            client_workspace=plan.client_workspace,
         ),
         usage=PlanUsage(
             websites=summary.websites_used,

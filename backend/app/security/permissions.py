@@ -23,6 +23,9 @@ class Permission(StrEnum):
     TARGET_MANAGE = "target:manage"
     FINDING_TRIAGE = "finding:triage"
     AUDIT_READ = "audit:read"
+    CLIENT_READ = "client:read"
+    CLIENT_MANAGE = "client:manage"
+    REPORT_SHARE = "report:share"
 
 
 _ALL = set(Permission)
@@ -37,6 +40,8 @@ MATRIX: dict[Role, set[Permission]] = {
         Permission.TARGET_READ,
         Permission.TARGET_MANAGE,
         Permission.FINDING_TRIAGE,
+        Permission.CLIENT_READ,
+        Permission.REPORT_SHARE,
     },
     Role.MEMBER: {
         Permission.ORG_READ,
@@ -44,6 +49,7 @@ MATRIX: dict[Role, set[Permission]] = {
         Permission.SCAN_CREATE,
         Permission.REPORT_EXPORT,
         Permission.TARGET_READ,
+        Permission.CLIENT_READ,
     },
     Role.VIEWER: {
         Permission.ORG_READ,

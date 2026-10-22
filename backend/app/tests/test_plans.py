@@ -64,6 +64,7 @@ def test_the_catalogue_matches_the_published_plans() -> None:
     assert (FREE.scans_per_month, PROFESSIONAL.scans_per_month, AGENCY.scans_per_month) == (3, 30, 150)
     assert (FREE.history_days, PROFESSIONAL.history_days, AGENCY.history_days) == (30, 90, 365)
     assert [p.can_invite for p in (FREE, PROFESSIONAL, AGENCY)] == [False, False, True]
+    assert [p.client_workspace for p in (FREE, PROFESSIONAL, AGENCY, INTERNAL)] == [False, False, True, True]
 
 
 def test_only_the_internal_plan_is_unlimited_and_it_cannot_be_bought() -> None:
@@ -223,7 +224,13 @@ def test_an_owner_sees_the_plan_limits_and_usage(alice: TestClient) -> None:
     assert add_site(alice, "first.example.com").status_code == 201
     body = alice.get(f"{API}/organizations/{org_of(alice)}/plan").json()
     assert body["plan_id"] == "free" and body["price_eur_month"] == 0
-    assert body["limits"] == {"websites": 1, "scans_per_month": 3, "history_days": 30, "can_invite": False}
+    assert body["limits"] == {
+        "websites": 1,
+        "scans_per_month": 3,
+        "history_days": 30,
+        "can_invite": False,
+        "client_workspace": False,
+    }
     assert body["usage"]["websites"] == 1 and body["usage"]["scans_this_period"] == 0
 
 

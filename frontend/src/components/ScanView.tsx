@@ -4,27 +4,37 @@ import { ApiError, cancelScan, deleteScan, reportUrl, retryScan } from "../api";
 import { useAuth } from "../auth";
 import Checklist from "./Checklist";
 import PdfReportButton from "./PdfReportButton";
+import ShareReport from "./ShareReport";
+import { useAgencyAvailable } from "../agency";
 import { formatDate } from "../format";
 import type { ScanDetail } from "../types";
-import { isActive } from "../types";
+import { canShareReports, isActive } from "../types";
 import { ErrorNotice, ScoreCard, SeverityBreakdown, StatusPill } from "./ui";
 
 export function ReportButtons({ scanId }: { scanId: string }) {
-  const org = useAuth().organization?.id ?? null;
+  const { organization } = useAuth();
+  const org = organization?.id ?? null;
+  const sharing = useAgencyAvailable(
+    org,
+    organization ? canShareReports(organization.role) : false,
+  );
   return (
-    <div className="row" role="group" aria-label="Export report">
-      <span className="muted small">Export:</span>
-      <PdfReportButton scanId={scanId} />
-      <a className="btn-ghost" href={reportUrl(scanId, "html", org)} download>
-        HTML
-      </a>
-      <a className="btn-ghost" href={reportUrl(scanId, "md", org)} download>
-        Markdown
-      </a>
-      <a className="btn-ghost" href={reportUrl(scanId, "json", org)} download>
-        JSON
-      </a>
-    </div>
+    <>
+      <div className="row" role="group" aria-label="Export report">
+        <span className="muted small">Export:</span>
+        <PdfReportButton scanId={scanId} />
+        <a className="btn-ghost" href={reportUrl(scanId, "html", org)} download>
+          HTML
+        </a>
+        <a className="btn-ghost" href={reportUrl(scanId, "md", org)} download>
+          Markdown
+        </a>
+        <a className="btn-ghost" href={reportUrl(scanId, "json", org)} download>
+          JSON
+        </a>
+      </div>
+      {sharing === true && <ShareReport key={scanId} scanId={scanId} />}
+    </>
   );
 }
 
