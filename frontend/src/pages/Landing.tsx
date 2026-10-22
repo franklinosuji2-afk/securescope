@@ -170,7 +170,7 @@ const FEATURES = [
   {
     title: "Reports you can hand over",
     icon: "doc",
-    text: "Download a PDF, or export HTML, Markdown or JSON. Reports say what was checked, what passed and where the scan stops.",
+    text: "Download a PDF, or export HTML, Markdown, JSON or CSV. Reports say what was checked, what passed and where the scan stops.",
   },
   {
     title: "Built for clients",

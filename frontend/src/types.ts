@@ -91,7 +91,7 @@ export interface ScanList {
   total: number;
 }
 
-export type ReportFormat = "json" | "md" | "html";
+export type ReportFormat = "json" | "md" | "html" | "csv";
 
 /** A short-lived link to one PDF report. It only works for the person who asked for it. */
 export interface ReportLink {
@@ -437,4 +437,23 @@ export function canShareReports(role: Role): boolean {
 }
 export function canReadClients(role: Role): boolean {
   return role !== "VIEWER";
+}
+
+export interface ComparedScan {
+  id: string;
+  scanned_at: string;
+  status: ScanStatus;
+  score: number | null;
+  grade: string | null;
+}
+
+export interface ScanComparison {
+  host: string;
+  older: ComparedScan;
+  newer: ComparedScan;
+  score_change: number | null;
+  new_findings: Finding[];
+  resolved_findings: Finding[];
+  unchanged_findings: Finding[];
+  note: string;
 }

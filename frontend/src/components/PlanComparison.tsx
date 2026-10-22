@@ -76,7 +76,13 @@ const GROUPS: Group[] = [
         agency: true,
       },
       {
-        label: "PDF report and data export",
+        label: "Compare two scans and see what changed",
+        free: true,
+        pro: true,
+        agency: true,
+      },
+      {
+        label: "PDF report and data export (HTML, Markdown, JSON, CSV)",
         free: true,
         pro: true,
         agency: true,
@@ -135,8 +141,6 @@ const GROUPS: Group[] = [
 const PLANNED = [
   "Scheduled scans",
   "Email alerts when a scan finds something new",
-  "Side-by-side comparison of two scans",
-  "CSV export",
   "API and webhooks",
 ];
 

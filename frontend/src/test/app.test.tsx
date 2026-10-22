@@ -113,18 +113,21 @@ describe("router", () => {
       scanId: "abc123",
       findingId: null,
       token: null,
+      compareWith: null,
     });
     expect(parseHash("#/findings?scan=../x")).toEqual({
       page: "findings",
       scanId: null,
       findingId: null,
       token: null,
+      compareWith: null,
     });
     expect(parseHash("")).toEqual({
       page: "overview",
       scanId: null,
       findingId: null,
       token: null,
+      compareWith: null,
     });
     expect(buildHash("history", null)).toBe("#/history");
   });

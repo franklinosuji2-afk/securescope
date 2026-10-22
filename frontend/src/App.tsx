@@ -26,6 +26,7 @@ import Account from "./pages/Account";
 import Overview from "./pages/Overview";
 import Landing from "./pages/Landing";
 import AgencyFeatures from "./pages/AgencyFeatures";
+import Compare from "./pages/Compare";
 import Clients from "./pages/Clients";
 import SampleReport from "./pages/SampleReport";
 import SharedReport from "./pages/SharedReport";
@@ -314,6 +315,7 @@ export default function App() {
         {route.page === "history" && (
           <History onOpen={(id) => navigate("findings", id)} />
         )}
+        {route.page === "compare" && <Compare route={route} />}
         {route.page === "team" && <Team />}
         {route.page === "account" && <Account />}
         {route.page === "audit" && <Audit />}

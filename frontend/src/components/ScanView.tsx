@@ -7,6 +7,7 @@ import PdfReportButton from "./PdfReportButton";
 import ShareReport from "./ShareReport";
 import { useAgencyAvailable } from "../agency";
 import { formatDate } from "../format";
+import { compareHash } from "../router";
 import type { ScanDetail } from "../types";
 import { canShareReports, isActive } from "../types";
 import { ErrorNotice, ScoreCard, SeverityBreakdown, StatusPill } from "./ui";
@@ -31,6 +32,12 @@ export function ReportButtons({ scanId }: { scanId: string }) {
         </a>
         <a className="btn-ghost" href={reportUrl(scanId, "json", org)} download>
           JSON
+        </a>
+        <a className="btn-ghost" href={reportUrl(scanId, "csv", org)} download>
+          CSV
+        </a>
+        <a className="btn-ghost" href={compareHash(scanId, null)}>
+          Compare with another scan
         </a>
       </div>
       {sharing === true && <ShareReport key={scanId} scanId={scanId} />}

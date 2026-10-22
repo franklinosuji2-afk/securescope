@@ -12,10 +12,13 @@ from app.billing.errors import PlanLimitError
 from app.billing.plans import current_period
 from app.core.logging import log_event
 from app.reporting import reports
+from app.reporting.compare import compare_scans
+from app.reporting.csv_export import to_csv
 from app.reporting.pdf import affected_url
 from app.reporting.risk import overall_risk, severity_counts
 from app.repositories.reports import ReportIntegrityError
 from app.scanner.runner import execute_scan
+from app.schemas.compare import ScanComparison
 from app.schemas.scan import (
     ReportLink,
     ResultFinding,
@@ -327,13 +330,32 @@ async def retry_scan(scan_id: str, request: Request, state: StateDep, ctx: CanCr
     return created
 
 
+@router.get("/{scan_id}/compare", response_model=ScanComparison)
+async def compare(
+    scan_id: str,
+    state: StateDep,
+    ctx: CanRead,
+    other: Annotated[str, Query(min_length=1, max_length=64, alias="with")],
+) -> ScanComparison:
+    first = await _load(state, ctx, scan_id)
+    second = await _load(state, ctx, other)
+    if first.id == second.id:
+        raise HTTPException(status_code=400, detail="Pick two different scans to compare.")
+    if first.host != second.host:
+        raise HTTPException(status_code=400, detail="Only scans of the same site can be compared.")
+    for scan in (first, second):
+        if scan.status != ScanStatus.COMPLETED:
+            raise HTTPException(status_code=409, detail="Only completed scans can be compared.")
+    return compare_scans(first, second)
+
+
 @router.get("/{scan_id}/report")
 async def export_report(
     scan_id: str,
     request: Request,
     state: StateDep,
     ctx: CanExport,
-    format: Literal["json", "md", "html"] = "json",  # noqa: A002
+    format: Literal["json", "md", "html", "csv"] = "json",  # noqa: A002
 ) -> Response:
     detail = await _load(state, ctx, scan_id)
     if detail.status in (ScanStatus.QUEUED, ScanStatus.RUNNING):
@@ -342,6 +364,7 @@ async def export_report(
         "json": ("application/json", "json", reports.to_json),
         "md": ("text/markdown; charset=utf-8", "md", reports.to_markdown),
         "html": ("text/html; charset=utf-8", "html", reports.to_html),
+        "csv": ("text/csv; charset=utf-8", "csv", to_csv),
     }[format]
     headers = {"Content-Disposition": f'attachment; filename="{reports.safe_filename(detail, extension)}"'}
     if format == "html":

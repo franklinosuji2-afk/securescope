@@ -21,6 +21,7 @@ export type Page =
   | "agency-features"
   | "shared"
   | "clients"
+  | "compare"
   | "impressum"
   | "privacy"
   | "terms";
@@ -44,6 +45,7 @@ const PAGES: readonly Page[] = [
   "agency-features",
   "shared",
   "clients",
+  "compare",
   "impressum",
   "privacy",
   "terms",
@@ -62,6 +64,7 @@ export interface Route {
   scanId: string | null;
   findingId: string | null;
   token: string | null;
+  compareWith: string | null;
 }
 
 export function parseHash(hash: string): Route {
@@ -83,7 +86,10 @@ export function parseHash(hash: string): Route {
   const rawToken = params.get("token");
   const token =
     rawToken && /^[A-Za-z0-9_-]{10,200}$/.test(rawToken) ? rawToken : null;
-  return { page, scanId, findingId, token };
+  const rawWith = params.get("with");
+  const compareWith =
+    rawWith && /^[A-Za-z0-9]{1,64}$/.test(rawWith) ? rawWith : null;
+  return { page, scanId, findingId, token, compareWith };
 }
 
 export function buildHash(
@@ -136,4 +142,10 @@ export function parseOAuthError(hash: string): OAuthErrorCode | null {
   return (OAUTH_ERRORS as readonly string[]).includes(value ?? "")
     ? (value as OAuthErrorCode)
     : null;
+}
+
+export function compareHash(scanId: string, withId: string | null): string {
+  return withId
+    ? `#/compare?scan=${scanId}&with=${withId}`
+    : `#/compare?scan=${scanId}`;
 }

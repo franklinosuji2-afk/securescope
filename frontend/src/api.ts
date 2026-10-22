@@ -16,6 +16,7 @@ import type {
   OrganizationDetail,
   ReportFormat,
   ReportLink,
+  ScanComparison,
   Role,
   ScanDetail,
   ScanList,
@@ -303,6 +304,11 @@ export function reportUrl(
     : "";
   return `${BASE}/scans/${encodeURIComponent(id)}/report?format=${format}${org}`;
 }
+
+export const compareScans = (id: string, other: string) =>
+  request<ScanComparison>(
+    `/scans/${encodeURIComponent(id)}/compare?with=${encodeURIComponent(other)}`,
+  );
 
 /** Makes the PDF report for a finished scan (once; it is kept) and returns a link that expires. */
 export const createPdfReport = (scanId: string) =>

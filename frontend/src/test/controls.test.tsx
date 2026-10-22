@@ -199,7 +199,7 @@ describe("cancelling and retrying from a scan", () => {
       within(group)
         .getAllByRole("link")
         .map((a) => a.textContent),
-    ).toEqual(["HTML", "Markdown", "JSON"]);
+    ).toEqual(["HTML", "Markdown", "JSON", "CSV", "Compare with another scan"]);
   });
 });
 
