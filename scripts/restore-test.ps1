@@ -15,7 +15,7 @@ if ($left) { docker rm -f $container | Out-Null }
 docker run -d --name $container -e POSTGRES_PASSWORD=restore-test-only -e POSTGRES_DB=restore postgres:18-alpine | Out-Null
 try {
     for ($i = 0; $i -lt 30; $i++) {
-        docker exec $container pg_isready -U postgres -d restore | Out-Null
+        docker exec $container pg_isready -h 127.0.0.1 -U postgres -d restore | Out-Null
         if ($LASTEXITCODE -eq 0) { break }
         Start-Sleep -Seconds 1
     }
