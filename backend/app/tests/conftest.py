@@ -118,6 +118,8 @@ def make_settings(db_url: str):  # type: ignore[no-untyped-def]
             "database_url": db_url,
             "cookie_secure": False,
             "require_verified_email": False,
+            # Most tests are not about plan limits, so every workspace is unlimited; test_plans.py tests the real ones.
+            "default_plan": "internal",
         }
         values.update(overrides)
         return Settings(**values)  # type: ignore[arg-type]

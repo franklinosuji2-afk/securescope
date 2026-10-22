@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from app.api.deps import OrgContext, StateDep, request_id, require
+from app.billing.errors import PlanLimitError
 from app.repositories.targets import CHALLENGE_TTL, DuplicateTargetError
 from app.schemas.target import TargetCreate, TargetList, TargetOut, TargetVerify
 from app.security.ownership import (
@@ -51,12 +52,15 @@ async def create_target(body: TargetCreate, request: Request, state: StateDep, c
         hostname = normalize_hostname(body.hostname, state.settings)
     except TargetError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    plan = await state.entitlements.plan_for_async(ctx.organization_id)
     try:
         target = await asyncio.to_thread(
-            state.targets.create, ctx.organization_id, hostname, ctx.principal.user.id
+            state.targets.create, ctx.organization_id, hostname, ctx.principal.user.id, plan.max_websites
         )
     except DuplicateTargetError as exc:
         raise HTTPException(status_code=409, detail="This host name is already registered.") from exc
+    except PlanLimitError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     await _audit(state, request, ctx, "target.created", target.id)
     return target
 

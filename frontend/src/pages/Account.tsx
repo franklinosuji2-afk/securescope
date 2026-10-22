@@ -1,10 +1,85 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import * as api from "../api";
 import { useAuth } from "../auth";
 import { ErrorNotice } from "../components/ui";
+import { formatDate } from "../format";
+import type { PlanInfo } from "../types";
+import { canManageMembers } from "../types";
 
 function message(err: unknown): string {
   return err instanceof Error ? err.message : "Something went wrong.";
+}
+
+function limitText(used: number, limit: number | null): string {
+  return limit === null ? `${used} (no limit)` : `${used} of ${limit}`;
+}
+
+function PlanCard() {
+  const { organization } = useAuth();
+  const orgId = organization?.id ?? null;
+  const [plan, setPlan] = useState<PlanInfo | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const allowed = organization ? canManageMembers(organization.role) : false;
+
+  useEffect(() => {
+    if (!orgId || !allowed) return;
+    let live = true;
+    api
+      .getPlan(orgId)
+      .then((next) => {
+        if (live) setPlan(next);
+      })
+      .catch((err: unknown) => {
+        if (live) setError(message(err));
+      });
+    return () => {
+      live = false;
+    };
+  }, [orgId, allowed]);
+
+  if (!organization || !allowed) return null;
+  return (
+    <section className="card" aria-labelledby="account-plan">
+      <h2 id="account-plan">Your plan</h2>
+      {error && <ErrorNotice message={error} />}
+      {plan && (
+        <>
+          <p>
+            <strong>{plan.name}</strong>
+            {plan.price_eur_month > 0
+              ? ` · €${plan.price_eur_month} per month`
+              : plan.plan_id === "free"
+                ? " · free"
+                : ""}
+            {" · workspace "}
+            {organization.name}
+          </p>
+          <dl className="small">
+            <dt>Websites</dt>
+            <dd>{limitText(plan.usage.websites, plan.limits.websites)}</dd>
+            <dt>Scans this month</dt>
+            <dd>
+              {limitText(
+                plan.usage.scans_this_period,
+                plan.limits.scans_per_month,
+              )}
+              {" · renews "}
+              {formatDate(plan.usage.period_end)}
+            </dd>
+            <dt>Scan history kept</dt>
+            <dd>{plan.limits.history_days} days</dd>
+            <dt>Invite your team and clients</dt>
+            <dd>{plan.limits.can_invite ? "Included" : "Agency plan"}</dd>
+          </dl>
+          <p className="muted small">
+            If you reach a limit, everything you already have stays. You just
+            can’t add more until the month renews or the plan changes.
+          </p>
+        </>
+      )}
+    </section>
+  );
 }
 
 function ChangePassword() {
@@ -182,6 +257,7 @@ export default function Account() {
           your account here.
         </p>
       </header>
+      <PlanCard />
       <ChangePassword />
       <DeleteAccount />
     </div>

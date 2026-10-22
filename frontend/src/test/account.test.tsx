@@ -197,3 +197,73 @@ describe("the Account page", () => {
     expect(window.location.hash).toBe("#/account");
   });
 });
+
+const freePlan = {
+  plan_id: "free",
+  name: "Free",
+  price_eur_month: 0,
+  limits: {
+    websites: 1,
+    scans_per_month: 3,
+    history_days: 30,
+    can_invite: false,
+  },
+  usage: {
+    websites: 1,
+    scans_this_period: 2,
+    period_start: "2026-10-01T00:00:00Z",
+    period_end: "2026-11-01T00:00:00Z",
+  },
+};
+
+describe("the plan", () => {
+  it("shows an owner what the plan includes and how much is used", async () => {
+    stub(me(), {
+      "GET /organizations/org1/plan": { status: 200, body: freePlan },
+    });
+    open("#/account");
+    expect(
+      await screen.findByRole("heading", { name: "Your plan" }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText("1 of 1")).toBeInTheDocument();
+    expect(screen.getByText(/2 of 3/)).toBeInTheDocument();
+    expect(screen.getByText("30 days")).toBeInTheDocument();
+    expect(screen.getByText("Agency plan")).toBeInTheDocument();
+  });
+
+  it("is not shown to a client, and nothing is requested for them", async () => {
+    const viewer = me();
+    viewer.organizations = [
+      { id: "org1", name: "Org", slug: "org", role: "VIEWER" },
+    ];
+    const calls = stub(viewer);
+    open("#/account");
+    await screen.findByRole("heading", { name: "Change password" });
+    expect(screen.queryByRole("heading", { name: "Your plan" })).toBeNull();
+    expect(calls.some((c) => c.url.endsWith("/plan"))).toBe(false);
+  });
+
+  it("replaces the invitation form with the Agency message on a plan that cannot invite", async () => {
+    stub(me(), {
+      "GET /organizations/org1/plan": { status: 200, body: freePlan },
+      "GET /organizations/org1": {
+        status: 200,
+        body: {
+          id: "org1",
+          name: "Org",
+          slug: "org",
+          role: "OWNER",
+          members: [],
+        },
+      },
+      "GET /organizations/org1/invitations": { status: 200, body: [] },
+    });
+    open("#/team");
+    expect(
+      await screen.findByText(/part of the Agency plan/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Send invitation" }),
+    ).toBeNull();
+  });
+});

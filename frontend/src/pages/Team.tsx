@@ -4,7 +4,7 @@ import { ApiError } from "../api";
 import { useAuth } from "../auth";
 import { ErrorNotice, Loading } from "../components/ui";
 import { formatDate } from "../format";
-import type { Invitation, OrganizationDetail, Role } from "../types";
+import type { Invitation, OrganizationDetail, PlanInfo, Role } from "../types";
 import { ROLES, canManageMembers } from "../types";
 
 export default function Team() {
@@ -15,6 +15,7 @@ export default function Team() {
   const [role, setRole] = useState<Role>("VIEWER");
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+  const [plan, setPlan] = useState<PlanInfo | null>(null);
   const orgId = organization?.id ?? null;
 
   const load = useCallback(async () => {
@@ -35,6 +36,22 @@ export default function Team() {
       );
     }
   }, [orgId]);
+
+  const canManage = organization ? canManageMembers(organization.role) : false;
+
+  useEffect(() => {
+    if (!orgId || !canManage) return;
+    let live = true;
+    api
+      .getPlan(orgId)
+      .then((next) => {
+        if (live) setPlan(next);
+      })
+      .catch(() => undefined); // the server still enforces the plan if this can't load
+    return () => {
+      live = false;
+    };
+  }, [orgId, canManage]);
 
   useEffect(() => {
     let cancelled = false;
@@ -228,7 +245,16 @@ export default function Team() {
           </table>
         </div>
       )}
-      {manage && (
+      {manage && plan && !plan.limits.can_invite && (
+        <section className="card" aria-labelledby="invite-upgrade">
+          <h2 id="invite-upgrade">Invite by email</h2>
+          <p className="small">
+            Inviting teammates and clients is part of the Agency plan. This
+            workspace is on the {plan.name} plan.
+          </p>
+        </section>
+      )}
+      {manage && !(plan && !plan.limits.can_invite) && (
         <form className="card scan-form" onSubmit={invite}>
           <h2>Invite by email</h2>
           <p className="muted small">

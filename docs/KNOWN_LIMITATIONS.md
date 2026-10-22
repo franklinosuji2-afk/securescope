@@ -17,7 +17,7 @@
 - Ownership verification: the HTTP-file method was confirmed once end to end on a real domain (2026-10-18, the author's own site, followed by a real scan and report). The DNS TXT method has only been tested with mocked lookups and error mapping, not against a live domain.
 - DNS TXT verification trusts the resolver the server is configured with.
 - Invitations are emailed, single-use links that expire after 7 days and only work for the invited address once that account has a confirmed email. If the email provider rejects a message the inviter is not told (the failure is logged); they can send the invitation again. The Team page can also not resend an invitation without typing the address again. A person with an existing account is invited the same way; there is no silent add in the interface (the API still has one).
-- PDF reports are stored in the database, which counts against the free Neon storage; each is roughly tens of kilobytes. They are deleted with their scan (30 days by default) and with the account.
+- PDF reports are stored in the database, which counts against the free Neon storage; each is roughly tens of kilobytes. They are deleted with their scan (30, 90 or 365 days depending on the plan) and with the account.
 - PDF download links last 5 minutes and are not single-use. Without `SECURESCOPE_DOWNLOAD_SIGNING_KEY` they also stop working after an API restart.
 - The report renderer needs system libraries that are installed in the Docker image (`backend/Dockerfile`). The image build has not been run in the authoring environment; run `docker compose build backend` (or watch the first Render build) before relying on PDFs.
 - Users cannot list or revoke individual sessions. (The audit log is available to owners and administrators through the API and the Audit page.)
@@ -28,3 +28,5 @@
 - Backups: there is no automatic backup. Neon's free plan keeps only a short restore history; take your own with `scripts/backup-db.ps1` (see `docs/OPERATIONS.md`). The backup scripts have not yet been run against the production database.
 - Sign-in with Google or GitHub (`docs/OAUTH_SETUP.md`) links by verified email or provider account ID; it cannot be unlinked from the account screen yet and there is no Microsoft or Apple option.
 - PDF reports use DejaVu fonts, which have no Chinese, Japanese or Korean glyphs: such characters in a finding's evidence print as empty boxes (the on-screen report and the JSON/Markdown/HTML exports show them correctly).
+- Plans and limits (`docs/PLANS.md`) are enforced by the server, but there is no payment yet: a workspace is on Free unless an operator assigns another plan, and only the operator's own workspaces get the unlimited internal plan. Nothing in the product charges money.
+- Scans that fail do not use up the monthly allowance, and scans are counted per calendar month in UTC, so the allowance renews at 00:00 UTC on the 1st.

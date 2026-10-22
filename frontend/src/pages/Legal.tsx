@@ -169,7 +169,8 @@ function Privacy() {
           the first time you download it and is kept, in our database and
           nowhere else, until its scan is deleted. Needed to provide the service
           (Art. 6(1)(b) GDPR). Scan results and their reports are deleted
-          automatically after a retention period (currently 30 days).
+          automatically after the history period of your plan (30 days on Free,
+          90 on Professional, 365 on Agency).
         </li>
         <li>
           <strong>Audit log and security data:</strong> actions in your

@@ -16,6 +16,7 @@ from app.schemas.auth import (
     OrganizationDetail,
     OrganizationOut,
 )
+from app.schemas.billing import PlanLimits, PlanOut, PlanUsage
 from app.security.permissions import Permission, Role, can, may_assign
 from app.services.invitations import MAX_PENDING_PER_ORGANIZATION
 
@@ -82,6 +83,33 @@ async def get_organization(
     )
 
 
+@router.get("/{organization_id}/plan", response_model=PlanOut)
+async def get_plan(organization_id: str, principal: PrincipalDep, state: StateDep) -> PlanOut:
+    """The workspace's plan, its limits and what has been used. Owners and admins only: clients do not see billing."""
+    me = await _membership(state, principal, organization_id)
+    if not can(me.role, Permission.ORG_MANAGE_MEMBERS):
+        raise _forbidden()
+    summary = await asyncio.to_thread(state.entitlements.summary, organization_id)
+    plan = summary.plan
+    return PlanOut(
+        plan_id=plan.id,
+        name=plan.name,
+        price_eur_month=plan.price_eur_month,
+        limits=PlanLimits(
+            websites=plan.max_websites,
+            scans_per_month=plan.scans_per_month,
+            history_days=plan.history_days,
+            can_invite=plan.can_invite,
+        ),
+        usage=PlanUsage(
+            websites=summary.websites_used,
+            scans_this_period=summary.scans_used,
+            period_start=summary.period_start,
+            period_end=summary.period_end,
+        ),
+    )
+
+
 @router.post("/{organization_id}/members", response_model=MemberOut, status_code=201)
 async def add_member(
     organization_id: str, body: MemberAdd, principal: PrincipalDep, request: Request, state: StateDep
@@ -89,6 +117,12 @@ async def add_member(
     me = await _membership(state, principal, organization_id)
     if not can(me.role, Permission.ORG_MANAGE_MEMBERS) or not may_assign(me.role, body.role):
         raise _forbidden()
+    plan = await state.entitlements.plan_for_async(organization_id)
+    if not plan.can_invite:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Adding people is part of the Agency plan. This workspace is on the {plan.name} plan.",
+        )
     target = await asyncio.to_thread(state.accounts.get_user_by_email, body.email.lower())
     if target is None:
         raise HTTPException(status_code=404, detail="No registered user has that email address.")
@@ -208,6 +242,12 @@ async def create_invitation(
         raise HTTPException(
             status_code=400,
             detail="An invitation cannot make someone an owner. Invite them first, then change the role.",
+        )
+    plan = await state.entitlements.plan_for_async(organization_id)
+    if not plan.can_invite:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Inviting people is part of the Agency plan. This workspace is on the {plan.name} plan.",
         )
     if not state.invite_send_limiter.check(principal.user.id):
         raise HTTPException(status_code=429, detail="Too many invitations sent. Try again later.")

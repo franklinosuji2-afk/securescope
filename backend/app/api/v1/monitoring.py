@@ -10,6 +10,7 @@ from typing import Annotated
 from fastapi import APIRouter, Header, HTTPException, Response
 
 from app.api.deps import AdminDep, AppState, StateDep
+from app.billing.plans import FREE
 from app.schemas.health import (
     Configuration,
     DatabaseHealth,
@@ -95,7 +96,7 @@ async def platform_health(_admin: AdminDep, state: StateDep) -> PlatformHealth:
             metrics_endpoint=settings.metrics_token is not None,
             cookie_secure=settings.cookie_secure,
             verification_valid_days=settings.target_verification_valid_days,
-            retention_days=settings.retention_days,
+            retention_days=FREE.history_days,
         ),
     )
 

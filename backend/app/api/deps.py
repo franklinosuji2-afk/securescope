@@ -12,12 +12,14 @@ from typing import Annotated
 import httpx
 from fastapi import Depends, Header, HTTPException, Query, Request
 
+from app.billing.entitlements import Entitlements
 from app.core.config import Settings
 from app.database.session import make_engine
 from app.middleware.ratelimit import SlidingWindowLimiter
 from app.observability.metrics import RequestMetrics
 from app.repositories.accounts import AccountRepository, AuditRepository, SessionRecord, UserRecord
 from app.repositories.analytics import AnalyticsRepository
+from app.repositories.plans import PlanRepository
 from app.repositories.reports import ReportRepository
 from app.repositories.scans import ScanRepository
 from app.repositories.targets import TargetRepository
@@ -41,6 +43,8 @@ class AppState:
         self.settings = settings
         self.engine = make_engine(settings.database_url)
         self.repo = ScanRepository(self.engine)
+        self.plans = PlanRepository(self.engine)
+        self.entitlements = Entitlements(self.plans, settings.default_plan)
         self.targets = TargetRepository(self.engine, settings.target_verification_valid_days)
         self.accounts = AccountRepository(self.engine)
         self.analytics = AnalyticsRepository(self.engine)

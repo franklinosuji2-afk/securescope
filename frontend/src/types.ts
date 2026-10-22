@@ -337,3 +337,21 @@ export interface PlatformHealth {
     retention_days: number;
   };
 }
+
+export interface PlanInfo {
+  plan_id: string;
+  name: string;
+  price_eur_month: number;
+  limits: {
+    websites: number | null;
+    scans_per_month: number | null;
+    history_days: number;
+    can_invite: boolean;
+  };
+  usage: {
+    websites: number;
+    scans_this_period: number;
+    period_start: string;
+    period_end: string;
+  };
+}

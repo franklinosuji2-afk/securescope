@@ -33,7 +33,9 @@ __all__ = ["VERSION", "create_app"]
 
 async def _maintenance_loop(state: AppState) -> None:
     while True:
-        removed = await asyncio.to_thread(state.repo.delete_older_than, state.settings.retention_days)
+        if state.settings.admin_email:
+            await asyncio.to_thread(state.plans.assign_internal_to_operator, state.settings.admin_email)
+        removed = await asyncio.to_thread(state.repo.delete_expired_history)
         if removed:
             log_event(logger, "retention cleanup", removed=removed)
         await asyncio.to_thread(state.accounts.purge_expired_sessions)

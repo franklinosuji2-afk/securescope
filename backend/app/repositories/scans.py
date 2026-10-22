@@ -6,11 +6,15 @@ import json
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import Engine, delete, func, select, update
+from sqlalchemy import Engine, delete, func, or_, select, update
 from sqlalchemy.orm import Session
 
+from app.billing.errors import PlanLimitError
+from app.billing.plans import DEFAULT_PLAN_ID, PLANS
 from app.database.session import make_session_factory
+from app.models.billing import OrganizationPlanRow
 from app.models.scan import FindingRow, FindingStateRow, ReportRow, ScanRow
+from app.repositories.plans import lock_organization
 from app.scanner.fingerprint import fingerprint
 from app.scanner.scoring import count_by_severity
 from app.schemas.scan import (
@@ -64,10 +68,29 @@ class ScanRepository:
         target_url: str,
         host: str,
         target_id: str | None = None,
+        monthly_limit: int | None = None,
+        period_start: datetime | None = None,
     ) -> str:
         scan_id = uuid.uuid4().hex
         now = _now()
         with self._session.begin() as session:
+            if monthly_limit is not None and period_start is not None:
+                # Count and insert under one lock, so simultaneous requests cannot both take the last scan.
+                lock_organization(session, organization_id)
+                used = session.scalar(
+                    select(func.count())
+                    .select_from(ScanRow)
+                    .where(
+                        ScanRow.organization_id == organization_id,
+                        ScanRow.created_at >= period_start,
+                        ScanRow.status != ScanStatus.FAILED.value,
+                    )
+                )
+                if int(used or 0) >= monthly_limit:
+                    raise PlanLimitError(
+                        f"Your plan includes {monthly_limit} scans per month and they are used up. "
+                        "The allowance renews at the start of next month, or you can upgrade."
+                    )
             session.add(
                 ScanRow(
                     id=scan_id,
@@ -277,6 +300,33 @@ class ScanRepository:
             session.execute(delete(ReportRow).where(ReportRow.scan_id.in_(old_ids)))
             result = session.execute(delete(ScanRow).where(ScanRow.created_at < cutoff))
             return int(result.rowcount or 0)  # type: ignore[attr-defined]
+
+    def delete_expired_history(self) -> int:
+        """Deletes scans (with their findings and reports) older than each organization's plan keeps them.
+
+        Organizations without a plan, and any with an unknown plan id, follow the default plan. Scans from before
+        accounts existed (no organization) follow it too."""
+        cutoffs = {plan.id: _now() - timedelta(days=plan.history_days) for plan in PLANS.values()}
+        removed = 0
+        with self._session.begin() as session:
+            for plan_id, cutoff in cutoffs.items():
+                if plan_id == DEFAULT_PLAN_ID:
+                    other = [p for p in PLANS if p != DEFAULT_PLAN_ID]
+                    on_other_plans = select(OrganizationPlanRow.organization_id).where(
+                        OrganizationPlanRow.plan_id.in_(other)
+                    )
+                    belongs = or_(ScanRow.organization_id.is_(None), ScanRow.organization_id.not_in(on_other_plans))
+                else:
+                    belongs = ScanRow.organization_id.in_(
+                        select(OrganizationPlanRow.organization_id).where(OrganizationPlanRow.plan_id == plan_id)
+                    )
+                old = select(ScanRow.id).where(belongs, ScanRow.created_at < cutoff)
+                # Delete findings and reports explicitly so behaviour does not depend on the DB enforcing FKs.
+                session.execute(delete(FindingRow).where(FindingRow.scan_id.in_(old)))
+                session.execute(delete(ReportRow).where(ReportRow.scan_id.in_(old)))
+                result = session.execute(delete(ScanRow).where(belongs, ScanRow.created_at < cutoff))
+                removed += int(result.rowcount or 0)  # type: ignore[attr-defined]
+        return removed
 
     def fail_interrupted(self) -> int:
         """Scans left queued/running by a previous process can never finish; mark them failed."""

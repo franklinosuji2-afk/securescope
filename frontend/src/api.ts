@@ -17,6 +17,7 @@ import type {
   Target,
   User,
   VerificationMethod,
+  PlanInfo,
 } from "./types";
 
 export class ApiError extends Error {
@@ -205,6 +206,13 @@ export const removeMember = (orgId: string, userId: string) =>
     },
   );
 
+export async function getPlan(orgId: string): Promise<PlanInfo | null> {
+  const plan = await request<PlanInfo>(
+    `/organizations/${encodeURIComponent(orgId)}/plan`,
+  );
+  // Anything that is not a complete plan is treated as "unknown"; the server enforces limits regardless.
+  return plan && plan.limits && plan.usage ? plan : null;
+}
 export const listInvitations = (orgId: string) =>
   request<Invitation[]>(
     `/organizations/${encodeURIComponent(orgId)}/invitations`,

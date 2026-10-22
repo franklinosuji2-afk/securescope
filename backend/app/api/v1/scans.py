@@ -8,6 +8,8 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
 from app.api.deps import OrgContext, StateDep, client_key, download_organization_context, request_id, require
+from app.billing.errors import PlanLimitError
+from app.billing.plans import current_period
 from app.core.logging import log_event
 from app.reporting import reports
 from app.reporting.pdf import affected_url
@@ -79,14 +81,21 @@ async def _start_scan(state: StateDep, request: Request, ctx: OrgContext, url: s
     state.client_limiter.record(client)
     state.target_limiter.record(target_key)
 
-    scan_id = await asyncio.to_thread(
-        state.repo.create_scan,
-        ctx.organization_id,
-        ctx.principal.user.id,
-        target.url,
-        target.host,
-        verified.id,
-    )
+    plan = await state.entitlements.plan_for_async(ctx.organization_id)
+    period_start, _ = current_period(datetime.now(UTC))
+    try:
+        scan_id = await asyncio.to_thread(
+            state.repo.create_scan,
+            ctx.organization_id,
+            ctx.principal.user.id,
+            target.url,
+            target.host,
+            verified.id,
+            plan.scans_per_month,
+            period_start,
+        )
+    except PlanLimitError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     await _audit(state, request, ctx, "scan.created", scan_id)
     task = asyncio.create_task(
         execute_scan(scan_id, target.url, target.host, state.settings, state.repo, state.semaphore)

@@ -8,7 +8,7 @@
 
 **Not stored:** response bodies, cookie values, credentials, or a second copy of a report outside the database.
 
-**Retention:** scans older than `SECURESCOPE_RETENTION_DAYS` (default 30) are deleted by a background job at start-up and periodically, **together with their reports**. Deleting a scan deletes its report. Scans interrupted by a restart are marked failed. Used, revoked and expired invitations are deleted a month after they expire.
+**Retention:** scans older than the workspace's plan window (Free 30 days, Professional 90, Agency 365; see `PLANS.md`) are deleted by a background job at start-up and periodically, **together with their reports**. Deleting a scan deletes its report. Scans interrupted by a restart are marked failed. Used, revoked and expired invitations are deleted a month after they expire.
 
 **Deletion on demand:** under **Account** a person can delete their own account (password and the word DELETE required). A workspace nobody else belongs to is erased with everything in it: sites, scans, findings, reports, invitations and its audit log. In a shared workspace only that person's membership goes; what they did there stays but no longer points at them. A person who is the only owner of a workspace other people still use must hand over ownership first. Deletion is immediate and cannot be undone; the audit event `account.deleted` is written without the email address.
 

@@ -15,7 +15,6 @@ class Settings(BaseSettings):
     # Storage
     # PostgreSQL in Docker Compose/production. Tests may use SQLite; SQLite is not supported in production.
     database_url: str = "postgresql+psycopg://securescope:change-me@localhost:5432/securescope"
-    retention_days: int = Field(30, ge=1, le=3650)
 
     # HTTP / CORS
     cors_origins: list[str] = ["http://localhost:8080", "http://localhost:5173"]
@@ -81,6 +80,8 @@ class Settings(BaseSettings):
     # Website analytics (cookieless, public pages only). Only the signed-in account with this email
     # address, once confirmed, may read it. Leave empty to switch the dashboards off for everyone.
     admin_email: str | None = None
+    # Plan for organizations that have none assigned. Production leaves this unset (Free); tests set it.
+    default_plan: str | None = None
     analytics_enabled: bool = True
     # Mixed into the daily visitor hash. Set a long random value so the hash cannot be reproduced from
     # an address and browser string alone; if empty a random value is generated at start-up.

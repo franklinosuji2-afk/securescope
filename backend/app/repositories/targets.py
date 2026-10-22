@@ -6,11 +6,13 @@ import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import Engine, delete, select, update
+from sqlalchemy import Engine, delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 
+from app.billing.errors import PlanLimitError
 from app.database.session import make_session_factory
 from app.models.target import TargetRow
+from app.repositories.plans import lock_organization
 from app.schemas.target import TargetOut
 from app.security.ownership import challenge_value, dns_record_name, http_file_url
 
@@ -72,7 +74,9 @@ class TargetRepository:
         self._session = make_session_factory(engine)
         self._valid_days = verification_valid_days
 
-    def create(self, organization_id: str, hostname: str, created_by: str) -> TargetOut:
+    def create(
+        self, organization_id: str, hostname: str, created_by: str, max_websites: int | None = None
+    ) -> TargetOut:
         now = _now()
         row = TargetRow(
             id=uuid.uuid4().hex,
@@ -85,6 +89,17 @@ class TargetRepository:
         )
         try:
             with self._session.begin() as session:
+                if max_websites is not None:
+                    # Count and insert under one lock, so simultaneous requests cannot both take the last slot.
+                    lock_organization(session, organization_id)
+                    used = session.scalar(
+                        select(func.count()).select_from(TargetRow).where(TargetRow.organization_id == organization_id)
+                    )
+                    if int(used or 0) >= max_websites:
+                        raise PlanLimitError(
+                            f"Your plan includes {max_websites} website{'s' if max_websites != 1 else ''}. "
+                            "Remove one or upgrade to add another."
+                        )
                 session.add(row)
                 session.flush()
                 return to_out(row, self._valid_days)
