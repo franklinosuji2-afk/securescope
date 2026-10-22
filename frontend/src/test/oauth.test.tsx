@@ -44,6 +44,16 @@ describe("sign in with Google or GitHub", () => {
       screen.getByRole("link", { name: "Continue with GitHub" }),
     ).toHaveAttribute("href", "/api/v1/auth/oauth/github/start");
     expect(screen.getByText(/signing in creates one/i)).toBeInTheDocument();
+    // Each button carries an icon that screen readers skip; the text alone names the action.
+    for (const link of [
+      google,
+      screen.getByRole("link", { name: "Continue with GitHub" }),
+    ]) {
+      expect(link.querySelector(".provider-icon")).toHaveAttribute(
+        "aria-hidden",
+        "true",
+      );
+    }
   });
 
   it("offers them on the sign-up page too", async () => {

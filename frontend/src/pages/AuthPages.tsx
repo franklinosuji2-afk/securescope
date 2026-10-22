@@ -7,6 +7,7 @@ import { forgetInvite, rememberInvite } from "../pendingInvite";
 import { buildHash, parseOAuthError, type OAuthErrorCode } from "../router";
 import type { InvitationPreview, Role } from "../types";
 import { LegalLinks } from "./Legal";
+import ProviderIcon from "../components/ProviderIcon";
 
 function Shell({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -61,7 +62,10 @@ function SocialSignIn({ verb }: { verb: string }) {
     <div className="social">
       {providers.map((p) => (
         <a key={p} className="btn-ghost social-btn" href={api.oauthStartUrl(p)}>
-          {verb} with {PROVIDER_LABEL[p]}
+          <ProviderIcon provider={p} />
+          <span>
+            {verb} with {PROVIDER_LABEL[p]}
+          </span>
         </a>
       ))}
       <p className="muted small">
