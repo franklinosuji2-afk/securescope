@@ -27,12 +27,13 @@ logger = logging.getLogger("securescope.api")
 router = APIRouter(prefix="/api/v1")
 
 
-@router.get("/health", response_model=HealthResponse, tags=["health"])
+# HEAD as well as GET: uptime monitors check with HEAD by default.
+@router.api_route("/health", methods=["GET", "HEAD"], response_model=HealthResponse, tags=["health"])
 def health() -> HealthResponse:
     return HealthResponse(version=VERSION)
 
 
-@router.get("/ready", tags=["health"])
+@router.api_route("/ready", methods=["GET", "HEAD"], tags=["health"])
 async def ready(state: StateDep, response: Response) -> dict[str, str]:
     """Readiness: the database must answer. No internals are exposed."""
     try:

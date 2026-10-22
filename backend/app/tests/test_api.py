@@ -24,6 +24,14 @@ def test_health(strict_client: TestClient) -> None:
     assert body == {"status": "ok", "version": "0.11.0"}
 
 
+def test_health_and_ready_also_answer_head_requests(strict_client: TestClient) -> None:
+    # Uptime monitors check with HEAD by default; a 405 there would raise a false outage alert.
+    for path in ("/api/v1/health", "/api/v1/ready"):
+        response = strict_client.head(path)
+        assert response.status_code == 200, path
+        assert response.content == b""
+
+
 def test_security_headers_on_api_responses(strict_client: TestClient) -> None:
     response = strict_client.get("/api/v1/health")
     assert response.headers["x-content-type-options"] == "nosniff"
