@@ -1,3 +1,4 @@
+import BrandMark from "./components/BrandMark";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./auth";
 import { useTheme } from "./theme";
@@ -196,22 +197,7 @@ export default function App() {
       <aside className={`rail${menuOpen ? " rail-open" : ""}`}>
         <div className="rail-top">
           <div className="brand">
-            <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
-              <path
-                d="M16 3 5 7v8c0 7 4.6 11.7 11 14 6.4-2.3 11-7 11-14V7L16 3Z"
-                fill="none"
-                strokeWidth="2.2"
-                style={{ stroke: "var(--accent-soft)" }}
-              />
-              <path
-                d="m11 16 4 4 6-8"
-                fill="none"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ stroke: "var(--ok)" }}
-              />
-            </svg>
+            <BrandMark className="brand-mark" shield="var(--accent-soft)" />
             SecureScope
           </div>
           <button

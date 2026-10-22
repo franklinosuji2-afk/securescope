@@ -20,6 +20,10 @@ const AVAILABLE = [
     text: "Send a client one read-only link to one report. It expires in 7, 30 or 90 days, can be turned off at any time, and shows only that report. No account needed.",
   },
   {
+    title: "Scheduled scans with email and webhook alerts",
+    text: "Scan each site daily or weekly. You are told only when something new or worse appears, by email and, if you add an address, by a signed message to your own server. The Professional plan includes this too.",
+  },
+  {
     title: "Read-only client access",
     text: "Invite a client into the workspace as a viewer. They can read results and export reports, but cannot scan, change anything or see other clients.",
   },

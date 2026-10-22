@@ -1,3 +1,4 @@
+import BrandMark from "../components/BrandMark";
 import type { ReactNode } from "react";
 import type { Page } from "../router";
 import { useAuth } from "../auth";
@@ -36,22 +37,7 @@ function Doc({
       <div className="legal-shell">
         <header className="legal-head">
           <a className="legal-brand" href={home}>
-            <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
-              <path
-                d="M16 3 5 7v8c0 7 4.6 11.7 11 14 6.4-2.3 11-7 11-14V7L16 3Z"
-                fill="none"
-                strokeWidth="2.2"
-                style={{ stroke: "var(--accent)" }}
-              />
-              <path
-                d="m11 16 4 4 6-8"
-                fill="none"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ stroke: "var(--ok)" }}
-              />
-            </svg>
+            <BrandMark className="brand-mark" shield="var(--accent)" />
             SecureScope
           </a>
           <a className="small" href={home}>

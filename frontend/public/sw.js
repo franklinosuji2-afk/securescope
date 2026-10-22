@@ -1,6 +1,6 @@
 // Minimal service worker so the app can be installed and opens quickly.
 // It caches only the static app shell. It never touches /api, so no account data is ever stored offline.
-const CACHE = "securescope-shell-v3";
+const CACHE = "securescope-shell-v4";
 // Fixed files only. The page itself ("/") is stored after each successful visit, never frozen here, so
 // the offline copy is always the version that was last online.
 const SHELL = [

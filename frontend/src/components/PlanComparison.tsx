@@ -104,6 +104,12 @@ const GROUPS: Group[] = [
         pro: true,
         agency: true,
       },
+      {
+        label: "Signed webhook alerts to up to 3 HTTPS addresses",
+        free: false,
+        pro: true,
+        agency: true,
+      },
     ],
   },
   {
@@ -155,7 +161,7 @@ const GROUPS: Group[] = [
   },
 ];
 
-const PLANNED = ["API and webhooks"];
+const PLANNED = ["A public API"];
 
 const NOT_OFFERED = [
   "Active exploit scanners (ZAP, Nuclei, OpenVAS) or port scanning",

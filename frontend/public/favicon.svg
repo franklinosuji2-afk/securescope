@@ -6,9 +6,9 @@
 <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2dd4bf" stop-opacity="0.20"/><stop offset="1" stop-color="#0f766e" stop-opacity="0.06"/></linearGradient>
 </defs>
 <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-
-<g transform="translate(-30.72 -21.76) scale(1.12)">
+<circle cx="256" cy="256" r="256" fill="url(#glow)" clip-path="inset(0 round 112)"/>
+<g transform="translate(256 259) scale(0.95) translate(-256 -256)">
 <path d="M256 64 112 118v118c0 100 61 164 144 212 83-48 144-112 144-212V118L256 64Z" fill="url(#fill)" stroke="url(#edge)" stroke-width="22" stroke-linejoin="round"/>
-<path d="m188 262 52 52 90-112" fill="none" stroke="#34d399" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(256 262) scale(14) translate(-16 -15.75)"><path d="M20.4 11.3C19.5 10 17.9 9.2 16 9.2c-2.4 0-4.2 1.2-4.2 3.1 0 1.9 1.6 2.6 4.2 3.3 2.6.7 4.2 1.5 4.2 3.5 0 1.9-1.8 3.2-4.2 3.2-2.1 0-3.8-.9-4.7-2.4" fill="none" stroke="#34d399" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></g>
 </g>
 </svg>
