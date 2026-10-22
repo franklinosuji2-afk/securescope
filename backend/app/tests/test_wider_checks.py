@@ -266,3 +266,42 @@ def test_observe_dns_asks_only_for_the_verified_domain() -> None:
         ("example.com", "TXT"),
     ]
     assert observation.domain == "example.com"
+
+
+# --- the report must not call a check passed when it has raised a note -------------------------------------
+
+
+def test_notes_that_mean_not_done_yet_are_not_listed_as_passed(db_url: str) -> None:
+    from app.reporting import reports
+    from app.tests.test_db_and_reports import completed_detail
+
+    detail = completed_detail(db_url)
+    assert detail.metadata is not None
+    probes = clean_probes(**{"/robots.txt": probe("/robots.txt", 200, b"Disallow: /admin\n")})
+    found = assess(page(GOOD_HEADERS), good_tls(), probes, dns(dmarc=ok("v=DMARC1; p=none")))
+    detail = detail.model_copy(
+        update={
+            "findings": found.findings,
+            "metadata": detail.metadata.model_copy(update={"checks_run": found.checks_run}),
+        }
+    )
+    passed = reports.passed_checks(detail)
+    for label in (
+        "A CAA record limits who can issue certificates",
+        "DNSSEC is enabled for the domain",
+        "A DMARC policy is published",
+        "robots.txt and sitemap.xml do not point at sensitive paths",
+    ):
+        assert label not in passed
+    assert "An SPF record limits who can send mail for the domain" not in passed  # the dns() helper has none
+    assert "The page loads nothing over plain HTTP" in passed
+
+
+def test_the_limits_in_reports_describe_the_checks_that_really_run() -> None:
+    from app.reporting.reports import LIMITS
+    from app.scanner.checks import PROBE_PATHS
+
+    text = " ".join(LIMITS)
+    assert "Five fixed paths" in text and len(PROBE_PATHS) == 5
+    assert all(path in text for path in PROBE_PATHS)
+    assert "DNS" in text

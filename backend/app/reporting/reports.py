@@ -15,13 +15,16 @@ DISCLAIMER = (
 
 
 LIMITS = (
-    "Passive checks only: one page load of the address you scanned, plus any same-site redirects.",
+    "Passive checks only: one page load of the address you scanned, plus any same-site redirects, and the "
+    "fixed requests listed below.",
     "Only the response headers and the start of the page were examined; other pages, forms and APIs were not.",
     "No login, no active testing, no vulnerability exploitation, no scan of subdomains.",
     "TLS: one verified connection is made to read the certificate and negotiated protocol. This is not a "
     "full TLS test: supported protocol versions, cipher suites and known TLS vulnerabilities are not scanned.",
-    "Three fixed paths (/.well-known/security.txt, /.git/HEAD, /.env) are requested once each; "
-    "no other paths are guessed or crawled.",
+    "Five fixed paths (/.well-known/security.txt, /.git/HEAD, /.env, /robots.txt, /sitemap.xml) are "
+    "requested once each; no other paths are guessed or crawled.",
+    "For a main domain, its public DNS records (SPF, DMARC, CAA and DNSSEC) are looked up. Subdomains skip "
+    "these checks, and a lookup that fails is shown as not checked.",
 )
 
 

@@ -66,12 +66,62 @@ const CHECKS: Record<
     why: "Tells researchers how to report a vulnerability to you.",
     prefixes: ["SS-DISC-SEC-"],
   },
+  "mixed-content": {
+    label: "The page loads nothing over plain HTTP",
+    why: "Scripts, forms or styles fetched over HTTP on an HTTPS page can be changed by anyone on the network.",
+    prefixes: ["SS-MIX-"],
+  },
+  sri: {
+    label: "Scripts and styles from other sites carry integrity hashes",
+    why: "An integrity hash makes the browser refuse a third-party file that was changed.",
+    prefixes: ["SS-SRI-"],
+  },
+  cors: {
+    label: "No risky cross-origin (CORS) headers",
+    why: "Wildcard or null origins combined with credentials let other websites read private responses.",
+    prefixes: ["SS-CORS-"],
+  },
+  "robots-sitemap": {
+    label: "robots.txt and sitemap.xml do not point at sensitive paths",
+    why: "These public files sometimes list admin, backup or staging paths that are better kept unannounced.",
+    prefixes: ["SS-DISC-ROBOTS-", "SS-DISC-SITEMAP-"],
+  },
+  "email-spf": {
+    label: "An SPF record limits who can send mail for the domain",
+    why: "Without a strict SPF record, mail pretending to come from your domain is easier to send.",
+    prefixes: ["SS-DNS-SPF-"],
+  },
+  "email-dmarc": {
+    label: "A DMARC policy is published",
+    why: "DMARC tells receiving mail servers what to do with mail that fails the domain's checks.",
+    prefixes: ["SS-DNS-DMARC-"],
+  },
+  "dns-caa": {
+    label: "A CAA record limits who can issue certificates",
+    why: "It narrows which certificate authorities may issue certificates for your domain.",
+    prefixes: ["SS-DNS-CAA-"],
+  },
+  dnssec: {
+    label: "DNSSEC is enabled for the domain",
+    why: "It lets resolvers detect forged DNS answers.",
+    prefixes: ["SS-DNS-DNSSEC-"],
+  },
   "scan-scope": {
     label: "Scan stayed on your verified site",
     why: "The scan never followed a redirect to a site you did not authorize.",
     prefixes: ["SS-SCOPE-"],
   },
 };
+
+// Keep in step with NOT_PASSED_AT_INFO in backend/app/scanner/checks.py.
+const NOT_PASSED_AT_INFO = [
+  "SS-DISC-SEC-",
+  "SS-DISC-ROBOTS-",
+  "SS-DISC-SITEMAP-",
+  "SS-DNS-DMARC-",
+  "SS-DNS-CAA-",
+  "SS-DNS-DNSSEC-",
+];
 
 /** Every check that ran on this scan and whether it found something. */
 export default function Checklist({ scan }: { scan: ScanDetail }) {
@@ -84,9 +134,12 @@ export default function Checklist({ scan }: { scan: ScanDetail }) {
     const matching = scan.findings.filter((f) =>
       info.prefixes.some((p) => f.id.startsWith(p)),
     );
-    // Like the exported report: informational findings are notes and do not fail a check.
+    // Like the exported report: informational findings are notes and do not fail a check,
+    // except for the checks whose informational finding still means "not done yet".
     const hits = matching.filter(
-      (f) => f.severity !== "info" || f.id.startsWith("SS-DISC-SEC-"),
+      (f) =>
+        f.severity !== "info" ||
+        NOT_PASSED_AT_INFO.some((p) => f.id.startsWith(p)),
     );
     const notes = matching.length - hits.length;
     return { name, info, hits, notes };

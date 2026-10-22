@@ -396,7 +396,14 @@ def check_off_origin_redirect(result: FetchResult) -> list[Finding]:
 
 
 # Informational findings from these checks still mean the check did not pass.
-NOT_PASSED_AT_INFO: tuple[str, ...] = ("SS-DISC-SEC-",)
+NOT_PASSED_AT_INFO: tuple[str, ...] = (
+    "SS-DISC-SEC-",
+    "SS-DISC-ROBOTS-",
+    "SS-DISC-SITEMAP-",
+    "SS-DNS-DMARC-",
+    "SS-DNS-CAA-",
+    "SS-DNS-DNSSEC-",
+)
 
 # Paths requested once each, in addition to the page itself. Fixed here, never taken from user input.
 PROBE_PATHS: tuple[str, ...] = (

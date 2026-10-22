@@ -341,8 +341,9 @@ export default function SampleReport() {
                 stays on that site.
               </li>
               <li>
-                It reads the home page and three fixed paths. It does not crawl
-                the whole site or test your application’s logic.
+                It reads the home page, five fixed paths and, for a main domain,
+                its public DNS records. It does not crawl the whole site or test
+                your application’s logic.
               </li>
               <li>
                 A clean report does not mean a site is secure. It means these
