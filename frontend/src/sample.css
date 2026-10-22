@@ -22,23 +22,23 @@
   background: color-mix(in srgb, var(--accent-soft) 14%, transparent);
 }
 .sample-notice {
-  margin: 24px 0 8px;
-  padding: 14px 16px;
+  margin: 28px 0 36px;
+  padding: 16px 20px;
   border: 1px dashed var(--sev-medium);
   border-radius: 12px;
   background: color-mix(in srgb, var(--sev-medium) 8%, transparent);
   font-size: 0.95rem;
 }
 .sample-title h1 {
-  margin: 4px 0 16px;
+  margin: 14px 0 28px;
   font-size: clamp(1.9rem, 1.3rem + 2vw, 2.6rem);
   line-height: 1.15;
 }
 .sample-meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px 24px;
-  margin: 0 0 24px;
+  gap: 20px 32px;
+  margin: 0 0 48px;
 }
 .sample-meta dt {
   color: var(--muted);
@@ -47,14 +47,14 @@
   letter-spacing: 0.04em;
 }
 .sample-meta dd {
-  margin: 2px 0 0;
+  margin: 6px 0 0;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
 .sample-layout {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
-  gap: 32px;
+  gap: 40px;
   align-items: start;
 }
 .sample-toc {
@@ -62,7 +62,7 @@
   top: 84px;
 }
 .sample-toc h2 {
-  margin: 0 0 8px;
+  margin: 0 0 14px;
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -87,12 +87,19 @@
   background: color-mix(in srgb, var(--accent-soft) 12%, transparent);
 }
 .sample-body > section {
-  padding: 8px 0 28px;
+  padding: 8px 0 48px;
   scroll-margin-top: 80px;
 }
 .sample-body h2 {
-  margin: 0 0 12px;
+  margin: 0 0 24px;
   font-size: 1.5rem;
+}
+.sample-body > section > p {
+  margin: 0 0 14px;
+  line-height: 1.65;
+}
+.sample-body > section > p:first-of-type {
+  margin-top: 0;
 }
 .sample-body section:focus {
   outline: none;
@@ -102,7 +109,8 @@
   gap: 24px;
   align-items: center;
   flex-wrap: wrap;
-  margin: 0 0 16px;
+  margin: 0 0 28px;
+  padding: 20px 24px;
 }
 .sample-grade {
   display: grid;
@@ -134,8 +142,8 @@
 .sample-two {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin: 12px 0;
+  gap: 28px;
+  margin: 20px 0;
 }
 .sample-table {
   width: 100%;
@@ -144,12 +152,12 @@
 .sample-table caption {
   text-align: left;
   font-weight: 600;
-  padding-bottom: 6px;
+  padding-bottom: 12px;
 }
 .sample-table th,
 .sample-table td {
   text-align: left;
-  padding: 6px 8px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   font-weight: 400;
 }
@@ -158,28 +166,28 @@
   font-size: 0.8rem;
 }
 .sample-group h3 {
-  margin: 20px 0 10px;
+  margin: 32px 0 16px;
   font-size: 1.05rem;
 }
 .sample-finding {
-  margin: 0 0 14px;
+  margin: 0 0 20px;
 }
 .sample-finding h4 {
-  margin: 0 0 2px;
+  margin: 8px 0 4px;
   font-size: 1.1rem;
 }
 .sample-finding dl {
-  margin: 12px 0 0;
+  margin: 18px 0 0;
 }
 .sample-finding dt {
-  margin-top: 12px;
+  margin-top: 16px;
   color: var(--muted);
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 .sample-finding dd {
-  margin: 2px 0 0;
+  margin: 4px 0 0;
   overflow-wrap: anywhere;
 }
 .sample-finding ol {
@@ -188,15 +196,19 @@
 }
 .sample-ticks,
 .sample-list {
-  margin: 8px 0;
+  margin: 14px 0;
   padding-left: 22px;
 }
 .sample-ticks li,
 .sample-list li {
-  margin: 4px 0;
+  margin: 8px 0;
 }
 .sample-cta {
   text-align: left;
+  padding: 28px;
+}
+.sample-cta h2 {
+  margin-bottom: 14px;
 }
 .sample-foot {
   margin-top: 24px;
@@ -209,7 +221,7 @@
 @media (max-width: 860px) {
   .sample-layout {
     grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
+    gap: 24px;
   }
   .sample-toc {
     position: static;

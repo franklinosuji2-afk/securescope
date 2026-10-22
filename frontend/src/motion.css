@@ -121,6 +121,8 @@ textarea:focus-visible {
   /* Floating cards: every card on the public pages, plus the app's summary cards. Forms and other plain
      cards in the signed-in app stay still on purpose. */
   .landing .card:not(.landing-final):not(.landing-sample):hover,
+  .landing .sample-notice:hover,
+  .landing-numbers > div:hover,
   .landing-steps > li:hover,
   .summary-card:hover {
     transform: translateY(-4px);
@@ -129,6 +131,10 @@ textarea:focus-visible {
   }
   .landing-plan-soon:hover {
     opacity: 1;
+  }
+  .landing .landing-final:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--lift-shadow);
   }
   .bento-card {
     transition-timing-function: var(--ease-out);
@@ -205,4 +211,20 @@ textarea:focus-visible {
     transform var(--dur) var(--ease-out),
     box-shadow var(--dur) var(--ease-out),
     border-color var(--dur) var(--ease-out);
+}
+
+/* Surfaces on the public pages that are not .card still need the same lift transition, or they would jump. */
+.landing .sample-notice,
+.landing-numbers > div,
+.landing .landing-final {
+  transition:
+    transform var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out),
+    background-color var(--dur) var(--ease-out);
+}
+.landing-numbers > div {
+  padding: 14px 16px;
+  border: 1px solid transparent;
+  border-radius: 12px;
 }

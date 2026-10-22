@@ -844,11 +844,18 @@
 .theme-toggle {
   display: inline-grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   padding: 0;
   border-radius: 10px;
+  color: var(--text);
 }
 .theme-toggle svg {
+  width: 20px;
+  height: 20px;
   stroke: currentColor;
+  transition: transform 360ms var(--ease-out, ease);
+}
+.theme-toggle:hover svg {
+  transform: rotate(24deg);
 }

@@ -255,3 +255,85 @@ test("the public pages never overflow between phone and desktop widths", async (
     }
   }
 });
+
+test.describe("floating cards", () => {
+  test.use({ reducedMotion: "no-preference" });
+  const cases: [string, string[]][] = [
+    [
+      "",
+      [
+        ".landing-sample",
+        ".landing-card",
+        ".landing-numbers > div",
+        ".landing-final",
+      ],
+    ],
+    [
+      "sample-report",
+      [
+        ".sample-notice",
+        ".sample-toc",
+        ".sample-score",
+        ".sample-finding",
+        ".sample-cta",
+      ],
+    ],
+    ["agency-features", [".landing-card", ".sample-cta"]],
+  ];
+  for (const [route, selectors] of cases) {
+    test(`cards on /${route || "home"} lift under the pointer`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(`/#/${route}`);
+      for (const selector of selectors) {
+        const el = page.locator(selector).first();
+        await el.evaluate((node) => node.scrollIntoView({ block: "center" }));
+        await page.waitForTimeout(100);
+        const box = await el.boundingBox();
+        expect(box, selector).not.toBeNull();
+        await page.mouse.move(
+          box!.x + box!.width / 2,
+          box!.y + Math.min(box!.height / 2, 40),
+        );
+        await expect
+          .poll(
+            () =>
+              el.evaluate((node) => {
+                const cs = getComputedStyle(node);
+                return cs.transform !== "none";
+              }),
+            { message: `${selector} should lift on hover` },
+          )
+          .toBe(true);
+        await page.mouse.move(0, 0);
+      }
+    });
+  }
+
+  test("the header theme button matches the buttons beside it", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/#/sample-report");
+    const toggle = page.getByRole("button", { name: /Switch to/ });
+    const signIn = page.getByRole("link", { name: "Sign in" }).first();
+    const t = await toggle.boundingBox();
+    const s = await signIn.boundingBox();
+    expect(Math.abs(t!.height - s!.height)).toBeLessThanOrEqual(3);
+    await toggle.click();
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-theme",
+      /light|dark/,
+    );
+    const before = await page.evaluate(
+      () => getComputedStyle(document.body).backgroundColor,
+    );
+    await toggle.click();
+    await expect
+      .poll(() =>
+        page.evaluate(() => getComputedStyle(document.body).backgroundColor),
+      )
+      .not.toBe(before);
+  });
+});
