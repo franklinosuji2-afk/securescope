@@ -11,6 +11,7 @@ class PlanLimits(BaseModel):
     history_days: int
     can_invite: bool
     client_workspace: bool = False
+    scheduled_scans: bool = False
 
 
 class PlanUsage(BaseModel):

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 export type Theme = "dark" | "light";
 const KEY = "securescope-theme";
@@ -26,22 +26,37 @@ function apply(theme: Theme): void {
   document.documentElement.setAttribute("data-theme", theme);
 }
 
-/** Follows the system setting until the person picks a theme. */
+let current: Theme | null = null;
+const listeners = new Set<() => void>();
+
+function read(): Theme {
+  if (current === null) {
+    current = storedTheme() ?? systemTheme();
+    apply(current);
+  }
+  return current;
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/** Follows the system setting until the person picks a theme. Every toggle on the page shares one choice. */
 export function useTheme(): { theme: Theme; toggle: () => void } {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const initial = storedTheme() ?? systemTheme();
-    apply(initial);
-    return initial;
-  });
+  const theme = useSyncExternalStore(subscribe, read, () => "dark" as Theme);
   const toggle = useCallback(() => {
-    const next: Theme = theme === "dark" ? "light" : "dark";
+    const next: Theme = read() === "dark" ? "light" : "dark";
+    current = next;
     apply(next);
     try {
       window.localStorage.setItem(KEY, next);
     } catch {
       /* ignore */
     }
-    setTheme(next);
-  }, [theme]);
+    listeners.forEach((listener) => listener());
+  }, []);
   return { theme, toggle };
 }

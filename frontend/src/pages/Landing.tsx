@@ -1,3 +1,4 @@
+import ThemeToggle from "../components/ThemeToggle";
 import PlanComparison from "../components/PlanComparison";
 import { useEffect, useRef, useState } from "react";
 import { buildHash } from "../router";
@@ -287,8 +288,13 @@ export default function Landing() {
             <a className="landing-menu-signin" href={login}>
               Sign in
             </a>
+            <div className="landing-menu-theme">
+              <ThemeToggle />
+              <span className="muted small">Light or dark theme</span>
+            </div>
           </nav>
           <div className="landing-actions">
+            <ThemeToggle />
             <button
               ref={menuButton}
               type="button"
@@ -387,6 +393,9 @@ export default function Landing() {
                   <span>No security.txt contact file</span>
                 </li>
               </ul>
+              <a className="landing-sample-link" href="#/sample-report">
+                Open the full sample report <span aria-hidden="true">→</span>
+              </a>
             </figure>
           </section>
 

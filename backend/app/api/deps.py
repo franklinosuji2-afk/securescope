@@ -23,10 +23,12 @@ from app.repositories.analytics import AnalyticsRepository
 from app.repositories.plans import PlanRepository
 from app.repositories.reports import ReportRepository
 from app.repositories.scans import ScanRepository
+from app.repositories.schedules import ScheduleRepository
 from app.repositories.targets import TargetRepository
 from app.security.ownership import TxtLookup, system_txt_lookup
 from app.security.permissions import Permission, Role, can
 from app.security.tokens import constant_time_equal
+from app.services.alerts import AlertService
 from app.services.auth import AuthService
 from app.services.invitations import InvitationService
 from app.services.mailer import Mailer, build_mailer
@@ -91,6 +93,9 @@ class AppState:
         self.report_semaphore = asyncio.Semaphore(1)
         self.report_limiter = SlidingWindowLimiter(30)
         self.share_limiter = SlidingWindowLimiter(120)
+        self.schedules = ScheduleRepository(self.engine)
+        self.alerts = AlertService(self.accounts, self.auth.mailer, settings)
+        self.cron_limiter = SlidingWindowLimiter(60)
         self.password_change_limiter = SlidingWindowLimiter(5, FIFTEEN_MIN)
         self.metrics = RequestMetrics()
         self.verify_limiter = SlidingWindowLimiter(settings.target_verifications_per_target_per_hour)

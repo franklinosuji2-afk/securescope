@@ -10,6 +10,7 @@ Every workspace (organization) has one plan. The server decides what the plan al
 | Scan history kept | 30 days | 90 days | 365 days |
 | Invite teammates and clients | no | no | yes |
 | Client workspace (clients, dashboard, agency name on PDFs, share links) | no | no | yes |
+| Scheduled scans (daily or weekly) with email alerts | no | yes | yes |
 
 An internal plan (no limits, 365 days, can invite) is given automatically to workspaces owned by the operator (`SECURESCOPE_ADMIN_EMAIL`). It cannot be bought. The prices are assumptions to test, not commitments.
 

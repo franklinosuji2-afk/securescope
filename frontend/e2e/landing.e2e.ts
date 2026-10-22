@@ -166,3 +166,92 @@ test("the plan comparison table is accessible and honest about plans", async ({
   );
   expect(overflow).toBe(false);
 });
+
+test("the home page has a theme toggle that switches and remembers the theme", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/#/");
+  const html = page.locator("html");
+  await expect(html).toHaveAttribute("data-theme", "dark");
+  await page.getByRole("button", { name: "Switch to light theme" }).click();
+  await expect(html).toHaveAttribute("data-theme", "light");
+  await page.reload();
+  await expect(html).toHaveAttribute("data-theme", "light");
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await expect(html).toHaveAttribute("data-theme", "dark");
+});
+
+test("the header never wraps or overflows between phone and desktop widths", async ({
+  page,
+}) => {
+  await page.goto("/#/");
+  for (const width of [320, 861, 900, 1024, 1241, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            document.documentElement.scrollWidth -
+            document.documentElement.clientWidth,
+        ),
+      )
+      .toBeLessThanOrEqual(0);
+    if (width >= 1241) {
+      const heights = await page
+        .locator(".landing-links > *")
+        .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
+      // Every link stays on one line.
+      for (const h of heights) expect(h).toBeLessThan(48);
+    }
+  }
+});
+
+test("the sample report card links to the full sample report", async ({
+  page,
+}) => {
+  await page.goto("/#/");
+  await page.getByRole("link", { name: /Open the full sample report/ }).click();
+  await expect(page).toHaveURL(/#\/sample-report/);
+});
+
+test("the numbers in The Answer keep clear space around their labels", async ({
+  page,
+}) => {
+  await page.goto("/#/");
+  const gap = await page
+    .locator(".landing-numbers > div")
+    .first()
+    .evaluate((el) => {
+      const dt = el.querySelector("dt")!.getBoundingClientRect();
+      const dd = el.querySelector("dd")!.getBoundingClientRect();
+      const note = document
+        .querySelector(".landing-fineprint")!
+        .getBoundingClientRect();
+      return { between: dd.top - dt.bottom, below: note.top - dd.bottom };
+    });
+  expect(gap.between).toBeGreaterThanOrEqual(12);
+  expect(gap.below).toBeGreaterThanOrEqual(24);
+});
+
+test("the public pages never overflow between phone and desktop widths", async ({
+  page,
+}) => {
+  for (const route of ["/#/sample-report", "/#/agency-features"]) {
+    await page.goto(route);
+    for (const width of [320, 861, 900, 1024, 1101, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect
+        .poll(
+          () =>
+            page.evaluate(
+              () =>
+                document.documentElement.scrollWidth -
+                document.documentElement.clientWidth,
+            ),
+          { message: `${route} at ${width}px` },
+        )
+        .toBeLessThanOrEqual(0);
+    }
+  }
+});

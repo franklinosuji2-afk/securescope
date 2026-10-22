@@ -90,6 +90,23 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    title: "Monitoring",
+    rows: [
+      {
+        label: "Scheduled scans, daily or weekly",
+        free: false,
+        pro: true,
+        agency: true,
+      },
+      {
+        label: "Email alert only when something new or worse appears",
+        free: false,
+        pro: true,
+        agency: true,
+      },
+    ],
+  },
+  {
     title: "Teams and agencies",
     rows: [
       {
@@ -138,11 +155,7 @@ const GROUPS: Group[] = [
   },
 ];
 
-const PLANNED = [
-  "Scheduled scans",
-  "Email alerts when a scan finds something new",
-  "API and webhooks",
-];
+const PLANNED = ["API and webhooks"];
 
 const NOT_OFFERED = [
   "Active exploit scanners (ZAP, Nuclei, OpenVAS) or port scanning",

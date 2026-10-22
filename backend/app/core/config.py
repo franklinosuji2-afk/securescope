@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     # start-up, so links stop working after a restart (users simply ask for a new one).
     download_signing_key: SecretStr | None = None
     download_url_ttl_seconds: int = Field(300, ge=30, le=3600)
+    # Shared secret for the scheduler: the Cloudflare cron presents it to POST /api/v1/internal/run-due. Without
+    # it the endpoint does not exist (404), so scheduled scans are simply off.
+    cron_secret: SecretStr | None = None
     # Base URL used in verification/reset links written to the (development) mailer log.
     public_base_url: str = "http://localhost:8080"
 
@@ -104,6 +107,8 @@ class Settings(BaseSettings):
     def _mail_is_complete(self) -> Settings:
         if self.mail_provider != "log" and not (self.mail_api_key and self.mail_from_email):
             raise ValueError("mail_provider needs SECURESCOPE_MAIL_API_KEY and SECURESCOPE_MAIL_FROM_EMAIL")
+        if self.cron_secret is not None and len(self.cron_secret.get_secret_value()) < 32:
+            raise ValueError("SECURESCOPE_CRON_SECRET must be at least 32 characters")
         return self
 
 

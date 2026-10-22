@@ -17,6 +17,9 @@ import type {
   ReportFormat,
   ReportLink,
   ScanComparison,
+  Schedule,
+  ScheduleFrequency,
+  ScheduleList,
   Role,
   ScanDetail,
   ScanList,
@@ -418,3 +421,16 @@ export const revokeShare = (scanId: string, shareId: string) =>
   );
 export const getSharedReport = (token: string) =>
   request<SharedReportInfo>(`/shared/${encodeURIComponent(token)}`);
+
+// --- scheduled scans ----------------------------------------------------------------------------
+
+export const listSchedules = () => request<ScheduleList>("/schedules");
+
+export const setSchedule = (
+  targetId: string,
+  input: { frequency: ScheduleFrequency; notify: boolean },
+) =>
+  request<Schedule>(`/schedules/${encodeURIComponent(targetId)}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });

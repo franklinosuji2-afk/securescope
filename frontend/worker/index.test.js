@@ -77,3 +77,40 @@ describe("api proxy worker", () => {
     expect(calls).toHaveLength(0);
   });
 });
+
+describe("internal endpoints and the cron trigger", () => {
+  it("never forwards internal endpoints from the public proxy", async () => {
+    const calls = stubBackend();
+    const response = await worker.fetch(
+      new Request("https://app.example.org/api/v1/internal/run-due", {
+        method: "POST",
+        headers: { "x-cron-secret": "anything" },
+      }),
+      env,
+    );
+    expect(response.status).toBe(404);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("asks the backend to run due scans, presenting the cron secret", async () => {
+    const calls = stubBackend();
+    const waits = [];
+    await worker.scheduled(
+      {},
+      { ...env, CRON_SECRET: "c".repeat(40) },
+      { waitUntil: (p) => waits.push(p) },
+    );
+    await Promise.all(waits);
+    expect(calls[0].url).toBe(
+      "https://api.example.org/api/v1/internal/run-due",
+    );
+    expect(calls[0].method).toBe("POST");
+    expect(calls[0].headers.get("x-cron-secret")).toBe("c".repeat(40));
+  });
+
+  it("does nothing when no cron secret is configured", async () => {
+    const calls = stubBackend();
+    await worker.scheduled({}, env, { waitUntil: () => {} });
+    expect(calls).toHaveLength(0);
+  });
+});

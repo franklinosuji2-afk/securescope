@@ -64,7 +64,7 @@ class ScanRepository:
     def create_scan(
         self,
         organization_id: str,
-        requested_by: str,
+        requested_by: str | None,
         target_url: str,
         host: str,
         target_id: str | None = None,

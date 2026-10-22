@@ -83,7 +83,7 @@ textarea:focus-visible {
   #main > *,
   #landing-main > section,
   #public-main > * {
-    animation: rise-in 420ms var(--ease-out) both;
+    animation: rise-in 420ms var(--ease-out) backwards;
   }
   #main > :nth-child(2),
   #landing-main > :nth-child(2) {
@@ -100,7 +100,7 @@ textarea:focus-visible {
 
   /* Open and close of FAQ and how-to details. */
   details[open] > :not(summary) {
-    animation: rise-in 260ms var(--ease-out) both;
+    animation: rise-in 260ms var(--ease-out) backwards;
   }
 }
 
@@ -118,18 +118,11 @@ textarea:focus-visible {
     transform: translateY(-1px);
   }
 
-  /* Floating cards: only the ones that are about something you can open or compare. */
-  .landing-card,
-  .landing-plans .card,
-  .summary-card,
-  .landing-faq .card,
-  .sample-card {
-    will-change: transform;
-  }
-  .landing-card:hover,
-  .landing-plans .card:hover,
-  .summary-card:hover,
-  .landing-faq .card:hover {
+  /* Floating cards: every card on the public pages, plus the app's summary cards. Forms and other plain
+     cards in the signed-in app stay still on purpose. */
+  .landing .card:not(.landing-final):not(.landing-sample):hover,
+  .landing-steps > li:hover,
+  .summary-card:hover {
     transform: translateY(-4px);
     border-color: color-mix(in srgb, var(--accent-soft) 45%, var(--border));
     box-shadow: var(--lift-shadow);
@@ -162,4 +155,54 @@ textarea:focus-visible {
   .landing-links a:not(.landing-menu-signin):hover {
     transform: translateY(-1px);
   }
+}
+
+/* Sample report card: floats gently on its own, and reacts to the pointer. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes float-soft {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 -6px;
+    }
+  }
+  @keyframes fill-in {
+    from {
+      width: 0;
+    }
+  }
+  .landing-sample {
+    animation: float-soft 7s ease-in-out infinite;
+  }
+  .landing-bar-track span {
+    animation: fill-in 1100ms var(--ease-out) 300ms backwards;
+  }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .landing-sample:hover {
+    animation-play-state: paused;
+    transform: translateY(-6px);
+    border-color: color-mix(in srgb, var(--accent-soft) 55%, var(--border));
+    box-shadow:
+      var(--lift-shadow),
+      0 0 0 1px color-mix(in srgb, var(--accent-soft) 25%, transparent);
+  }
+  .landing-sample-list li:hover {
+    transform: translateX(4px);
+    background: var(--surface-2);
+  }
+  .landing-sample-list li:has(.sev-medium):hover {
+    border-color: var(--sev-medium);
+  }
+  .landing-sample-list li:has(.sev-low):hover {
+    border-color: var(--sev-low);
+  }
+}
+.landing-sample {
+  transition:
+    transform var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out);
 }

@@ -1,3 +1,4 @@
+import ScheduledScans from "../components/ScheduledScans";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import * as api from "../api";
 import { ApiError } from "../api";
@@ -337,6 +338,15 @@ export default function Targets() {
             />
           ))}
         </ul>
+      )}
+      {targets && targets.some((t) => t.status === "verified") && (
+        <ScheduledScans
+          key={targets
+            .filter((t) => t.status === "verified")
+            .map((t) => t.id)
+            .join(",")}
+          manage={manage}
+        />
       )}
     </div>
   );

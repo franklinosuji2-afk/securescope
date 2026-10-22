@@ -457,3 +457,22 @@ export interface ScanComparison {
   unchanged_findings: Finding[];
   note: string;
 }
+
+export type ScheduleFrequency = "off" | "daily" | "weekly";
+
+export interface Schedule {
+  target_id: string;
+  hostname: string;
+  frequency: ScheduleFrequency;
+  url: string;
+  notify: boolean;
+  next_run_at: string | null;
+  last_run_at: string | null;
+  last_scan_id: string | null;
+  last_outcome: string | null;
+}
+
+export interface ScheduleList {
+  available: boolean;
+  items: Schedule[];
+}

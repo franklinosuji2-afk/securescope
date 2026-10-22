@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { buildHash } from "../router";
+import ThemeToggle from "./ThemeToggle";
 import "../landing.css";
 import "../sample.css";
 
@@ -58,6 +59,7 @@ export default function PublicShell({
             <a href="#/?section=pricing">Pricing</a>
           </nav>
           <div className="landing-actions">
+            <ThemeToggle />
             <a className="btn-ghost" href={login}>
               Sign in
             </a>

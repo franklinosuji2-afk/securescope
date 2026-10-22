@@ -13,6 +13,7 @@ from app.models import agency as _agency  # noqa: F401
 from app.models import analytics as _analytics  # noqa: F401
 from app.models import billing as _billing  # noqa: F401
 from app.models import scan as _scan  # noqa: F401
+from app.models import schedule as _schedule  # noqa: F401
 from app.models import target as _target  # noqa: F401
 
 config = context.config

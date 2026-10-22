@@ -73,6 +73,7 @@ Take a backup before any release that adds a migration.
 | Neon connection string | Render | A leak, or yearly. Create the new password in Neon, update Render, confirm `/ready`, then revoke the old one. |
 | `PROXY_SECRET` / `SECURESCOPE_TRUSTED_PROXY_SECRET` | Cloudflare and Render (identical) | A leak. Change both, Render last. |
 | Mail API key (Brevo) | Render | Before it expires (note the date when you create it) or on a leak. |
+| `SECURESCOPE_CRON_SECRET` (Render) and `CRON_SECRET` (Cloudflare Worker) | Render, Cloudflare | Anyone could trigger due scans early (they stay verified-site-only and within plan limits). Change both values together. |
 | `SECURESCOPE_ANALYTICS_SALT`, `SECURESCOPE_METRICS_TOKEN` | Render | A leak. Changing the salt only resets the daily visitor hashes. |
 
 If a secret was pasted somewhere public, treat it as leaked and rotate it immediately.
@@ -99,3 +100,16 @@ These are what the setup can deliver today, not promises.
 - **Data loss window:** up to the age of your latest backup (plus Neon's 6-hour history if the problem is recent). Without your own backups it is only that 6-hour window.
 - **Time to recover:** a few hours by hand with this runbook. Not rehearsed on production.
 - **Single points of failure:** one API instance, one database, one maintainer. See `KNOWN_LIMITATIONS.md`.
+
+## Scheduled scans
+
+A Cloudflare cron trigger (every 15 minutes, `frontend/wrangler.jsonc`) calls `POST /api/v1/internal/run-due` on the
+API with the header `X-Cron-Secret`. That wakes a sleeping free-tier API, runs up to three due scans, and emails
+workspace owners, admins and security analysts only when a scan finds something new or the score falls by 5 points
+or more. The endpoint is answered with 404 unless `SECURESCOPE_CRON_SECRET` is set, and the public proxy never
+forwards `/api/v1/internal/*`.
+
+Set-up: pick 32 or more random characters and set the same value as `SECURESCOPE_CRON_SECRET` on Render and as the
+`CRON_SECRET` secret on the Worker (Cloudflare > Workers > securescope > Settings > Variables and Secrets). Deploy
+the Worker so the cron trigger registers. Check: Cloudflare > the Worker > Triggers shows the cron, and a schedule's
+"Last run" on the Targets page fills in within about 15 minutes. Scheduled scans count toward the monthly allowance.

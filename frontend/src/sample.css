@@ -201,6 +201,11 @@
 .sample-foot {
   margin-top: 24px;
 }
+@media (max-width: 1100px) {
+  .sample-links {
+    display: none;
+  }
+}
 @media (max-width: 860px) {
   .sample-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -211,9 +216,6 @@
   }
   .sample-toc ol {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  }
-  .sample-links {
-    display: none;
   }
   .sample-grade {
     border-right: 0;

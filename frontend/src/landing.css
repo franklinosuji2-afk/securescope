@@ -20,7 +20,7 @@
   --text: #f4f7f8;
   --muted: #a7b2b8;
   --accent-soft: #19cdb5;
-  --bar: rgba(8, 11, 12, 0.82);
+  --bar: rgba(8, 11, 12, 0.9);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) .landing-page {
@@ -31,7 +31,7 @@
     --text: #f4f7f8;
     --muted: #a7b2b8;
     --accent-soft: #19cdb5;
-    --bar: rgba(8, 11, 12, 0.82);
+    --bar: rgba(8, 11, 12, 0.9);
   }
 }
 .landing-page {
@@ -44,6 +44,8 @@
   z-index: 5;
   background: var(--bar);
   border-bottom: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 .landing-bar-inner {
   position: relative;
@@ -70,10 +72,11 @@
 }
 .landing-links button,
 .landing-links a:not(.landing-menu-signin) {
+  white-space: nowrap;
   background: none;
   border: 0;
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 8px 9px;
   color: var(--muted);
   font: inherit;
   cursor: pointer;
@@ -190,10 +193,34 @@
 
 /* Sample report */
 .landing-sample {
+  position: relative;
   margin: 0;
-  padding: 24px;
+  padding: 28px;
+  overflow: hidden;
   border-radius: var(--radius-lg);
+  background:
+    radial-gradient(
+      120% 80% at 100% 0%,
+      color-mix(in srgb, var(--accent-soft) 14%, transparent),
+      transparent 60%
+    ),
+    var(--surface);
   box-shadow: var(--shadow-pop);
+}
+/* A thin accent line along the top edge. */
+.landing-sample::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--accent-soft),
+    var(--sev-medium),
+    transparent
+  );
+  opacity: 0.8;
 }
 .landing-sample-tag {
   display: flex;
@@ -223,17 +250,31 @@
   display: block;
   font-size: 1.0625rem;
 }
+/* The ring fills to the score (82 of 100). */
 .landing-grade {
+  position: relative;
+  isolation: isolate;
   display: grid;
   flex: none;
   place-items: center;
-  width: 60px;
-  height: 60px;
-  border: 3px solid var(--sev-medium);
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
+  background: conic-gradient(
+    var(--sev-medium) 0 82%,
+    color-mix(in srgb, var(--sev-medium) 22%, var(--surface-2)) 0
+  );
   font-family: var(--font-display);
   font-size: 1.75rem;
   font-weight: 800;
+}
+.landing-grade::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  z-index: -1;
+  border-radius: 50%;
+  background: var(--surface);
 }
 .landing-bar-track {
   height: 6px;
@@ -246,7 +287,13 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--accent-soft);
+  background: linear-gradient(
+    90deg,
+    var(--accent-soft),
+    color-mix(in srgb, var(--accent-soft) 60%, var(--sev-low))
+  );
+  box-shadow: 0 0 14px -2px
+    color-mix(in srgb, var(--accent-soft) 70%, transparent);
 }
 .landing-sample-summary {
   display: flex;
@@ -266,11 +313,44 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 12px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
+  border-left: 3px solid var(--sev-info);
   border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
   font-size: 0.9rem;
   line-height: 1.4;
+  transition:
+    background-color var(--dur) ease,
+    border-color var(--dur) ease,
+    transform var(--dur) ease;
+}
+.landing-sample-list li:has(.sev-medium) {
+  border-left-color: var(--sev-medium);
+}
+.landing-sample-list li:has(.sev-low) {
+  border-left-color: var(--sev-low);
+}
+.landing-sample-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  color: var(--accent-soft);
+  font-weight: 600;
+  text-decoration: none;
+}
+.landing-sample-link span {
+  transition: transform var(--dur) ease;
+}
+.landing-sample-link:hover span {
+  transform: translateX(4px);
+}
+.landing-sample-link:hover {
+  text-decoration: underline;
+}
+:root[data-theme="light"] .landing-sample-link {
+  color: var(--accent);
 }
 .landing-page .sev {
   display: inline-block;
@@ -389,13 +469,25 @@
 :root[data-theme="light"] .landing-numbers dt {
   color: var(--accent);
 }
-.landing-numbers dd {
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 0.9rem;
+.landing-numbers {
+  align-items: start;
+  row-gap: 32px;
 }
-.landing-fineprint {
-  margin: 24px 0 0;
+.landing-numbers dd {
+  max-width: 22ch;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+/* Beats ".landing-solution > p.muted", which would otherwise set the body-text size and no margin. */
+.landing-solution > p.landing-fineprint {
+  max-width: none;
+  margin: 36px 0 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 0.8125rem;
+  line-height: 1.5;
 }
 
 /* Steps */
@@ -576,7 +668,7 @@
 }
 
 /* Phone: the section links move into a menu */
-@media (max-width: 860px) {
+@media (max-width: 1240px) {
   .landing-page .landing-menu-btn {
     display: inline-block;
   }
@@ -632,8 +724,15 @@
     padding: 8px 12px;
     font-size: 0.9rem;
   }
-  .landing-page .landing-signin {
+  .landing-page .landing-signin,
+  .landing-actions .theme-toggle {
     display: none;
+  }
+  .landing-links.open .landing-menu-theme {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
   }
   .landing-page .landing-links.open .landing-menu-signin {
     display: block;
@@ -735,4 +834,21 @@
   margin: 0 0 8px;
   padding-left: 20px;
   line-height: 1.8;
+}
+
+/* The toggle sits in the open menu on small phones, where the header has no room for it. */
+.landing-menu-theme {
+  display: none;
+}
+/* Theme toggle in the public header */
+.theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 10px;
+}
+.theme-toggle svg {
+  stroke: currentColor;
 }

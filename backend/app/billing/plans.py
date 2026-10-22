@@ -23,6 +23,8 @@ class Plan:
     purchasable: bool
     # Clients, agency dashboard, report branding and shared report links.
     client_workspace: bool = False
+    # Scans that run on a schedule, with email alerts when something new appears.
+    scheduled_scans: bool = False
 
 
 FREE = Plan(
@@ -37,6 +39,7 @@ PROFESSIONAL = Plan(
     history_days=90,
     can_invite=False,
     purchasable=True,
+    scheduled_scans=True,
 )
 AGENCY = Plan(
     "agency",
@@ -48,6 +51,7 @@ AGENCY = Plan(
     can_invite=True,
     purchasable=True,
     client_workspace=True,
+    scheduled_scans=True,
 )
 # For the operator's own workspaces only. Assigned by the server, never offered to customers.
 INTERNAL = Plan(
@@ -60,6 +64,7 @@ INTERNAL = Plan(
     can_invite=True,
     purchasable=False,
     client_workspace=True,
+    scheduled_scans=True,
 )
 
 PLANS: dict[str, Plan] = {plan.id: plan for plan in (FREE, PROFESSIONAL, AGENCY, INTERNAL)}
