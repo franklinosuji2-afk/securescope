@@ -50,12 +50,11 @@ function PlanCard() {
             {plan.price_eur_month > 0
               ? ` · €${plan.price_eur_month} per month`
               : plan.plan_id === "free"
-                ? " · free"
+                ? " · €0"
                 : ""}
-            {" · workspace "}
-            {organization.name}
           </p>
-          <dl className="small">
+          <p className="muted small">Workspace: {organization.name}</p>
+          <dl className="plan-facts">
             <dt>Websites</dt>
             <dd>{limitText(plan.usage.websites, plan.limits.websites)}</dd>
             <dt>Scans this month</dt>

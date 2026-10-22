@@ -1,15 +1,22 @@
 /* Public home page. Uses the same design tokens as the app, so both themes work. */
 .landing {
+  overflow-x: clip;
   max-width: 1120px;
   margin: 0 auto;
   padding: 16px 20px 40px;
 }
 .landing-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bar);
+  backdrop-filter: blur(12px);
+  margin: 0 -20px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   gap: 16px;
-  flex-wrap: wrap;
-  padding: 10px 0 18px;
 }
 .landing-brand {
   display: flex;
@@ -255,7 +262,150 @@
   }
 }
 @media (max-width: 480px) {
-  .landing-signin {
-    display: none;
+  .landing {
+    padding: 10px 16px 32px;
+  }
+  .landing-bar {
+    gap: 8px;
+  }
+  .landing-brand {
+    font-size: 1rem;
+    margin-right: auto;
+  }
+  .landing-actions {
+    gap: 8px;
+  }
+  .landing-actions .btn,
+  .landing-actions .btn-ghost {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+  }
+}
+
+.landing-hero {
+  position: relative;
+}
+.landing-hero::before {
+  content: "";
+  position: absolute;
+  inset: -80px -20px auto;
+  height: 520px;
+  background: radial-gradient(
+    ellipse at 30% 0%,
+    rgba(45, 212, 191, 0.16),
+    transparent 62%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+.landing-grad {
+  background: linear-gradient(100deg, var(--accent-soft), var(--ok));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+:root[data-theme="light"] .landing-grad {
+  background: linear-gradient(100deg, #0b5f58, #1f5c99);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.landing-chips {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  margin: 20px 0 0;
+}
+.landing-chips li {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.landing-chips li::before {
+  content: "✓ ";
+  color: var(--ok);
+}
+.landing-sample {
+  box-shadow: var(--shadow-pop);
+}
+.landing-bar-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  margin: 0 0 16px;
+  overflow: hidden;
+}
+.landing-bar-track span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-soft), var(--ok));
+  border-radius: inherit;
+}
+.landing-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  color: var(--accent-soft);
+  background: rgba(45, 212, 191, 0.1);
+  border: 1px solid rgba(45, 212, 191, 0.22);
+}
+:root[data-theme="light"] .landing-icon {
+  color: var(--accent);
+  background: rgba(31, 92, 153, 0.08);
+  border-color: rgba(31, 92, 153, 0.2);
+}
+.landing-card {
+  transition:
+    transform var(--dur) ease,
+    border-color var(--dur) ease;
+}
+.landing-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-strong);
+}
+.landing-section > .landing-eyebrow {
+  margin-bottom: 6px;
+}
+.landing-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  color: var(--ok);
+  border: 1px solid currentColor;
+}
+.landing-badge.soon {
+  color: var(--muted);
+}
+.landing-plan-live {
+  border-color: var(--accent-soft);
+}
+.landing-plan-soon {
+  opacity: 0.85;
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-card {
+    transition: none;
+  }
+  .landing-card:hover {
+    transform: none;
+  }
+}
+@media (max-width: 480px) {
+  .landing-bar {
+    margin: 0 -16px;
+    padding: 10px 16px;
   }
 }

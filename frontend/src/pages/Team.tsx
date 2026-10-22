@@ -128,9 +128,9 @@ export default function Team() {
           className="card table-wrap"
           role="region"
           tabIndex={0}
-          aria-label="Team members (scrolls sideways on small screens)"
+          aria-label="Team members"
         >
-          <table>
+          <table className="stack-table">
             <thead>
               <tr>
                 <th scope="col">Member</th>
@@ -144,7 +144,7 @@ export default function Team() {
             <tbody>
               {detail.members.map((m) => (
                 <tr key={m.user_id}>
-                  <td style={{ overflowWrap: "anywhere" }}>
+                  <td className="st-main" style={{ overflowWrap: "anywhere" }}>
                     {m.email}
                     {m.user_id === user?.id && (
                       <span className="muted"> (you)</span>
@@ -177,8 +177,8 @@ export default function Team() {
                       m.role
                     )}
                   </td>
-                  <td>{formatDate(m.joined_at)}</td>
-                  <td>
+                  <td className="st-joined">{formatDate(m.joined_at)}</td>
+                  <td className="st-action">
                     {(manage || m.user_id === user?.id) && (
                       <button
                         className="btn-ghost"

@@ -2,6 +2,43 @@ import { LegalLinks } from "./Legal";
 import { buildHash } from "../router";
 import "../landing.css";
 
+const ICONS: Record<string, string> = {
+  lock: "M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6z",
+  layers: "m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5m-18 4 9 5 9-5",
+  cookie:
+    "M12 3a9 9 0 1 0 9 9 4 4 0 0 1-4-4 4 4 0 0 1-5-5Zm-3 9h.01M13 16h.01M9 16h.01M14 12h.01",
+  cert: "M5 4h14v11H5zM9 20l3-3 3 3v-5H9zM8 8h8M8 11h5",
+  file: "M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6",
+  eye: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
+  chart: "M4 20V10m6 10V4m6 16v-7m4 7H2",
+  proof: "m5 12 4 4L19 6M4 20h16",
+  cycle:
+    "M4 12a8 8 0 0 1 14-5l2 2M20 4v5h-5M20 12a8 8 0 0 1-14 5l-2-2m0 5v-5h5",
+  doc: "M6 3h9l4 4v14H6zM9 12h7M9 16h7M9 8h3",
+  users:
+    "M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-6 9a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M21 20a6 6 0 0 0-4-5.6",
+  log: "M5 4h14v16H5zM9 9h6M9 13h6M9 17h3",
+};
+
+function Icon({ name }: { name: string }) {
+  return (
+    <span className="landing-icon" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d={ICONS[name] ?? ICONS.lock} />
+      </svg>
+    </span>
+  );
+}
+
 function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
@@ -9,26 +46,32 @@ function scrollTo(id: string) {
 const CHECKS = [
   {
     title: "HTTPS and redirects",
+    icon: "lock",
     text: "Is the site served over HTTPS, and does plain HTTP send visitors there?",
   },
   {
     title: "Security headers",
+    icon: "layers",
     text: "HSTS, Content-Security-Policy, X-Content-Type-Options, Referrer-Policy and Permissions-Policy: present, and not set so weakly they do nothing.",
   },
   {
     title: "Cookies",
+    icon: "cookie",
     text: "Session cookies without Secure, HttpOnly or SameSite are flagged, with the cookie named.",
   },
   {
     title: "TLS certificate",
+    icon: "cert",
     text: "Valid for the host name, trusted, and not about to expire.",
   },
   {
     title: "Exposed files",
+    icon: "file",
     text: "A readable .env file, public .git metadata, directory listings, and a missing security.txt contact.",
   },
   {
     title: "Information leaks",
+    icon: "eye",
     text: "Server and X-Powered-By headers that announce software and version numbers to anyone who asks.",
   },
 ];
@@ -55,26 +98,32 @@ const STEPS = [
 const FEATURES = [
   {
     title: "A score you can follow",
+    icon: "chart",
     text: "One grade per site, with a severity breakdown and a history so you can see whether things are getting better.",
   },
   {
     title: "Evidence on every finding",
+    icon: "proof",
     text: "The URL, status and headers that were actually seen, and whether a result was observed or a heuristic.",
   },
   {
     title: "Findings with a lifecycle",
+    icon: "cycle",
     text: "Mark a finding as accepted risk or false positive with a note. It only counts as resolved when a later scan no longer sees it.",
   },
   {
     title: "Reports you can hand over",
+    icon: "doc",
     text: "Download a PDF, or export HTML, Markdown or JSON. Reports say what was checked, what passed and where the scan stops.",
   },
   {
     title: "Built for clients",
+    icon: "users",
     text: "On the Agency plan, invite clients as read-only viewers so they see results without being able to change anything.",
   },
   {
     title: "An audit trail",
+    icon: "log",
     text: "Owners and admins can see who did what in the workspace, with filters.",
   },
 ];
@@ -142,7 +191,7 @@ export default function Landing() {
             Sign in
           </a>
           <a className="btn" href={register}>
-            Create free account
+            Get started
           </a>
         </div>
       </header>
@@ -171,9 +220,11 @@ export default function Landing() {
                 See what is checked
               </button>
             </div>
-            <p className="landing-note muted small">
-              Free plan: 1 website and 3 scans a month. No card needed.
-            </p>
+            <ul className="landing-chips" aria-label="Highlights">
+              <li>Passive checks only</li>
+              <li>Ownership verified first</li>
+              <li>Free plan, no card</li>
+            </ul>
           </div>
           <div
             className="landing-sample card"
@@ -188,6 +239,9 @@ export default function Landing() {
                 <br />
                 <span className="muted small">4 findings, 9 checks passed</span>
               </div>
+            </div>
+            <div className="landing-bar-track" aria-hidden="true">
+              <span style={{ width: "82%" }} />
             </div>
             <ul className="landing-sample-list">
               <li>
@@ -215,6 +269,7 @@ export default function Landing() {
           className="landing-section"
           aria-labelledby="h-checks"
         >
+          <p className="landing-eyebrow">Coverage</p>
           <h2 id="h-checks">What SecureScope checks</h2>
           <p className="landing-sub muted">
             Passive checks that are visible from outside. Nothing is attacked or
@@ -222,7 +277,8 @@ export default function Landing() {
           </p>
           <div className="landing-grid">
             {CHECKS.map((c) => (
-              <article key={c.title} className="card">
+              <article key={c.title} className="card landing-card">
+                <Icon name={c.icon} />
                 <h3>{c.title}</h3>
                 <p className="muted">{c.text}</p>
               </article>
@@ -231,6 +287,7 @@ export default function Landing() {
         </section>
 
         <section id="how" className="landing-section" aria-labelledby="h-how">
+          <p className="landing-eyebrow">Getting started</p>
           <h2 id="h-how">How it works</h2>
           <ol className="landing-steps">
             {STEPS.map((s, i) => (
@@ -246,10 +303,12 @@ export default function Landing() {
         </section>
 
         <section className="landing-section" aria-labelledby="h-features">
+          <p className="landing-eyebrow">Features</p>
           <h2 id="h-features">What you get</h2>
           <div className="landing-grid">
             {FEATURES.map((f) => (
-              <article key={f.title} className="card">
+              <article key={f.title} className="card landing-card">
+                <Icon name={f.icon} />
                 <h3>{f.title}</h3>
                 <p className="muted">{f.text}</p>
               </article>
@@ -262,14 +321,17 @@ export default function Landing() {
           className="landing-section"
           aria-labelledby="h-pricing"
         >
+          <p className="landing-eyebrow">Plans</p>
           <h2 id="h-pricing">Pricing</h2>
           <p className="landing-sub muted">
             Start free. The paid plans are not on sale yet; they will be
             announced here.
           </p>
           <div className="landing-grid landing-plans">
-            <article className="card">
-              <h3>Free</h3>
+            <article className="card landing-plan-live">
+              <h3>
+                Free <span className="landing-badge">Available now</span>
+              </h3>
               <p className="landing-price">€0</p>
               <ul>
                 <li>1 website</li>
@@ -281,8 +343,11 @@ export default function Landing() {
                 Create free account
               </a>
             </article>
-            <article className="card">
-              <h3>Professional</h3>
+            <article className="card landing-plan-soon">
+              <h3>
+                Professional{" "}
+                <span className="landing-badge soon">Coming soon</span>
+              </h3>
               <p className="landing-price">
                 €19 <span className="muted small">/ month</span>
               </p>
@@ -292,10 +357,11 @@ export default function Landing() {
                 <li>Scan history kept 90 days</li>
                 <li>PDF and data exports</li>
               </ul>
-              <p className="muted small">Coming soon</p>
             </article>
-            <article className="card">
-              <h3>Agency</h3>
+            <article className="card landing-plan-soon">
+              <h3>
+                Agency <span className="landing-badge soon">Coming soon</span>
+              </h3>
               <p className="landing-price">
                 €49 <span className="muted small">/ month</span>
               </p>
@@ -305,7 +371,6 @@ export default function Landing() {
                 <li>Scan history kept 365 days</li>
                 <li>Invite team members and clients</li>
               </ul>
-              <p className="muted small">Coming soon</p>
             </article>
           </div>
           <p className="muted small">

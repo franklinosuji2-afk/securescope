@@ -1432,3 +1432,74 @@ a.btn {
   color: var(--text, #e8f1f1);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
 }
+
+/* Team members on a phone: one block per person instead of a table that scrolls sideways. */
+@media (max-width: 640px) {
+  .table-wrap > table.stack-table {
+    min-width: 0;
+  }
+  .stack-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .stack-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px 12px;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .stack-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .stack-table td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+  .stack-table .st-main {
+    grid-column: 1 / -1;
+    font-weight: 600;
+  }
+  .stack-table .st-joined {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  .stack-table .st-joined::before {
+    content: "Joined ";
+  }
+  .stack-table .st-action {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+
+/* "Your plan" on the Account page: label and value side by side. */
+.plan-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 20px;
+  margin: 16px 0;
+}
+.plan-facts dt {
+  color: var(--muted);
+}
+.plan-facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+@media (max-width: 420px) {
+  .plan-facts {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .plan-facts dd {
+    margin-bottom: 10px;
+  }
+}
