@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from app.core.config import Settings
 from app.reporting.compare import compare_scans
@@ -17,6 +18,9 @@ from app.repositories.accounts import AccountRepository
 from app.schemas.scan import Finding, ScanDetail, ScanStatus, Severity
 from app.security.permissions import Role
 from app.services.mailer import Mailer
+
+if TYPE_CHECKING:
+    from app.services.webhooks import WebhookService
 
 logger = logging.getLogger("securescope.alerts")
 
@@ -84,10 +88,17 @@ def build_body(decision: AlertDecision, current: ScanDetail, base_url: str) -> s
 
 
 class AlertService:
-    def __init__(self, accounts: AccountRepository, mailer: Mailer, settings: Settings) -> None:
+    def __init__(
+        self,
+        accounts: AccountRepository,
+        mailer: Mailer,
+        settings: Settings,
+        webhooks: WebhookService | None = None,
+    ) -> None:
         self._accounts = accounts
         self._mailer = mailer
         self._settings = settings
+        self._webhooks = webhooks
 
     def recipients(self, organization_id: str) -> list[str]:
         members = self._accounts.list_members(organization_id)
@@ -108,5 +119,17 @@ class AlertService:
                 logger.warning("alert email could not be sent")
         return sent
 
-    async def notify_async(self, organization_id: str, previous: ScanDetail | None, current: ScanDetail) -> int:
-        return await asyncio.to_thread(self.notify, organization_id, previous, current)
+    async def notify_async(
+        self, organization_id: str, previous: ScanDetail | None, current: ScanDetail
+    ) -> int:
+        """Email first, then the webhooks. Returns how many emails were sent."""
+        sent = await asyncio.to_thread(self.notify, organization_id, previous, current)
+        if self._webhooks is not None:
+            decision = decide(previous, current)
+            try:
+                await self._webhooks.dispatch_alert(
+                    organization_id, decision, current, self._settings.public_base_url
+                )
+            except Exception:  # a webhook problem must never stop the scheduler  # noqa: BLE001
+                logger.warning("webhook alerts could not be sent")
+        return sent

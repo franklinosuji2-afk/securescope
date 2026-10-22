@@ -74,6 +74,7 @@ Take a backup before any release that adds a migration.
 | `PROXY_SECRET` / `SECURESCOPE_TRUSTED_PROXY_SECRET` | Cloudflare and Render (identical) | A leak. Change both, Render last. |
 | Mail API key (Brevo) | Render | Before it expires (note the date when you create it) or on a leak. |
 | `SECURESCOPE_CRON_SECRET` (Render) and `CRON_SECRET` (Cloudflare Worker) | Render, Cloudflare | Anyone could trigger due scans early (they stay verified-site-only and within plan limits). Change both values together. |
+| `SECURESCOPE_WEBHOOK_SIGNING_KEY` | Render | A leak. Every endpoint's signing secret is derived from it, so changing it makes all existing secrets invalid: each receiver must then be given its new secret (Targets > Webhook alerts > Renew secret). |
 | `SECURESCOPE_ANALYTICS_SALT`, `SECURESCOPE_METRICS_TOKEN` | Render | A leak. Changing the salt only resets the daily visitor hashes. |
 
 If a secret was pasted somewhere public, treat it as leaked and rotate it immediately.
@@ -113,3 +114,15 @@ Set-up: pick 32 or more random characters and set the same value as `SECURESCOPE
 `CRON_SECRET` secret on the Worker (Cloudflare > Workers > securescope > Settings > Variables and Secrets). Deploy
 the Worker so the cron trigger registers. Check: Cloudflare > the Worker > Triggers shows the cron, and a schedule's
 "Last run" on the Targets page fills in within about 15 minutes. Scheduled scans count toward the monthly allowance.
+
+## Webhook alerts
+
+On the same triggers as the alert email, a workspace can have a signed JSON message sent to up to three HTTPS
+addresses (Targets > Webhook alerts). The feature stays off, and says so on the page, until
+`SECURESCOPE_WEBHOOK_SIGNING_KEY` (32 or more random characters) is set on Render. No secret is stored in the
+database: each endpoint's signing secret is derived from that key, the endpoint id and a version number, and is shown
+once when the endpoint is added or its secret is renewed. Messages carry `X-SecureScope-Signature: t=<seconds>,v1=<hex>`
+(HMAC-SHA256 over `<t>.<raw body>`). The address is checked as for scan targets, when saved and before each delivery
+(public addresses only, connection pinned, no redirects, reply body never read). A failure is retried once; ten
+failures in a row switch the endpoint off until a person switches it on. Check: add an address, press "Send test
+message" and look for the result under the address.

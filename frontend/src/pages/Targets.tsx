@@ -1,4 +1,5 @@
 import ScheduledScans from "../components/ScheduledScans";
+import WebhookAlerts from "../components/WebhookAlerts";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import * as api from "../api";
 import { ApiError } from "../api";
@@ -347,6 +348,9 @@ export default function Targets() {
             .join(",")}
           manage={manage}
         />
+      )}
+      {targets && targets.some((t) => t.status === "verified") && (
+        <WebhookAlerts manage={manage} />
       )}
     </div>
   );

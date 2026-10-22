@@ -574,7 +574,7 @@ export default function Landing() {
                   <li>5 websites</li>
                   <li>30 scans per month</li>
                   <li>Scan history kept 90 days</li>
-                  <li>Scheduled scans with email alerts</li>
+                  <li>Scheduled scans with email and webhook alerts</li>
                   <li>PDF and data exports</li>
                 </ul>
                 <p className="muted small landing-plan-note">
@@ -592,7 +592,7 @@ export default function Landing() {
                   <li>20 websites</li>
                   <li>150 scans per month</li>
                   <li>Scan history kept 365 days</li>
-                  <li>Scheduled scans with email alerts</li>
+                  <li>Scheduled scans with email and webhook alerts</li>
                   <li>Invite team members and clients</li>
                   <li>Client dashboard, branded PDFs, share links</li>
                 </ul>

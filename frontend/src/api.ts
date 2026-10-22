@@ -20,6 +20,10 @@ import type {
   Schedule,
   ScheduleFrequency,
   ScheduleList,
+  Webhook,
+  WebhookCreated,
+  WebhookList,
+  WebhookTestResult,
   Role,
   ScanDetail,
   ScanList,
@@ -434,3 +438,32 @@ export const setSchedule = (
     method: "PUT",
     body: JSON.stringify(input),
   });
+
+// --- webhook alerts -----------------------------------------------------------------------------
+
+export const listWebhooks = () => request<WebhookList>("/webhooks");
+
+export const createWebhook = (url: string) =>
+  request<WebhookCreated>("/webhooks", {
+    method: "POST",
+    body: JSON.stringify({ url }),
+  });
+
+export const testWebhook = (id: string) =>
+  request<WebhookTestResult>(`/webhooks/${encodeURIComponent(id)}/test`, {
+    method: "POST",
+  });
+
+export const renewWebhookSecret = (id: string) =>
+  request<WebhookCreated>(`/webhooks/${encodeURIComponent(id)}/rotate`, {
+    method: "POST",
+  });
+
+export const setWebhookEnabled = (id: string, enabled: boolean) =>
+  request<Webhook>(`/webhooks/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify({ enabled }),
+  });
+
+export const deleteWebhook = (id: string) =>
+  request<void>(`/webhooks/${encodeURIComponent(id)}`, { method: "DELETE" });

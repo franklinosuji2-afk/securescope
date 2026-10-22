@@ -489,3 +489,29 @@ export interface ScheduleList {
   available: boolean;
   items: Schedule[];
 }
+
+export interface Webhook {
+  id: string;
+  address: string;
+  enabled: boolean;
+  last_attempt_at: string | null;
+  last_status: string | null;
+  consecutive_failures: number;
+  created_at: string;
+}
+
+export interface WebhookCreated extends Webhook {
+  signing_secret: string;
+}
+
+export interface WebhookList {
+  available: boolean;
+  configured: boolean;
+  limit: number;
+  items: Webhook[];
+}
+
+export interface WebhookTestResult {
+  ok: boolean;
+  status: string;
+}

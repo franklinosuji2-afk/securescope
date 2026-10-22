@@ -20,6 +20,7 @@ from app.api.v1 import (
     scans,
     schedules,
     targets,
+    webhooks,
 )
 from app.schemas.scan import HealthResponse
 
@@ -62,3 +63,4 @@ router.include_router(agency.router)
 router.include_router(agency.public_router)
 router.include_router(schedules.router)
 router.include_router(schedules.internal_router)
+router.include_router(webhooks.router)

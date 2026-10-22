@@ -1546,3 +1546,7 @@ a.btn {
   gap: 8px;
   margin: 12px 0;
 }
+
+.break-all {
+  overflow-wrap: anywhere;
+}

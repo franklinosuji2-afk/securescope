@@ -8,7 +8,7 @@ import { buildHash } from "../router";
 const OPERATOR = "Franklin Chinonso Osuji";
 const STREET = "Mariendorfer Weg 52";
 const CITY = "12051 Berlin";
-const UPDATED = "22 October 2026";
+const UPDATED = "23 October 2026";
 
 const TABS: { page: Page; label: string }[] = [
   { page: "impressum", label: "Impressum" },
@@ -215,6 +215,15 @@ function Privacy() {
           an alert to the workspace owners, admins and security analysts when a
           scan reports a new finding (other than informational notes), the score
           drops by 5 points or more, or a scan fails. No marketing.
+        </li>
+        <li>
+          <strong>Webhook addresses (optional):</strong> if you add one, we
+          store the address you give us (it can contain a token, so it is not
+          shown again in full) and when we last sent to it and what came back.
+          On the same triggers as the alert email we send it the site&apos;s
+          host name, the scan&apos;s score and link, and the titles of new
+          findings. No evidence or page content is sent. Needed to provide the
+          feature you turned on (Art. 6(1)(b) GDPR).
         </li>
         <li>
           <strong>Server logs:</strong> our hosting providers process technical

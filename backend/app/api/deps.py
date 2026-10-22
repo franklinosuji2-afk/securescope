@@ -25,6 +25,7 @@ from app.repositories.reports import ReportRepository
 from app.repositories.scans import ScanRepository
 from app.repositories.schedules import ScheduleRepository
 from app.repositories.targets import TargetRepository
+from app.repositories.webhooks import WebhookRepository
 from app.security.ownership import TxtLookup, system_txt_lookup
 from app.security.permissions import Permission, Role, can
 from app.security.tokens import constant_time_equal
@@ -34,6 +35,7 @@ from app.services.invitations import InvitationService
 from app.services.mailer import Mailer, build_mailer
 from app.services.oauth import OAuthService
 from app.services.reports import ReportService
+from app.services.webhooks import WebhookService
 
 SESSION_COOKIE = "ss_session"
 CSRF_COOKIE = "ss_csrf"
@@ -94,7 +96,10 @@ class AppState:
         self.report_limiter = SlidingWindowLimiter(30)
         self.share_limiter = SlidingWindowLimiter(120)
         self.schedules = ScheduleRepository(self.engine)
-        self.alerts = AlertService(self.accounts, self.auth.mailer, settings)
+        self.webhook_repo = WebhookRepository(self.engine)
+        self.webhooks = WebhookService(self.webhook_repo, settings)
+        self.alerts = AlertService(self.accounts, self.auth.mailer, settings, self.webhooks)
+        self.webhook_limiter = SlidingWindowLimiter(10, FIFTEEN_MIN)
         self.cron_limiter = SlidingWindowLimiter(60)
         self.password_change_limiter = SlidingWindowLimiter(5, FIFTEEN_MIN)
         self.metrics = RequestMetrics()
