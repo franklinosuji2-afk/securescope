@@ -150,6 +150,7 @@ for (const scheme of ["dark", "light"] as const) {
     await expect(
       page.getByRole("heading", { name: "How to verify" }),
     ).toBeVisible();
+    await page.getByText("Prompt for an AI coding assistant").click();
     expect(await serious(page), `${scheme} detail`).toEqual([]);
     await page.screenshot({
       path: `test-results/finding-detail-${scheme}.png`,
@@ -217,4 +218,18 @@ test("the status filter separates open, accepted and resolved findings", async (
   await expect(
     page.getByRole("link", { name: /Server header is present/ }),
   ).toBeVisible();
+});
+
+test("a finding offers a copyable prompt for an AI coding assistant", async ({
+  page,
+}) => {
+  await stubApi(page);
+  await page.goto("/#/findings?scan=abc123&finding=SS-HDR-HSTS-001");
+  await page.getByText("Prompt for an AI coding assistant").click();
+  const box = page.getByRole("textbox", {
+    name: "Prompt for an AI coding assistant",
+  });
+  await expect(box).toHaveValue(/ID: SS-HDR-HSTS-001/);
+  await expect(box).toHaveValue(/Do not invent file paths/);
+  await expect(box).toHaveValue(/Apache/);
 });

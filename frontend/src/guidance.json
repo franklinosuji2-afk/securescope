@@ -1,0 +1,707 @@
+{
+  "SS-TLS-001": {
+    "impact": "Anyone on the network path can read or change the page, including login forms and cookies, before it reaches the visitor.",
+    "detection": "observed",
+    "detectionNote": "The final URL after redirects used http:// instead of https://.",
+    "fixes": [
+      {
+        "label": "Nginx: redirect HTTP to HTTPS",
+        "code": "server {\n  listen 80;\n  server_name example.com;\n  return 301 https://$host$request_uri;\n}"
+      },
+      {
+        "label": "Apache (needs mod_rewrite)",
+        "code": "RewriteEngine On\nRewriteCond %{HTTPS} off\nRewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]"
+      },
+      {
+        "label": "Cloudflare",
+        "code": "SSL/TLS > Edge Certificates > turn on \"Always Use HTTPS\""
+      }
+    ],
+    "verify": [
+      "Run curl -sI http://<your-host>/ and confirm it answers with a 301 redirect whose Location starts with https://.",
+      "Open the http:// address in a browser and confirm it ends up on https://.",
+      "Run a new scan."
+    ],
+    "limitations": "TLS certificate validity and cipher configuration are not assessed by SecureScope.",
+    "references": [
+      {
+        "label": "MDN: Transport Layer Security",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/Security/Transport_Layer_Security"
+      }
+    ]
+  },
+  "SS-TLS-002": {
+    "impact": "None by itself. This is the desired behaviour; HSTS makes it stronger because browsers then skip the plain HTTP request.",
+    "detection": "observed",
+    "detectionNote": "The scan started at an http:// address and was redirected to https://.",
+    "fixes": [],
+    "verify": [
+      "No action needed."
+    ],
+    "limitations": "Only the scanned address was tested.",
+    "references": [
+      {
+        "label": "MDN: Strict-Transport-Security",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security"
+      }
+    ]
+  },
+  "SS-HDR-HSTS-001": {
+    "impact": "Browsers may still try plain HTTP on a visit, which allows downgrade and protocol-stripping attacks on hostile networks.",
+    "detection": "observed",
+    "detectionNote": "No Strict-Transport-Security header was present in the HTTPS response.",
+    "fixes": [
+      {
+        "label": "Nginx (server or location block)",
+        "code": "add_header Strict-Transport-Security \"max-age=31536000; includeSubDomains\" always;"
+      },
+      {
+        "label": "Apache (needs mod_headers)",
+        "code": "Header always set Strict-Transport-Security \"max-age=31536000; includeSubDomains\""
+      },
+      {
+        "label": "Cloudflare Pages or Netlify _headers file",
+        "code": "/*\n  Strict-Transport-Security: max-age=31536000; includeSubDomains"
+      },
+      {
+        "label": "Cloudflare (proxy in front of your own server)",
+        "code": "Rules > Transform Rules > Modify Response Header > Set static\nHeader name: Strict-Transport-Security\nValue: max-age=31536000; includeSubDomains"
+      }
+    ],
+    "verify": [
+      "Run curl -sI https://<your-host>/ and check that the Strict-Transport-Security line is in the response.",
+      "If a CDN or proxy sits in front of your server, check the response that reaches the browser, not just the origin.",
+      "Run a new scan. The finding is reported as no longer detected only when a later scan no longer sees it."
+    ],
+    "limitations": "SecureScope reads the headers of one response from the address that was scanned. Other pages, error pages and API routes can send different headers. Only add includeSubDomains once every subdomain works over HTTPS.",
+    "references": [
+      {
+        "label": "MDN: Strict-Transport-Security",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security"
+      }
+    ]
+  },
+  "SS-HDR-HSTS-002": {
+    "impact": "A short lifetime means browsers stop enforcing HTTPS sooner, which leaves a longer window for downgrade attacks.",
+    "detection": "observed",
+    "detectionNote": "The HSTS max-age value was below 180 days.",
+    "fixes": [
+      {
+        "label": "Nginx (server or location block)",
+        "code": "add_header Strict-Transport-Security \"max-age=31536000; includeSubDomains\" always;"
+      },
+      {
+        "label": "Apache (needs mod_headers)",
+        "code": "Header always set Strict-Transport-Security \"max-age=31536000; includeSubDomains\""
+      },
+      {
+        "label": "Cloudflare Pages or Netlify _headers file",
+        "code": "/*\n  Strict-Transport-Security: max-age=31536000; includeSubDomains"
+      },
+      {
+        "label": "Cloudflare (proxy in front of your own server)",
+        "code": "Rules > Transform Rules > Modify Response Header > Set static\nHeader name: Strict-Transport-Security\nValue: max-age=31536000; includeSubDomains"
+      }
+    ],
+    "verify": [
+      "Run curl -sI https://<your-host>/ and read the Strict-Transport-Security line.",
+      "Check that max-age is at least 15552000 (180 days). One year (31536000) is common.",
+      "Run a new scan to confirm."
+    ],
+    "limitations": "SecureScope reads the headers of one response from the address that was scanned. Other pages, error pages and API routes can send different headers.",
+    "references": [
+      {
+        "label": "MDN: Strict-Transport-Security",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security"
+      }
+    ]
+  },
+  "SS-HDR-CSP-001": {
+    "impact": "Without a Content-Security-Policy, a cross-site scripting flaw anywhere on the page is easier to exploit because the browser has no limit on where scripts may load from.",
+    "detection": "observed",
+    "detectionNote": "No Content-Security-Policy header was present.",
+    "fixes": [
+      {
+        "label": "Step 1: test without enforcing (Nginx)",
+        "code": "add_header Content-Security-Policy-Report-Only \"default-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'\" always;"
+      },
+      {
+        "label": "Step 2: enforce once nothing important is reported (Nginx)",
+        "code": "add_header Content-Security-Policy \"default-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'\" always;"
+      },
+      {
+        "label": "Apache (needs mod_headers)",
+        "code": "Header always set Content-Security-Policy \"default-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'\""
+      },
+      {
+        "label": "Cloudflare Pages or Netlify _headers file",
+        "code": "/*\n  Content-Security-Policy: default-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+      }
+    ],
+    "verify": [
+      "Run curl -sI https://<your-host>/ and look for a Content-Security-Policy line.",
+      "Open the site with the browser developer tools console open. Look for blocked-resource messages and fix the sources they name before enforcing.",
+      "Run a new scan to confirm."
+    ],
+    "limitations": "SecureScope reads the headers of one response from the address that was scanned. Other pages, error pages and API routes can send different headers. SecureScope does not judge whether a policy is complete, only whether it is present and avoids unsafe script sources.",
+    "references": [
+      {
+        "label": "MDN: Content-Security-Policy",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP"
+      }
+    ]
+  },
+  "SS-HDR-CSP-002": {
+    "impact": "'unsafe-inline' or 'unsafe-eval' lets injected inline scripts run, which removes much of the protection a CSP gives against cross-site scripting.",
+    "detection": "observed",
+    "detectionNote": "The script policy contained 'unsafe-inline' or 'unsafe-eval'.",
+    "fixes": [
+      {
+        "label": "Use a per-response nonce instead",
+        "code": "Content-Security-Policy: script-src 'self' 'nonce-<random per response>'\n<script nonce=\"<same value>\">…</script>"
+      }
+    ],
+    "verify": [
+      "Run curl -sI https://<your-host>/ and read the script-src (or default-src) part of the Content-Security-Policy.",
+      "Confirm it no longer contains 'unsafe-inline' or 'unsafe-eval' for scripts, and that the site still works.",
+      "Run a new scan to confirm."
+    ],
+    "limitations": "Static sites that need inline scripts may have to accept this trade-off or generate script hashes at build time.",
+    "references": [
+      {
+        "label": "MDN: Content-Security-Policy",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP"
+      }
+    ]
+  },
+  "SS-HDR-XCTO-001": {
+    "impact": "Browsers may guess a file's type from its content, which can make some uploaded or misconfigured files run as scripts.",
+    "detection": "observed",
+    "detectionNote": "X-Content-Type-Options was missing or not 'nosniff'.",
+    "fixes": [
+      {
+        "label": "Nginx (server or location block)",
+        "code": "add_header X-Content-Type-Options \"nosniff\" always;"
+      },
+      {
+        "label": "Apache (needs mod_headers)",
+        "code": "Header always set X-Content-Type-Options \"nosniff\""
+      },
+      {
+        "label": "Cloudflare Pages or Netlify _headers file",
+        "code": "/*\n  X-Content-Type-Options: nosniff"
+      },
+      {
+        "label": "Cloudflare (proxy in front of your own server)",
+        "code": "Rules > Transform Rules > Modify Response Header > Set static\nHeader name: X-Content-Type-Options\nValue: nosniff"
+      }
+    ],
+    "verify": [
+      "Run curl -sI https://<your-host>/ and check that the X-Content-Type-Options line is in the response.",
+      "If a CDN or proxy sits in front of your server, check the response that reaches the browser, not just the origin.",
+      "Run a new scan. The finding is reported as no longer detected only when a later scan no longer sees it."
+    ],
+    "limitations": "SecureScope reads the headers of one response from the address that was scanned. Other pages, error pages and API routes can send different headers.",
+    "references": [
+      {
+        "label": "MDN: X-Content-Type-Options",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options"
+      }
+    ]
+  },
+  "SS-HDR-REF-001": {
+    "impact": "Without a policy, the full URL of the page, including any query string, may be sent to other sites when visitors follow links.",
+    "detection": "observed",
+    "detectionNote": "No Referrer-Policy header was present.",
+    "fixes": [
+      {
+        "label": "Nginx (server or location block)",
+        "code": "add_header Referrer-Policy \"strict-origin-when-cross-origin\" always;"
+      },
+      {
+        "label": "Apache (needs mod_headers)",
+        "code": "Header always set Referrer-Policy \"strict-origin-when-cross-origin\""
+      },
+      {
+        "label": "Cloudflare Pages or Netlify _headers file",
+        "code": "/*\n  Referrer-Policy: strict-origin-when-cross-origin"
+      },
+      {
+        "label": "Cloudflare (proxy in front of your own server)",
+        "code": "Rules > Transform Rules > Modify Response Header > Set static\nHeader name: Referrer-Policy\nValue: strict-origin-when-cross-origin"
+      }
+    ],
+    "verify": [
+      "Run curl -sI https://<your-host>/ and check that the Referrer-Policy line is in the response.",
+      "If a CDN or proxy sits in front of your server, check the response that reaches the browser, not just the origin.",
+      "Run a new scan. The finding is reported as no longer detected only when a later scan no longer sees it."
+    ],
+    "limitations": "SecureScope reads the headers of one response from the address that was scanned. Other pages, error pages and API routes can send different headers. Browsers already apply a safe default today, so this is a hardening step.",
+    "references": [
+      {
+        "label": "MDN: Referrer-Policy",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy"
+      }
+    ]
+  },
+  "SS-HDR-PERM-001": {
+    "impact": "Low. A Permissions-Policy lets you switch off browser features such as camera or location that the site does not use, limiting what injected or embedded code can ask for.",
+    "detection": "observed",
+    "detectionNote": "No Permissions-Policy header was present.",
+    "fixes": [
+      {
+        "label": "Nginx (server or location block)",
+        "code": "add_header Permissions-Policy \"camera=(), microphone=(), geolocation=()\" always;"
+      },
+      {
+        "label": "Apache (needs mod_headers)",
+        "code": "Header always set Permissions-Policy \"camera=(), microphone=(), geolocation=()\""
+      },
+      {
+        "label": "Cloudflare Pages or Netlify _headers file",
+        "code": "/*\n  Permissions-Policy: camera=(), microphone=(), geolocation=()"
+      },
+      {
+        "label": "Cloudflare (proxy in front of your own server)",
+        "code": "Rules > Transform Rules > Modify Response Header > Set static\nHeader name: Permissions-Policy\nValue: camera=(), microphone=(), geolocation=()"
+      }
+    ],
+    "verify": [
+      "Run curl -sI https://<your-host>/ and check that the Permissions-Policy line is in the response.",
+      "If a CDN or proxy sits in front of your server, check the response that reaches the browser, not just the origin.",
+      "Run a new scan. The finding is reported as no longer detected only when a later scan no longer sees it."
+    ],
+    "limitations": "SecureScope reads the headers of one response from the address that was scanned. Other pages, error pages and API routes can send different headers.",
+    "references": [
+      {
+        "label": "MDN: Permissions-Policy",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy"
+      }
+    ]
+  },
+  "SS-DISC-SRV-001": {
+    "impact": "A version number helps an attacker pick known exploits for that exact software.",
+    "detection": "observed",
+    "detectionNote": "The Server header contained a version number.",
+    "fixes": [
+      {
+        "label": "Nginx",
+        "code": "server_tokens off;"
+      },
+      {
+        "label": "Apache",
+        "code": "ServerTokens Prod\nServerSignature Off"
+      },
+      {
+        "label": "Cloudflare",
+        "code": "Cloudflare replaces or hides the origin Server header on proxied traffic. Check the response that reaches the browser."
+      }
+    ],
+    "verify": [
+      "Run curl -sI https://<your-host>/ and confirm the Server header shows no version number (or is absent).",
+      "Hiding a version does not fix vulnerabilities. Keep the software up to date.",
+      "Run a new scan."
+    ],
+    "limitations": "Hiding a version does not fix vulnerabilities. Keep the software patched.",
+    "references": [
+      {
+        "label": "OWASP Secure Headers Project",
+        "url": "https://owasp.org/www-project-secure-headers/"
+      }
+    ]
+  },
+  "SS-DISC-SRV-002": {
+    "impact": "Very low. The server names its software, which is mildly useful to an attacker. Many hosting providers set this and it cannot be changed.",
+    "detection": "observed",
+    "detectionNote": "A Server header was present without a version number.",
+    "fixes": [],
+    "verify": [
+      "Only relevant if you control the web server or proxy."
+    ],
+    "limitations": "On managed platforms (for example a CDN) the header may not be configurable.",
+    "references": [
+      {
+        "label": "OWASP Secure Headers Project",
+        "url": "https://owasp.org/www-project-secure-headers/"
+      }
+    ]
+  },
+  "SS-DISC-XPB-001": {
+    "impact": "Reveals the framework or runtime in use, which helps an attacker target known weaknesses.",
+    "detection": "observed",
+    "detectionNote": "An X-Powered-By header was present.",
+    "fixes": [
+      {
+        "label": "PHP (php.ini)",
+        "code": "expose_php = Off"
+      },
+      {
+        "label": "Express (Node.js)",
+        "code": "app.disable('x-powered-by');"
+      },
+      {
+        "label": "Nginx: remove the header from a proxied response",
+        "code": "proxy_hide_header X-Powered-By;"
+      },
+      {
+        "label": "Apache (needs mod_headers)",
+        "code": "Header always unset X-Powered-By"
+      }
+    ],
+    "verify": [
+      "Run curl -sI https://<your-host>/ and confirm there is no X-Powered-By line.",
+      "Run a new scan."
+    ],
+    "limitations": "Removing the header hides information; it does not fix vulnerabilities.",
+    "references": [
+      {
+        "label": "OWASP Secure Headers Project",
+        "url": "https://owasp.org/www-project-secure-headers/"
+      }
+    ]
+  },
+  "SS-COOKIE-SECURE-001": {
+    "impact": "Cookies without Secure can be sent over plain HTTP, where a network attacker can read them, including session cookies.",
+    "detection": "observed",
+    "detectionNote": "At least one Set-Cookie header had no Secure attribute. Cookie values are never read or stored.",
+    "fixes": [
+      {
+        "label": "Raw header",
+        "code": "Set-Cookie: session=<value>; Secure; HttpOnly; SameSite=Lax; Path=/"
+      },
+      {
+        "label": "Django (settings.py)",
+        "code": "SESSION_COOKIE_SECURE = True\nCSRF_COOKIE_SECURE = True"
+      },
+      {
+        "label": "Express (express-session)",
+        "code": "app.use(session({ cookie: { secure: true, httpOnly: true, sameSite: 'lax' } }));"
+      },
+      {
+        "label": "Nginx: add attributes to cookies from an upstream app (1.19.3+)",
+        "code": "proxy_cookie_flags ~ secure httponly samesite=lax;"
+      }
+    ],
+    "verify": [
+      "Load the page, then check the Set-Cookie headers (curl -sI https://<your-host>/) or the Application tab in the browser developer tools.",
+      "Confirm the named cookie now has the attribute that was missing.",
+      "Run a new scan."
+    ],
+    "limitations": "Only cookies set on the scanned response are seen. Cookies set after login or on other pages are not tested.",
+    "references": [
+      {
+        "label": "MDN: Set-Cookie",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie"
+      }
+    ]
+  },
+  "SS-COOKIE-HTTPONLY-001": {
+    "impact": "Scripts can read cookies without HttpOnly, so a cross-site scripting flaw could steal a session cookie.",
+    "detection": "observed",
+    "detectionNote": "At least one Set-Cookie header had no HttpOnly attribute.",
+    "fixes": [
+      {
+        "label": "Raw header",
+        "code": "Set-Cookie: session=<value>; Secure; HttpOnly; SameSite=Lax; Path=/"
+      },
+      {
+        "label": "Django (settings.py)",
+        "code": "SESSION_COOKIE_SECURE = True\nCSRF_COOKIE_SECURE = True"
+      },
+      {
+        "label": "Express (express-session)",
+        "code": "app.use(session({ cookie: { secure: true, httpOnly: true, sameSite: 'lax' } }));"
+      },
+      {
+        "label": "Nginx: add attributes to cookies from an upstream app (1.19.3+)",
+        "code": "proxy_cookie_flags ~ secure httponly samesite=lax;"
+      }
+    ],
+    "verify": [
+      "Load the page, then check the Set-Cookie headers (curl -sI https://<your-host>/) or the Application tab in the browser developer tools.",
+      "Confirm the named cookie now has the attribute that was missing.",
+      "Run a new scan."
+    ],
+    "limitations": "Cookies that scripts legitimately need to read (for example a theme preference) do not need HttpOnly. It matters most for session cookies.",
+    "references": [
+      {
+        "label": "MDN: Set-Cookie",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie"
+      }
+    ]
+  },
+  "SS-COOKIE-SAMESITE-001": {
+    "impact": "Without an explicit SameSite value the browser default applies, which weakens protection against cross-site request forgery in some browsers.",
+    "detection": "observed",
+    "detectionNote": "At least one Set-Cookie header had no SameSite attribute.",
+    "fixes": [
+      {
+        "label": "Raw header",
+        "code": "Set-Cookie: session=<value>; Secure; HttpOnly; SameSite=Lax; Path=/"
+      },
+      {
+        "label": "Django (settings.py)",
+        "code": "SESSION_COOKIE_SECURE = True\nCSRF_COOKIE_SECURE = True"
+      },
+      {
+        "label": "Express (express-session)",
+        "code": "app.use(session({ cookie: { secure: true, httpOnly: true, sameSite: 'lax' } }));"
+      },
+      {
+        "label": "Nginx: add attributes to cookies from an upstream app (1.19.3+)",
+        "code": "proxy_cookie_flags ~ secure httponly samesite=lax;"
+      }
+    ],
+    "verify": [
+      "Load the page, then check the Set-Cookie headers (curl -sI https://<your-host>/) or the Application tab in the browser developer tools.",
+      "Confirm the named cookie now has the attribute that was missing.",
+      "Run a new scan."
+    ],
+    "limitations": "Only cookies set on the scanned response are seen.",
+    "references": [
+      {
+        "label": "MDN: Set-Cookie",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie"
+      }
+    ]
+  },
+  "SS-DIR-001": {
+    "impact": "A generated directory index can expose files that were never meant to be public, such as backups or configuration.",
+    "detection": "heuristic",
+    "detectionNote": "The page body matched the markup that web servers generate for directory listings. This is a signature match, not a confirmed exposure. Review the page manually.",
+    "fixes": [
+      {
+        "label": "Nginx",
+        "code": "autoindex off;"
+      },
+      {
+        "label": "Apache",
+        "code": "Options -Indexes"
+      }
+    ],
+    "verify": [
+      "Open the URL in a browser. If it still lists files, disable indexing and reload.",
+      "Check that nothing sensitive is stored in that folder at all. Hiding the listing does not protect files.",
+      "Run a new scan."
+    ],
+    "limitations": "A normal page that happens to look like a directory index can match. Compressed responses are not inspected.",
+    "references": [
+      {
+        "label": "CWE-548: Exposure of Information Through Directory Listing",
+        "url": "https://cwe.mitre.org/data/definitions/548.html"
+      }
+    ]
+  },
+  "SS-SCOPE-001": {
+    "impact": "None. SecureScope stopped because the site redirected somewhere you have not verified.",
+    "detection": "observed",
+    "detectionNote": "The response redirected to a different site.",
+    "fixes": [],
+    "verify": [
+      "Verify and scan the destination directly if you are authorized to test it."
+    ],
+    "limitations": "SecureScope only follows redirects within the same site.",
+    "references": []
+  },
+  "SS-EXPOSE-GIT-001": {
+    "impact": "Public git metadata can let anyone download your source history, including credentials that were ever committed.",
+    "detection": "observed",
+    "detectionNote": "The scan requested /.git/HEAD and received content in git's reference format.",
+    "fixes": [
+      {
+        "label": "Nginx",
+        "code": "location ~ /\\.git {\n  deny all;\n  return 404;\n}"
+      },
+      {
+        "label": "Apache",
+        "code": "RedirectMatch 404 /\\.git"
+      },
+      {
+        "label": "Best fix: keep it out of the web root",
+        "code": "Deploy only the built site files. Do not publish the /.git folder to the public web root."
+      }
+    ],
+    "verify": [
+      "Open https://<your-host>/.git/HEAD in a browser or run curl -i on it. It should return 404 or 403, not a line starting with \"ref:\".",
+      "Treat any secret that was ever committed to this repository as exposed and rotate it.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "CWE-538: Insertion of Sensitive Information into Externally-Accessible File",
+        "url": "https://cwe.mitre.org/data/definitions/538.html"
+      }
+    ],
+    "limitations": "SecureScope requests one fixed path and does not download or inspect the repository."
+  },
+  "SS-EXPOSE-ENV-001": {
+    "impact": "A readable .env file often holds database passwords and API keys. Anyone who can read it may be able to use them.",
+    "detection": "heuristic",
+    "detectionNote": "The scan requested /.env and the response looked like KEY=VALUE configuration lines. The values are never stored or shown. Review the URL yourself to confirm.",
+    "fixes": [
+      {
+        "label": "Nginx",
+        "code": "location ~ /\\.env {\n  deny all;\n  return 404;\n}"
+      },
+      {
+        "label": "Apache",
+        "code": "RedirectMatch 404 /\\.env"
+      },
+      {
+        "label": "Best fix: keep it out of the web root",
+        "code": "Deploy only the built site files. Do not publish the .env file to the public web root."
+      }
+    ],
+    "verify": [
+      "Run curl -i https://<your-host>/.env. It should return 404 or 403, not configuration text.",
+      "Assume every value in the file was exposed and rotate those credentials.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "CWE-538: Insertion of Sensitive Information into Externally-Accessible File",
+        "url": "https://cwe.mitre.org/data/definitions/538.html"
+      }
+    ],
+    "limitations": "A page that happens to contain KEY=VALUE-looking lines can match. Only one fixed path is requested."
+  },
+  "SS-DISC-SEC-001": {
+    "impact": "Without a security contact, researchers who find a problem may not know how to reach you, or may not report it.",
+    "detection": "observed",
+    "detectionNote": "The scan requested /.well-known/security.txt and did not receive a valid file with a Contact field.",
+    "fixes": [
+      {
+        "label": "File: /.well-known/security.txt",
+        "code": "Contact: mailto:security@<your-domain>\nExpires: <a date within the next 12 months, ISO 8601>\nPreferred-Languages: en"
+      }
+    ],
+    "verify": [
+      "Open https://<your-host>/.well-known/security.txt. It should return the file, not an error or your home page.",
+      "Check that it has a Contact line and an Expires date in the future.",
+      "Run a new scan."
+    ],
+    "references": [
+      {
+        "label": "RFC 9116: security.txt",
+        "url": "https://www.rfc-editor.org/rfc/rfc9116"
+      }
+    ],
+    "limitations": "This is a good-practice item. It is not a vulnerability and does not reduce the score."
+  },
+  "SS-TLS-CERT-001": {
+    "impact": "An expired certificate makes browsers show a full-page warning and breaks API clients.",
+    "detection": "observed",
+    "detectionNote": "The certificate on the verified connection expires soon.",
+    "fixes": [
+      {
+        "label": "Renew with an ACME client (certbot example)",
+        "code": "sudo certbot renew --dry-run\nsudo certbot renew"
+      },
+      {
+        "label": "Managed hosting or Cloudflare",
+        "code": "Turn on automatic certificate renewal in your host's TLS settings."
+      }
+    ],
+    "verify": [
+      "Run openssl s_client -connect <your-host>:443 -servername <your-host> </dev/null | openssl x509 -noout -dates and check the dates.",
+      "Confirm every server and CDN edge presents the new certificate.",
+      "Run a new scan."
+    ],
+    "references": [],
+    "limitations": "SecureScope makes one TLS connection to the scanned host. Other hosts, ports and certificates are not checked."
+  },
+  "SS-TLS-CERT-002": {
+    "impact": "Browsers refuse the connection or warn visitors.",
+    "detection": "observed",
+    "detectionNote": "The certificate's end date has passed.",
+    "fixes": [
+      {
+        "label": "Renew with an ACME client (certbot example)",
+        "code": "sudo certbot renew --dry-run\nsudo certbot renew"
+      },
+      {
+        "label": "Managed hosting or Cloudflare",
+        "code": "Turn on automatic certificate renewal in your host's TLS settings."
+      }
+    ],
+    "verify": [
+      "Run openssl s_client -connect <your-host>:443 -servername <your-host> </dev/null | openssl x509 -noout -dates and check the dates.",
+      "Confirm every server and CDN edge presents the new certificate.",
+      "Run a new scan."
+    ],
+    "references": [],
+    "limitations": "SecureScope makes one TLS connection to the scanned host. Other hosts, ports and certificates are not checked."
+  },
+  "SS-TLS-CERT-003": {
+    "impact": "Browsers warn visitors because the certificate was issued for a different name.",
+    "detection": "observed",
+    "detectionNote": "The certificate does not list the scanned host name.",
+    "fixes": [
+      {
+        "label": "Reissue for the right names",
+        "code": "certbot --nginx -d example.com -d www.example.com"
+      }
+    ],
+    "verify": [
+      "Run openssl s_client -connect <your-host>:443 -servername <your-host> </dev/null | openssl x509 -noout -dates and check the dates.",
+      "Confirm every server and CDN edge presents the new certificate.",
+      "Run a new scan."
+    ],
+    "references": [],
+    "limitations": "SecureScope makes one TLS connection to the scanned host. Other hosts, ports and certificates are not checked."
+  },
+  "SS-TLS-CERT-004": {
+    "impact": "Browsers warn visitors because the issuer is not trusted.",
+    "detection": "observed",
+    "detectionNote": "Verification against the standard trust store failed.",
+    "fixes": [
+      {
+        "label": "Use a public certificate authority and send the full chain",
+        "code": "ssl_certificate     /path/to/fullchain.pem;\nssl_certificate_key /path/to/privkey.pem;"
+      }
+    ],
+    "verify": [
+      "Run openssl s_client -connect <your-host>:443 -servername <your-host> </dev/null | openssl x509 -noout -dates and check the dates.",
+      "Confirm every server and CDN edge presents the new certificate.",
+      "Run a new scan."
+    ],
+    "references": [],
+    "limitations": "SecureScope makes one TLS connection to the scanned host. Other hosts, ports and certificates are not checked."
+  },
+  "SS-TLS-CERT-005": {
+    "impact": "Clients may reject the certificate until its start date.",
+    "detection": "observed",
+    "detectionNote": "The certificate's start date is in the future.",
+    "fixes": [
+      {
+        "label": "Check the server clock and the certificate dates",
+        "code": "date -u\nopenssl x509 -in <cert.pem> -noout -dates"
+      }
+    ],
+    "verify": [
+      "Run openssl s_client -connect <your-host>:443 -servername <your-host> </dev/null | openssl x509 -noout -dates and check the dates.",
+      "Confirm every server and CDN edge presents the new certificate.",
+      "Run a new scan."
+    ],
+    "references": [],
+    "limitations": "SecureScope makes one TLS connection to the scanned host. Other hosts, ports and certificates are not checked."
+  },
+  "SS-TLS-CERT-006": {
+    "impact": "Clients may reject the certificate.",
+    "detection": "observed",
+    "detectionNote": "Standard verification failed for a reason other than expiry, name or issuer.",
+    "fixes": [
+      {
+        "label": "Inspect the chain",
+        "code": "openssl s_client -connect <your-host>:443 -servername <your-host> -showcerts </dev/null"
+      }
+    ],
+    "verify": [
+      "Run openssl s_client -connect <your-host>:443 -servername <your-host> </dev/null | openssl x509 -noout -dates and check the dates.",
+      "Confirm every server and CDN edge presents the new certificate.",
+      "Run a new scan."
+    ],
+    "references": [],
+    "limitations": "SecureScope makes one TLS connection to the scanned host. Other hosts, ports and certificates are not checked."
+  }
+}

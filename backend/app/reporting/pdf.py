@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from app.reporting.guidance import guidance_for
 from app.reporting.reports import DISCLAIMER, LIMITS, coverage_notes, passed_checks
 from app.reporting.risk import RiskRating, counting_findings, overall_risk, severity_counts
 from app.schemas.scan import SEVERITY_ORDER, Finding, FindingStatus, ScanDetail
@@ -80,8 +81,21 @@ def _status_label(finding: Finding) -> str:
     return {
         FindingStatus.OPEN: "",
         FindingStatus.ACCEPTED_RISK: "Accepted risk",
-        FindingStatus.RESOLVED: "No longer reported",
+        FindingStatus.FALSE_POSITIVE: "Marked as false positive",
+        FindingStatus.RESOLVED: "No longer detected",
     }.get(finding.status, "")
+
+
+def _guidance_context(finding: Finding) -> dict[str, object] | None:
+    """Static guidance for the finding type, cleaned like every other value. Platform examples are capped."""
+    guide = guidance_for(finding.id)
+    if guide is None:
+        return None
+    return {
+        "impact": _clean(guide.impact),
+        "fixes": [{"label": _clean(x.label), "code": _clean(x.code)} for x in guide.fixes[:3]],
+        "verify": [_clean(step) for step in guide.verify],
+    }
 
 
 def _ordered(detail: ScanDetail) -> list[Finding]:
@@ -105,6 +119,7 @@ def build_context(detail: ScanDetail, report_id: str, generated_at: datetime) ->
             "remediation": _clean(f.remediation),
             "url": _clean(affected_url(detail, f)),
             "status_label": _status_label(f),
+            "guide": _guidance_context(f),
         }
         for f in ordered
     ]

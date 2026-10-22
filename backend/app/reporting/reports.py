@@ -100,7 +100,7 @@ def _status_label(finding: Finding) -> str:
     return {
         "accepted_risk": "Accepted risk",
         "false_positive": "Marked false positive",
-        "resolved": "Resolved (a later scan no longer reported it)",
+        "resolved": "No longer detected (a later scan did not report it; this does not prove a fix)",
     }.get(status, status)
 
 

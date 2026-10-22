@@ -61,7 +61,7 @@ export function TargetMeta({ scan }: { scan: ScanDetail }) {
         <dl className="meta">
           <dt>Host</dt>
           <dd>{m.host}</dd>
-          <dt>Resolved</dt>
+          <dt>No longer detected</dt>
           <dd>{m.resolved_addresses.join(", ") || "–"}</dd>
           <dt>Final URL</dt>
           <dd>{m.final_url ?? "–"}</dd>

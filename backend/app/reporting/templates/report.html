@@ -93,6 +93,12 @@
     <p><span class="label">What this means.</span> {{ f.description }}</p>
     {% if f.evidence %}<p class="label" style="margin-bottom:0">Evidence</p><pre class="evidence">{{ f.evidence }}</pre>{% endif %}
     <div class="fix"><span class="label">How to fix it.</span> {{ f.remediation }}</div>
+    {% if f.guide %}
+    <p><span class="label">Why it matters.</span> {{ f.guide.impact }}</p>
+    {% for fix in f.guide.fixes %}<p class="label" style="margin-bottom:0">{{ fix.label }}</p><pre class="evidence">{{ fix.code }}</pre>{% endfor %}
+    <p class="label" style="margin-bottom:0">How to verify the fix</p>
+    <ol>{% for step in f.guide.verify %}<li>{{ step }}</li>{% endfor %}</ol>
+    {% endif %}
   </div>
   {% endfor %}
 

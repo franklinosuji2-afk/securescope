@@ -1503,3 +1503,17 @@ a.btn {
     margin-bottom: 10px;
   }
 }
+
+.assistant-prompt {
+  margin: 16px 0 0;
+}
+.assistant-prompt summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.assistant-prompt textarea {
+  width: 100%;
+  margin: 8px 0;
+  font: 0.85rem/1.5 var(--mono);
+  resize: vertical;
+}

@@ -7,6 +7,7 @@ import {
   statusExplanation,
   statusLabel,
 } from "../format";
+import { buildAssistantPrompt } from "../assistantPrompt";
 import { guidanceFor } from "../guidance";
 import { buildHash } from "../router";
 import type { Finding, FindingStatus, ScanDetail } from "../types";
@@ -27,6 +28,44 @@ function Section({
       <h2 id={id}>{title}</h2>
       {children}
     </section>
+  );
+}
+
+function AssistantPrompt({ text }: { text: string }) {
+  const [note, setNote] = useState("");
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setNote("Copied.");
+    } catch {
+      setNote("Copying was blocked. Select the text and copy it yourself.");
+    }
+  };
+  return (
+    <details className="assistant-prompt">
+      <summary>Prompt for an AI coding assistant</summary>
+      <p className="muted small">
+        Built from this finding and the fix guidance above. It contains no file
+        paths or secrets. Read it before you paste it anywhere.
+      </p>
+      <textarea
+        className="input"
+        readOnly
+        rows={12}
+        value={text}
+        aria-label="Prompt for an AI coding assistant"
+      />
+      <div className="row">
+        <button type="button" className="btn-ghost" onClick={copy}>
+          Copy prompt
+        </button>
+        {note && (
+          <span role="status" className="muted small">
+            {note}
+          </span>
+        )}
+      </div>
+    </details>
   );
 }
 
@@ -127,8 +166,9 @@ function StatusPanel({
             </span>
           </div>
           <p className="muted small">
-            “Resolved” cannot be set by hand. SecureScope sets it when a later
-            scan of this host no longer reports the finding.
+            “No longer detected” cannot be set by hand. SecureScope sets it when
+            a later scan of this host no longer reports the finding. It does not
+            prove the fix is correct.
           </p>
         </form>
       ) : (
@@ -223,20 +263,27 @@ export default function FindingDetail({
 
       <Section id="d-fix" title="Recommended fix">
         <p>{finding.remediation}</p>
-        {guidance.fixExample && (
-          <>
-            <h3>{guidance.fixExample.label}</h3>
-            <pre className="evidence">{guidance.fixExample.code}</pre>
-            <p className="muted small">
-              Adapt this example to your framework or hosting platform before
-              using it.
-            </p>
-          </>
+        {guidance.fixes.map((fix) => (
+          <div key={fix.label}>
+            <h3>{fix.label}</h3>
+            <pre className="evidence">{fix.code}</pre>
+          </div>
+        ))}
+        {guidance.fixes.length > 0 && (
+          <p className="muted small">
+            Adapt these examples to your framework or hosting platform before
+            using them.
+          </p>
         )}
+        <AssistantPrompt text={buildAssistantPrompt(finding, guidance)} />
       </Section>
 
       <Section id="d-verify" title="How to verify">
-        <p>{guidance.verify}</p>
+        <ol>
+          {guidance.verify.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
         <p className="muted small">
           SecureScope does not mark a finding as fixed. It is treated as
           resolved only when a later scan of the same target no longer reports
