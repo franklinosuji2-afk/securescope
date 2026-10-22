@@ -24,6 +24,7 @@ import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 import Account from "./pages/Account";
 import Overview from "./pages/Overview";
+import Landing from "./pages/Landing";
 import { forgetInvite, pendingInvite } from "./pendingInvite";
 import { canReadAudit } from "./types";
 import { trackPageView, trackedPageName } from "./tracking";
@@ -122,6 +123,8 @@ export default function App() {
   }
 
   const isPublic = PUBLIC_PAGES.includes(route.page);
+  // Visitors who are not signed in see the public home page instead of a bare sign-in prompt.
+  if (!user && route.page === "overview") return <Landing />;
   if (!user && !isPublic) {
     return (
       <div className="auth-wrap">

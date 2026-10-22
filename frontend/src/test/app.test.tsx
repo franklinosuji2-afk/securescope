@@ -438,7 +438,21 @@ describe("History", () => {
 });
 
 describe("Authentication", () => {
-  it("shows the sign-in page when there is no session", async () => {
+  it("shows the public home page to a visitor and keeps the app behind sign-in", async () => {
+    mockApi(() => ({}), null);
+    renderApp();
+    expect(
+      await screen.findByRole("heading", { level: 1, name: /Find the gaps/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("link", { name: "Create free account" })[0],
+    ).toHaveAttribute("href", "#/register");
+    expect(screen.getByRole("link", { name: "Impressum" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Target URL")).not.toBeInTheDocument();
+  });
+
+  it("asks for sign-in on an app page when there is no session", async () => {
+    window.location.hash = "#/targets";
     mockApi(() => ({}), null);
     renderApp();
     expect(
