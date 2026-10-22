@@ -136,3 +136,27 @@ test("the home page links to the sample report", async ({ page }) => {
     page.getByRole("heading", { level: 1, name: "Sample security report" }),
   ).toBeVisible();
 });
+
+test("the plan comparison table is accessible and honest about plans", async ({
+  page,
+}) => {
+  await page.goto("/#/");
+  const table = page.getByRole("table");
+  await expect(table).toBeVisible();
+  await expect(
+    table.getByRole("columnheader", { name: "Agency" }),
+  ).toBeVisible();
+  await expect(
+    table.getByRole("row", { name: /Scans per month 3 30 150/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Planned, not available yet" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "What SecureScope does not do" }),
+  ).toBeVisible();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth,
+  );
+  expect(overflow).toBe(false);
+});

@@ -1,3 +1,4 @@
+import PlanComparison from "../components/PlanComparison";
 import { useEffect, useRef, useState } from "react";
 import { buildHash } from "../router";
 import "../landing.css";
@@ -577,6 +578,7 @@ export default function Landing() {
                 </p>
               </article>
             </div>
+            <PlanComparison />
             <p className="muted small">
               Prices are planned and may change before launch. If you reach a
               limit, nothing is deleted; you just can’t add more until the month
