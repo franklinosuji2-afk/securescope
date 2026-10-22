@@ -25,6 +25,7 @@ import NotFound from "./pages/NotFound";
 import Account from "./pages/Account";
 import Overview from "./pages/Overview";
 import Landing from "./pages/Landing";
+import SampleReport from "./pages/SampleReport";
 import { forgetInvite, pendingInvite } from "./pendingInvite";
 import { canReadAudit } from "./types";
 import { trackPageView, trackedPageName } from "./tracking";
@@ -103,6 +104,8 @@ export default function App() {
     lastTracked.current = name;
     trackPageView(name);
   }, [loading, user, route.page]);
+
+  if (route.page === "sample-report") return <SampleReport />;
 
   if (LEGAL_PAGES.includes(route.page)) {
     return (

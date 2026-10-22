@@ -203,6 +203,14 @@ export default function Landing() {
   const login = buildHash("login", null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
+  // Links from other pages (the sample report) arrive as #/?section=pricing.
+  useEffect(() => {
+    const wanted = new URLSearchParams(
+      window.location.hash.split("?")[1] ?? "",
+    ).get("section");
+    if (wanted && ["problem", "checks", "how", "pricing"].includes(wanted))
+      requestAnimationFrame(() => scrollTo(wanted));
+  }, []);
   // Escape closes the menu and returns focus to its button; a press outside closes it too.
   useEffect(() => {
     if (!menuOpen) return;
@@ -258,7 +266,7 @@ export default function Landing() {
             aria-label="Site"
           >
             <button type="button" onClick={() => go("problem")}>
-              Why
+              Why SecureScope
             </button>
             <button type="button" onClick={() => go("checks")}>
               What we check
@@ -266,6 +274,7 @@ export default function Landing() {
             <button type="button" onClick={() => go("how")}>
               How it works
             </button>
+            <a href="#/sample-report">Sample report</a>
             <button type="button" onClick={() => go("pricing")}>
               Pricing
             </button>
@@ -313,12 +322,15 @@ export default function Landing() {
                 <a className="btn" href={register}>
                   Create free account
                 </a>
+                <a className="btn-ghost" href="#/sample-report">
+                  View sample report
+                </a>
                 <button
                   type="button"
                   className="btn-ghost"
-                  onClick={() => scrollTo("checks")}
+                  onClick={() => scrollTo("how")}
                 >
-                  See what is checked
+                  See how it works
                 </button>
               </div>
               <ul className="landing-chips" aria-label="Highlights">
@@ -596,6 +608,7 @@ export default function Landing() {
             <button type="button" onClick={() => scrollTo("how")}>
               How it works
             </button>
+            <a href="#/sample-report">Sample report</a>
             <button type="button" onClick={() => scrollTo("pricing")}>
               Pricing
             </button>

@@ -23,6 +23,7 @@ TRACKED_PAGES = (
     "forgot-password",
     "reset-password",
     "verify-email",
+    "sample-report",
     "impressum",
     "privacy",
     "terms",

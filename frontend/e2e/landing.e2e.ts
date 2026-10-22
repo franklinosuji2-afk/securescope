@@ -83,3 +83,56 @@ test("on a phone the section links open from a menu that closes with Escape", as
     "false",
   );
 });
+
+for (const scheme of ["dark", "light"] as const) {
+  test(`the public sample report is accessible and fits every width (${scheme} theme)`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.goto("/#/sample-report");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Sample security report" }),
+    ).toBeVisible();
+    await expect(page.getByRole("note")).toContainText("not a scan of a real");
+    for (const width of [360, 768, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      const overflow = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      );
+      expect(overflow, `no sideways scroll at ${width}px`).toBeLessThanOrEqual(
+        0,
+      );
+    }
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(results.violations).toEqual([]);
+  });
+}
+
+test("the sample report shows real finding detail and links onward", async ({
+  page,
+}) => {
+  await page.goto("/#/sample-report");
+  const csp = page.getByRole("article", {
+    name: "Content-Security-Policy header is missing",
+  });
+  await expect(csp).toContainText("Affected URL");
+  await expect(csp).toContainText("How to verify the fix");
+  await expect(
+    page.getByRole("img", { name: /82 out of 100, grade B/ }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "See pricing" }).click();
+  await expect(page.getByRole("heading", { name: "Pricing" })).toBeInViewport();
+});
+
+test("the home page links to the sample report", async ({ page }) => {
+  await page.goto("/#/");
+  await page.getByRole("link", { name: "View sample report" }).click();
+  await expect(page).toHaveURL(/#\/sample-report/);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Sample security report" }),
+  ).toBeVisible();
+});

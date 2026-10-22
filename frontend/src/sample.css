@@ -1,0 +1,221 @@
+.sample-page .sample-brand {
+  color: inherit;
+  text-decoration: none;
+}
+.sample-links {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.sample-links a {
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.sample-links a:hover,
+.sample-links a[aria-current="page"] {
+  color: var(--text);
+}
+.sample-links a[aria-current="page"] {
+  background: color-mix(in srgb, var(--accent-soft) 14%, transparent);
+}
+.sample-notice {
+  margin: 24px 0 8px;
+  padding: 14px 16px;
+  border: 1px dashed var(--sev-medium);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--sev-medium) 8%, transparent);
+  font-size: 0.95rem;
+}
+.sample-title h1 {
+  margin: 4px 0 16px;
+  font-size: clamp(1.9rem, 1.3rem + 2vw, 2.6rem);
+  line-height: 1.15;
+}
+.sample-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px 24px;
+  margin: 0 0 24px;
+}
+.sample-meta dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.sample-meta dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.sample-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+.sample-toc {
+  position: sticky;
+  top: 84px;
+}
+.sample-toc h2 {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.sample-toc ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+.sample-toc a {
+  display: block;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.93rem;
+}
+.sample-toc a:hover {
+  background: color-mix(in srgb, var(--accent-soft) 12%, transparent);
+}
+.sample-body > section {
+  padding: 8px 0 28px;
+  scroll-margin-top: 80px;
+}
+.sample-body h2 {
+  margin: 0 0 12px;
+  font-size: 1.5rem;
+}
+.sample-body section:focus {
+  outline: none;
+}
+.sample-score {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+}
+.sample-grade {
+  display: grid;
+  place-items: center;
+  min-width: 120px;
+  padding: 8px 16px;
+  border-right: 1px solid var(--border);
+}
+.sample-grade strong {
+  font-size: 3rem;
+  line-height: 1;
+}
+.sample-grade span {
+  color: var(--muted);
+}
+.sample-counts {
+  display: flex;
+  gap: 8px 20px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sample-counts li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.sample-two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 12px 0;
+}
+.sample-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.sample-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 6px;
+}
+.sample-table th,
+.sample-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+}
+.sample-table thead th {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.sample-group h3 {
+  margin: 20px 0 10px;
+  font-size: 1.05rem;
+}
+.sample-finding {
+  margin: 0 0 14px;
+}
+.sample-finding h4 {
+  margin: 0 0 2px;
+  font-size: 1.1rem;
+}
+.sample-finding dl {
+  margin: 12px 0 0;
+}
+.sample-finding dt {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.sample-finding dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+.sample-finding ol {
+  margin: 4px 0 0;
+  padding-left: 20px;
+}
+.sample-ticks,
+.sample-list {
+  margin: 8px 0;
+  padding-left: 22px;
+}
+.sample-ticks li,
+.sample-list li {
+  margin: 4px 0;
+}
+.sample-cta {
+  text-align: left;
+}
+.sample-foot {
+  margin-top: 24px;
+}
+@media (max-width: 860px) {
+  .sample-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .sample-toc {
+    position: static;
+  }
+  .sample-toc ol {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  .sample-links {
+    display: none;
+  }
+  .sample-grade {
+    border-right: 0;
+  }
+}

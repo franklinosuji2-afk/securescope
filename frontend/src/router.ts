@@ -17,6 +17,7 @@ export type Page =
   | "reset-password"
   | "verify-email"
   | "accept-invite"
+  | "sample-report"
   | "impressum"
   | "privacy"
   | "terms";
@@ -36,6 +37,7 @@ const PAGES: readonly Page[] = [
   "reset-password",
   "verify-email",
   "accept-invite",
+  "sample-report",
   "impressum",
   "privacy",
   "terms",

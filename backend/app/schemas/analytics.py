@@ -14,6 +14,7 @@ Page = Literal[
     "forgot-password",
     "reset-password",
     "verify-email",
+    "sample-report",
     "impressum",
     "privacy",
     "terms",

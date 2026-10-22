@@ -41,7 +41,8 @@
   gap: 4px;
   margin-left: 12px;
 }
-.landing-links button {
+.landing-links button,
+.landing-links a:not(.landing-menu-signin) {
   background: none;
   border: 0;
   border-radius: 8px;
@@ -49,11 +50,13 @@
   color: var(--muted);
   font: inherit;
   cursor: pointer;
+  text-decoration: none;
   transition:
     color var(--dur-fast) ease,
     background var(--dur-fast) ease;
 }
-.landing-links button:hover {
+.landing-links button:hover,
+.landing-links a:not(.landing-menu-signin):hover {
   color: var(--text);
   background: var(--hover);
 }
@@ -260,7 +263,7 @@
   color: var(--sev-medium);
 }
 .landing-page .sev-info {
-  color: var(--text-muted, #9aa3b2);
+  color: var(--sev-info);
 }
 .landing-page .sev-low {
   color: var(--sev-low);
@@ -563,7 +566,8 @@
   .landing-links.open {
     display: flex;
   }
-  .landing-links button {
+  .landing-links button,
+  .landing-links a:not(.landing-menu-signin) {
     padding: 12px;
     text-align: left;
   }

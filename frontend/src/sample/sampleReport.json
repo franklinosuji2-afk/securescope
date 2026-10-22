@@ -1,0 +1,80 @@
+{
+  "domain": "example.com",
+  "score": 82,
+  "grade": "B",
+  "penalties": {
+    "critical": 40,
+    "high": 20,
+    "medium": 10,
+    "low": 4,
+    "info": 0
+  },
+  "grade_bands": [
+    {
+      "min": 90,
+      "grade": "A"
+    },
+    {
+      "min": 80,
+      "grade": "B"
+    },
+    {
+      "min": 65,
+      "grade": "C"
+    },
+    {
+      "min": 50,
+      "grade": "D"
+    }
+  ],
+  "checks_run": 13,
+  "checks_passed": [
+    "The page was served over HTTPS",
+    "X-Content-Type-Options is nosniff",
+    "Referrer-Policy is set",
+    "Permissions-Policy is set",
+    "No software version shown in the Server or X-Powered-By headers",
+    "No directory listing in the page",
+    "Scan stayed on the verified site",
+    "No exposed .git directory or .env file",
+    "TLS certificate is valid for this host and not close to expiry"
+  ],
+  "findings": [
+    {
+      "id": "SS-HDR-CSP-001",
+      "title": "Content-Security-Policy header is missing",
+      "severity": "medium",
+      "category": "Security headers",
+      "description": "A Content-Security-Policy limits where scripts and other resources can load from and reduces the impact of cross-site scripting.",
+      "evidence": "Content-Security-Policy was not present. Checked the HTTP 200 response from https://example.com/. Security headers seen: strict-transport-security: max-age=300; x-content-type-options: nosniff; referrer-policy: strict-origin-when-cross-origin; permissions-policy: camera=(), microphone=().",
+      "remediation": "Define a CSP that restricts script sources, e.g. start in report-only mode with \"default-src 'self'\" and tighten from there."
+    },
+    {
+      "id": "SS-COOKIE-HTTPONLY-001",
+      "title": "Cookies set without the HttpOnly attribute",
+      "severity": "low",
+      "category": "Cookies",
+      "description": "Cookies without HttpOnly are readable by scripts, so a cross-site scripting flaw could steal them. This matters most for session cookies.",
+      "evidence": "Cookie names: session",
+      "remediation": "Add HttpOnly to cookies that scripts do not need to read, especially session cookies."
+    },
+    {
+      "id": "SS-HDR-HSTS-002",
+      "title": "Strict-Transport-Security max-age is short",
+      "severity": "low",
+      "category": "Security headers",
+      "description": "A short HSTS lifetime reduces how long browsers enforce HTTPS.",
+      "evidence": "Strict-Transport-Security: max-age=300",
+      "remediation": "Use a max-age of at least 15552000 seconds (180 days); 1 year is common."
+    },
+    {
+      "id": "SS-DISC-SEC-001",
+      "title": "No security.txt contact file",
+      "severity": "info",
+      "category": "Security hygiene",
+      "description": "A security.txt file (RFC 9116) tells researchers how to report a vulnerability to you. Without one, reports may not reach the right person.",
+      "evidence": "GET https://example.com/.well-known/security.txt returned HTTP 404 without a valid Contact field.",
+      "remediation": "Publish /.well-known/security.txt with at least a Contact line and an Expires date, for example: Contact: mailto:security@your-domain"
+    }
+  ]
+}

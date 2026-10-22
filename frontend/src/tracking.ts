@@ -15,6 +15,7 @@ const COUNTED: Partial<Record<Page, string>> = {
   "forgot-password": "forgot-password",
   "reset-password": "reset-password",
   "verify-email": "verify-email",
+  "sample-report": "sample-report",
   impressum: "impressum",
   privacy: "privacy",
   terms: "terms",
