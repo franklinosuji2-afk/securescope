@@ -141,8 +141,12 @@ const STEPS = [
     text: "A handful of ordinary page requests. No attack traffic, and it usually finishes within a minute.",
   },
   {
-    title: "Fix and track",
+    title: "Review and fix",
     text: "Each finding shows the evidence and how to fix it. Scan again to see it marked resolved.",
+  },
+  {
+    title: "Share a report",
+    text: "Download a PDF, or export the data, to show what was checked and what changed.",
   },
 ];
 
@@ -546,6 +550,9 @@ export default function Landing() {
                   <li>Scan history kept 90 days</li>
                   <li>PDF and data exports</li>
                 </ul>
+                <p className="muted small landing-plan-note">
+                  Not on sale yet.
+                </p>
               </article>
               <article className="card landing-plan-soon">
                 <h3>
@@ -560,6 +567,9 @@ export default function Landing() {
                   <li>Scan history kept 365 days</li>
                   <li>Invite team members and clients</li>
                 </ul>
+                <p className="muted small landing-plan-note">
+                  Not on sale yet.
+                </p>
               </article>
             </div>
             <p className="muted small">

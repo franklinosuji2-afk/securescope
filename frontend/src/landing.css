@@ -11,6 +11,33 @@
   --land-max: 1200px;
   --land-gutter: clamp(16px, 4vw, 32px);
 }
+/* Premium dark surfaces for the public pages only. The signed-in app keeps its own tokens. */
+:root[data-theme="dark"] .landing-page {
+  --bg: #080b0c;
+  --surface: #101516;
+  --surface-2: #151c1d;
+  --border: #263234;
+  --text: #f4f7f8;
+  --muted: #a7b2b8;
+  --accent-soft: #19cdb5;
+  --bar: rgba(8, 11, 12, 0.82);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .landing-page {
+    --bg: #080b0c;
+    --surface: #101516;
+    --surface-2: #151c1d;
+    --border: #263234;
+    --text: #f4f7f8;
+    --muted: #a7b2b8;
+    --accent-soft: #19cdb5;
+    --bar: rgba(8, 11, 12, 0.82);
+  }
+}
+.landing-page {
+  background: var(--bg);
+  min-height: 100vh;
+}
 .landing-bar {
   position: sticky;
   top: 0;
@@ -374,7 +401,7 @@
 /* Steps */
 .landing-steps {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 16px;
   margin: 24px 0 0;
   padding: 0;
@@ -421,6 +448,11 @@
 }
 .landing-plan-soon {
   opacity: 0.85;
+}
+.landing-plan-note {
+  margin: auto 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
 }
 .landing-badge {
   display: inline-block;
@@ -529,8 +561,7 @@
     max-width: 560px;
   }
   .landing-grid,
-  .landing-benefits,
-  .landing-steps {
+  .landing-benefits {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .landing-numbers {
