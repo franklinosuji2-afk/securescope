@@ -22,6 +22,8 @@ export default defineConfig({
     baseURL: "http://localhost:4173",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    // Animations are checked in their own test; everywhere else they would make contrast checks time-dependent.
+    reducedMotion: "reduce",
     ...devices["Desktop Chrome"],
     launchOptions: executablePath ? { executablePath } : {},
   },

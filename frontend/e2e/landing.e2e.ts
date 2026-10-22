@@ -23,14 +23,17 @@ for (const scheme of ["dark", "light"] as const) {
     ).toEqual([]);
     for (const width of [320, 360, 768, 1024, 1440, 1920]) {
       await page.setViewportSize({ width, height: 900 });
-      const overflow = await page.evaluate(
-        () =>
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth,
-      );
-      expect(overflow, `horizontal overflow at ${width}px`).toBeLessThanOrEqual(
-        0,
-      );
+      await expect
+        .poll(
+          () =>
+            page.evaluate(
+              () =>
+                document.documentElement.scrollWidth -
+                document.documentElement.clientWidth,
+            ),
+          { message: `horizontal overflow at ${width}px` },
+        )
+        .toBeLessThanOrEqual(0);
     }
   });
 }
@@ -96,14 +99,17 @@ for (const scheme of ["dark", "light"] as const) {
     await expect(page.getByRole("note")).toContainText("not a scan of a real");
     for (const width of [360, 768, 1280]) {
       await page.setViewportSize({ width, height: 900 });
-      const overflow = await page.evaluate(
-        () =>
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth,
-      );
-      expect(overflow, `no sideways scroll at ${width}px`).toBeLessThanOrEqual(
-        0,
-      );
+      await expect
+        .poll(
+          () =>
+            page.evaluate(
+              () =>
+                document.documentElement.scrollWidth -
+                document.documentElement.clientWidth,
+            ),
+          { message: `no sideways scroll at ${width}px` },
+        )
+        .toBeLessThanOrEqual(0);
     }
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa"])

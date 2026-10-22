@@ -1,0 +1,165 @@
+/* Motion and feedback. Loaded last so it refines the base styles without rewriting them.
+   Movement only runs for people who have not asked for reduced motion, and hover effects only on devices
+   that can hover. Colour and focus feedback is always on. */
+
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --lift-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 24px 48px -22px rgba(0, 0, 0, 0.75);
+  --btn-glow:
+    0 0 0 1px color-mix(in srgb, var(--accent-soft) 45%, transparent),
+    0 10px 28px -10px color-mix(in srgb, var(--accent-soft) 55%, transparent);
+}
+:root[data-theme="light"] {
+  --lift-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 20px 40px -22px rgba(15, 23, 42, 0.28);
+}
+
+/* Smooth colour changes everywhere it matters, including the theme switch. */
+body {
+  transition:
+    background-color 240ms ease,
+    color 240ms ease;
+}
+.card,
+.input,
+select,
+textarea,
+.btn,
+.btn-ghost,
+.btn-danger,
+.btn-link,
+.nav a,
+.landing-links button,
+.landing-links a,
+a {
+  transition-property:
+    background-color, border-color, color, box-shadow, transform, opacity;
+  transition-duration: var(--dur);
+  transition-timing-function: var(--ease-out);
+}
+
+/* Fields: a soft glow instead of an abrupt outline jump. */
+.input:hover:not(:disabled),
+select:hover:not(:disabled),
+textarea:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+.input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  border-color: var(--accent-soft);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-soft) 22%, transparent);
+}
+
+/* Press feedback works on every device. */
+.btn:active:not(:disabled),
+.btn-ghost:active,
+.btn-danger:active:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn:active:not(:disabled),
+  .btn-ghost:active,
+  .btn-danger:active:not(:disabled) {
+    transform: translateY(0) scale(0.97);
+    transition-duration: 70ms;
+  }
+
+  /* Page entrance: each screen settles in once, with a small stagger for its blocks. */
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  #main > *,
+  #landing-main > section,
+  #public-main > * {
+    animation: rise-in 420ms var(--ease-out) both;
+  }
+  #main > :nth-child(2),
+  #landing-main > :nth-child(2) {
+    animation-delay: 50ms;
+  }
+  #main > :nth-child(3),
+  #landing-main > :nth-child(3) {
+    animation-delay: 90ms;
+  }
+  #main > :nth-child(n + 4),
+  #landing-main > :nth-child(n + 4) {
+    animation-delay: 120ms;
+  }
+
+  /* Open and close of FAQ and how-to details. */
+  details[open] > :not(summary) {
+    animation: rise-in 260ms var(--ease-out) both;
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--btn-glow);
+  }
+  .btn-ghost:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--accent-soft) 55%, var(--control));
+    box-shadow: 0 8px 22px -14px rgba(0, 0, 0, 0.6);
+  }
+  .btn-danger:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  /* Floating cards: only the ones that are about something you can open or compare. */
+  .landing-card,
+  .landing-plans .card,
+  .summary-card,
+  .landing-faq .card,
+  .sample-card {
+    will-change: transform;
+  }
+  .landing-card:hover,
+  .landing-plans .card:hover,
+  .summary-card:hover,
+  .landing-faq .card:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--accent-soft) 45%, var(--border));
+    box-shadow: var(--lift-shadow);
+  }
+  .landing-plan-soon:hover {
+    opacity: 1;
+  }
+  .bento-card {
+    transition-timing-function: var(--ease-out);
+  }
+  .bento-card:hover {
+    box-shadow: var(--lift-shadow);
+  }
+
+  /* Navigation and list rows lean toward the pointer. */
+  .nav a:hover {
+    transform: translateX(3px);
+  }
+  .finding-row:hover,
+  .bento-row:hover {
+    transform: translateX(2px);
+  }
+  .finding-row,
+  .bento-row {
+    transition:
+      background-color var(--dur-fast) ease,
+      transform var(--dur) var(--ease-out);
+  }
+  .landing-links button:hover,
+  .landing-links a:not(.landing-menu-signin):hover {
+    transform: translateY(-1px);
+  }
+}

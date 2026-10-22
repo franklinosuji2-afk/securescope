@@ -8,6 +8,7 @@ import "@fontsource-variable/plus-jakarta-sans/wght.css";
 import "./styles.css";
 import "./bento.css";
 import "./dashboard.css";
+import "./motion.css";
 
 // Links from emails look like /reset-password?token=... or /accept-invite?token=... ; the app uses hash routes.
 const emailLink = /^\/(reset-password|verify-email|accept-invite)$/.exec(

@@ -176,12 +176,15 @@ for (const scheme of ["dark", "light"] as const) {
     await expect(page.getByText("cannot buy Agency today")).toBeVisible();
     for (const width of [360, 1280]) {
       await page.setViewportSize({ width, height: 900 });
-      const overflow = await page.evaluate(
-        () =>
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth,
-      );
-      expect(overflow).toBeLessThanOrEqual(0);
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () =>
+              document.documentElement.scrollWidth -
+              document.documentElement.clientWidth,
+          ),
+        )
+        .toBeLessThanOrEqual(0);
     }
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa"])

@@ -694,6 +694,10 @@
   background: var(--surface-2);
   font-weight: 700;
 }
+.cmp-table th[scope="row"] {
+  letter-spacing: normal;
+  text-transform: none;
+}
 .cmp-table th[scope="row"],
 .cmp-table thead th:first-child {
   text-align: left;
