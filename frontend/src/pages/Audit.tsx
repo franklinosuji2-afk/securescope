@@ -168,7 +168,11 @@ export default function Audit() {
                         <td>{auditLabel(e.event_type)}</td>
                         <td style={{ overflowWrap: "anywhere" }}>
                           {e.actor_email ?? (
-                            <span className="muted">No user recorded</span>
+                            <span className="muted">
+                              {e.event_type === "scan.scheduled"
+                                ? "Automatic (schedule)"
+                                : "No user recorded"}
+                            </span>
                           )}
                         </td>
                         <td>

@@ -203,12 +203,33 @@
 .sample-list li {
   margin: 8px 0;
 }
-.sample-cta {
+.sample-body > section.sample-cta {
+  margin-top: 8px;
+  padding: 36px 40px 40px;
   text-align: left;
-  padding: 28px;
+  background:
+    radial-gradient(
+      120% 140% at 0% 0%,
+      color-mix(in srgb, var(--accent-soft) 10%, transparent),
+      transparent 60%
+    ),
+    var(--surface);
 }
 .sample-cta h2 {
-  margin-bottom: 14px;
+  margin: 0 0 12px;
+}
+.sample-cta > p {
+  max-width: 56ch;
+  margin: 0 0 28px;
+  line-height: 1.6;
+}
+.sample-cta .landing-cta {
+  gap: 14px;
+}
+@media (max-width: 560px) {
+  .sample-body > section.sample-cta {
+    padding: 28px 22px 30px;
+  }
 }
 .sample-foot {
   margin-top: 24px;

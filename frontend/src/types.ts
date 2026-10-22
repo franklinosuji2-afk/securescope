@@ -103,6 +103,19 @@ export interface ReportLink {
 }
 
 export type Role = "OWNER" | "ADMIN" | "SECURITY_ANALYST" | "MEMBER" | "VIEWER";
+
+const ROLE_LABELS: Record<Role, string> = {
+  OWNER: "Owner",
+  ADMIN: "Admin",
+  SECURITY_ANALYST: "Security analyst",
+  MEMBER: "Member",
+  VIEWER: "Viewer",
+};
+
+/** A readable name for a role; the server keeps the upper-case value. */
+export function roleLabel(role: Role): string {
+  return ROLE_LABELS[role];
+}
 export const ROLES: readonly Role[] = [
   "OWNER",
   "ADMIN",

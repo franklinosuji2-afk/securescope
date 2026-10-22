@@ -24,6 +24,10 @@ function storedTheme(): Theme | null {
 
 function apply(theme: Theme): void {
   document.documentElement.setAttribute("data-theme", theme);
+  // The browser's own toolbar colour follows the page.
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", theme === "light" ? "#eef3f8" : "#050505");
 }
 
 let current: Theme | null = null;

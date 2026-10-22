@@ -88,6 +88,11 @@ export default function PublicShell({
             <a href="#/agency-features">For agencies</a>
             <a href="#/?section=pricing">Pricing</a>
           </nav>
+          <nav aria-label="Account" className="landing-foot-col">
+            <h2>Account</h2>
+            <a href={login}>Sign in</a>
+            <a href={register}>Create free account</a>
+          </nav>
           <nav aria-label="Legal" className="landing-foot-col">
             <h2>Legal</h2>
             <a href="#/impressum">Impressum</a>

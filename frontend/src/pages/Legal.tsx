@@ -8,7 +8,7 @@ import { buildHash } from "../router";
 const OPERATOR = "Franklin Chinonso Osuji";
 const STREET = "Mariendorfer Weg 52";
 const CITY = "12051 Berlin";
-const UPDATED = "21 October 2026";
+const UPDATED = "22 October 2026";
 
 const TABS: { page: Page; label: string }[] = [
   { page: "impressum", label: "Impressum" },
@@ -203,8 +203,18 @@ function Privacy() {
           providers.
         </li>
         <li>
+          <strong>Scheduled scans (optional):</strong> if you switch them on for
+          a verified site, we store the schedule (daily or weekly, whether
+          alerts are on, and when the next and last runs are or were). Each run
+          is an ordinary scan and follows the same retention as any other scan.
+          Needed to provide the feature you turned on (Art. 6(1)(b) GDPR).
+        </li>
+        <li>
           <strong>Emails:</strong> we send only service emails such as email
-          confirmation and password reset. No marketing.
+          confirmation and password reset and, if you switch on scheduled scans,
+          an alert to the workspace owners, admins and security analysts when a
+          scan reports a new finding (other than informational notes), the score
+          drops by 5 points or more, or a scan fails. No marketing.
         </li>
         <li>
           <strong>Server logs:</strong> our hosting providers process technical

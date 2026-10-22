@@ -1,3 +1,3 @@
-﻿# PRIVACY
+# PRIVACY
 
 Status: not yet written.

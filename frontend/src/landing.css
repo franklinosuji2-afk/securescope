@@ -384,7 +384,7 @@
 .landing-section h2,
 .landing-solution h2,
 .landing-final h2 {
-  margin: 0 0 12px;
+  margin: 0 0 18px;
   max-width: 28ch;
   font-size: clamp(1.75rem, 1.2rem + 1.8vw, 2.25rem);
   line-height: 1.2;
@@ -471,7 +471,9 @@
 }
 .landing-numbers {
   align-items: start;
-  row-gap: 32px;
+  row-gap: 24px;
+  /* Each figure has its own padding for the hover lift; this keeps the text on the section's left edge. */
+  margin-inline: -16px;
 }
 .landing-numbers dd {
   max-width: 22ch;
@@ -725,7 +727,7 @@
     font-size: 0.9rem;
   }
   .landing-page .landing-signin,
-  .landing-actions .theme-toggle {
+  .landing-page .landing-actions .theme-toggle {
     display: none;
   }
   .landing-links.open .landing-menu-theme {
@@ -779,7 +781,8 @@
 .cmp-table {
   width: 100%;
   min-width: 620px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.9375rem;
 }
 .cmp-table th,
@@ -804,6 +807,14 @@
 }
 .cmp-table thead th:first-child {
   font-weight: 700;
+}
+/* The app's tables drop the last row's rule; here every group still needs its closing line. */
+.cmp-table tbody tr:last-child td {
+  border-bottom: 1px solid var(--border);
+}
+.cmp-table tbody:last-of-type tr:last-child td,
+.cmp-table tbody:last-of-type tr:last-child th {
+  border-bottom: 0;
 }
 .cmp-table .cmp-group th {
   background: var(--surface-2);
@@ -841,16 +852,19 @@
   display: none;
 }
 /* Theme toggle in the public header */
-.theme-toggle {
+.landing-page .theme-toggle {
   display: inline-grid;
   place-items: center;
+  box-sizing: border-box;
   width: 46px;
   height: 46px;
+  min-height: 0;
   padding: 0;
-  border-radius: 10px;
+  line-height: 0;
   color: var(--text);
 }
-.theme-toggle svg {
+.landing-page .theme-toggle svg {
+  display: block;
   width: 20px;
   height: 20px;
   stroke: currentColor;

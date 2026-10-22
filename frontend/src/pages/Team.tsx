@@ -5,7 +5,7 @@ import { useAuth } from "../auth";
 import { ErrorNotice, Loading } from "../components/ui";
 import { formatDate } from "../format";
 import type { Invitation, OrganizationDetail, PlanInfo, Role } from "../types";
-import { ROLES, canManageMembers } from "../types";
+import { ROLES, canManageMembers, roleLabel } from "../types";
 
 export default function Team() {
   const { organization, user } = useAuth();
@@ -115,8 +115,8 @@ export default function Team() {
         <p>
           {organization
             ? organization.role === "VIEWER"
-              ? `Your access to ${organization.name}. Your role: VIEWER. Other members are not shown to viewers.`
-              : `Members of ${organization.name}. Your role: ${organization.role}.`
+              ? `Your access to ${organization.name}. Your role: Viewer. Other members are not shown to viewers.`
+              : `Members of ${organization.name}. Your role: ${roleLabel(organization.role)}.`
             : "No organization."}{" "}
           Roles are enforced by the server.
         </p>
@@ -169,12 +169,12 @@ export default function Team() {
                       >
                         {ROLES.map((r) => (
                           <option key={r} value={r}>
-                            {r}
+                            {roleLabel(r)}
                           </option>
                         ))}
                       </select>
                     ) : (
-                      m.role
+                      roleLabel(m.role)
                     )}
                   </td>
                   <td className="st-joined">{formatDate(m.joined_at)}</td>
@@ -225,7 +225,7 @@ export default function Team() {
               {invitations.map((i) => (
                 <tr key={i.id}>
                   <td style={{ overflowWrap: "anywhere" }}>{i.email}</td>
-                  <td>{i.role}</td>
+                  <td>{roleLabel(i.role)}</td>
                   <td>{formatDate(i.expires_at)}</td>
                   <td>
                     <button
@@ -287,7 +287,7 @@ export default function Team() {
             >
               {ROLES.filter((r) => r !== "OWNER").map((r) => (
                 <option key={r} value={r}>
-                  {r}
+                  {roleLabel(r)}
                 </option>
               ))}
             </select>
