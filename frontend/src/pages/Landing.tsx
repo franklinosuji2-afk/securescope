@@ -1,4 +1,4 @@
-import { LegalLinks } from "./Legal";
+import { useEffect, useRef, useState } from "react";
 import { buildHash } from "../router";
 import "../landing.css";
 
@@ -40,7 +40,10 @@ function Icon({ name }: { name: string }) {
 }
 
 function scrollTo(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  const calm = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  document
+    .getElementById(id)
+    ?.scrollIntoView({ behavior: calm ? "auto" : "smooth" });
 }
 
 const PROBLEMS = [
@@ -198,332 +201,418 @@ const FAQ = [
 export default function Landing() {
   const register = buildHash("register", null);
   const login = buildHash("login", null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  // Escape closes the menu and returns focus to its button; a press outside closes it too.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      menuButton.current?.focus();
+    };
+    const onPointer = (event: PointerEvent) => {
+      if (!(event.target as Element | null)?.closest(".landing-bar"))
+        setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+    };
+  }, [menuOpen]);
+  const go = (id: string) => {
+    setMenuOpen(false);
+    scrollTo(id);
+  };
   return (
-    <div className="landing">
+    <div className="landing-page">
       <a className="skip-link" href="#landing-main">
         Skip to content
       </a>
       <header className="landing-bar">
-        <div className="landing-brand">
-          <svg viewBox="0 0 32 32" aria-hidden="true" width="26" height="26">
-            <path
-              d="M16 3 5 7v8c0 7 4.6 11.7 11 14 6.4-2.3 11-7 11-14V7L16 3Z"
-              fill="none"
-              strokeWidth="2.2"
-              style={{ stroke: "var(--accent-soft)" }}
-            />
-            <path
-              d="m11 16 4 4 6-8"
-              fill="none"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ stroke: "var(--ok)" }}
-            />
-          </svg>
-          SecureScope
-        </div>
-        <nav className="landing-links" aria-label="Sections">
-          <button type="button" onClick={() => scrollTo("problem")}>
-            Why
-          </button>
-          <button type="button" onClick={() => scrollTo("checks")}>
-            What we check
-          </button>
-          <button type="button" onClick={() => scrollTo("how")}>
-            How it works
-          </button>
-          <button type="button" onClick={() => scrollTo("pricing")}>
-            Pricing
-          </button>
-        </nav>
-        <div className="landing-actions">
-          <a className="btn-ghost landing-signin" href={login}>
-            Sign in
-          </a>
-          <a className="btn" href={register}>
-            Get started
-          </a>
+        <div className="landing-bar-inner">
+          <div className="landing-brand">
+            <svg viewBox="0 0 32 32" aria-hidden="true" width="26" height="26">
+              <path
+                d="M16 3 5 7v8c0 7 4.6 11.7 11 14 6.4-2.3 11-7 11-14V7L16 3Z"
+                fill="none"
+                strokeWidth="2.2"
+                style={{ stroke: "var(--accent-soft)" }}
+              />
+              <path
+                d="m11 16 4 4 6-8"
+                fill="none"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ stroke: "var(--ok)" }}
+              />
+            </svg>
+            <span className="landing-wordmark">SecureScope</span>
+          </div>
+          <nav
+            id="landing-menu"
+            className={`landing-links${menuOpen ? " open" : ""}`}
+            aria-label="Site"
+          >
+            <button type="button" onClick={() => go("problem")}>
+              Why
+            </button>
+            <button type="button" onClick={() => go("checks")}>
+              What we check
+            </button>
+            <button type="button" onClick={() => go("how")}>
+              How it works
+            </button>
+            <button type="button" onClick={() => go("pricing")}>
+              Pricing
+            </button>
+            <a className="landing-menu-signin" href={login}>
+              Sign in
+            </a>
+          </nav>
+          <div className="landing-actions">
+            <button
+              ref={menuButton}
+              type="button"
+              className="btn-ghost landing-menu-btn"
+              aria-expanded={menuOpen}
+              aria-controls="landing-menu"
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              {menuOpen ? "Close menu" : "Menu"}
+            </button>
+            <a className="btn-ghost landing-signin" href={login}>
+              Sign in
+            </a>
+            <a className="btn" href={register}>
+              Get started
+            </a>
+          </div>
         </div>
       </header>
 
-      <main id="landing-main">
-        <section className="landing-hero">
-          <div>
-            <p className="landing-eyebrow">Website security checks</p>
-            <h1>
-              Find the gaps in your website’s security before anyone else does.
-            </h1>
-            <p className="landing-lead">
-              SecureScope checks the security basics of a site you own: HTTPS,
-              headers, cookies, certificates and exposed files. You get a score,
-              the evidence, and plain instructions for fixing each problem.
-            </p>
-            <div className="landing-cta">
-              <a className="btn" href={register}>
-                Create free account
-              </a>
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={() => scrollTo("checks")}
-              >
-                See what is checked
-              </button>
-            </div>
-            <ul className="landing-chips" aria-label="Highlights">
-              <li>Passive checks only</li>
-              <li>Ownership verified first</li>
-              <li>Free plan, no card</li>
-            </ul>
-          </div>
-          <div
-            className="landing-sample card"
-            role="img"
-            aria-label="Example report: grade B with one high, two medium and one low finding"
-          >
-            <p className="landing-sample-tag">Example report</p>
-            <div className="landing-sample-head">
-              <span className="landing-grade">B</span>
-              <div>
-                <strong>example.com</strong>
-                <br />
-                <span className="muted small">4 findings, 9 checks passed</span>
+      <div className="landing">
+        <main id="landing-main">
+          <section className="landing-hero">
+            <div>
+              <p className="landing-eyebrow">Website security checks</p>
+              <h1>
+                Find the gaps in your website’s security{" "}
+                <span className="landing-grad">before anyone else does.</span>
+              </h1>
+              <p className="landing-lead">
+                SecureScope checks the security basics of a site you own: HTTPS,
+                headers, cookies, certificates and exposed files. You get a
+                score, the evidence, and plain instructions for fixing each
+                problem.
+              </p>
+              <div className="landing-cta">
+                <a className="btn" href={register}>
+                  Create free account
+                </a>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => scrollTo("checks")}
+                >
+                  See what is checked
+                </button>
               </div>
+              <ul className="landing-chips" aria-label="Highlights">
+                <li>Passive checks only</li>
+                <li>Ownership verified first</li>
+                <li>Free plan, no card</li>
+              </ul>
             </div>
-            <div className="landing-bar-track" aria-hidden="true">
-              <span style={{ width: "82%" }} />
-            </div>
-            <ul className="landing-sample-list">
-              <li>
-                <span className="sev sev-high">High</span>{" "}
-                Content-Security-Policy header is missing
-              </li>
-              <li>
-                <span className="sev sev-medium">Medium</span> Cookies set
-                without the HttpOnly attribute
-              </li>
-              <li>
-                <span className="sev sev-medium">Medium</span>{" "}
-                Strict-Transport-Security max-age is short
-              </li>
-              <li>
-                <span className="sev sev-low">Low</span> No security.txt contact
-                file
-              </li>
-            </ul>
-          </div>
-        </section>
-
-        <section
-          id="problem"
-          className="landing-section"
-          aria-labelledby="h-problem"
-        >
-          <p className="landing-eyebrow">The problem</p>
-          <h2 id="h-problem">
-            Website security fails in boring ways. That is exactly why it gets
-            missed.
-          </h2>
-          <p className="landing-sub muted">
-            The headline-grabbing attacks are rare. The everyday gaps are not: a
-            setting nobody switched on, a file nobody meant to publish, a
-            certificate that quietly runs out. They sit there for months because
-            checking for them has always been either expensive or exhausting.
-          </p>
-          <div className="landing-grid">
-            {PROBLEMS.map((c) => (
-              <article key={c.title} className="card landing-card">
-                <Icon name={c.icon} />
-                <h3>{c.title}</h3>
-                <p className="muted">{c.text}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="landing-solution" aria-labelledby="h-solution">
-          <p className="landing-eyebrow">The answer</p>
-          <h2 id="h-solution">
-            One calm place to see what is wrong, why it matters and how to fix
-            it.
-          </h2>
-          <p className="muted">
-            SecureScope does the small things well. It reads your site the way
-            any visitor would, checks the basics that attackers look for first,
-            and explains every result in plain language, with the evidence
-            beside it. No agents to install, no dashboards to learn, nothing
-            that touches your site.
-          </p>
-          <dl className="landing-numbers">
-            {NUMBERS.map((n) => (
-              <div key={n.label}>
-                <dt>{n.value}</dt>
-                <dd>{n.label}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-
-        <section className="landing-section" aria-labelledby="h-benefits">
-          <p className="landing-eyebrow">Benefits</p>
-          <h2 id="h-benefits">Get the basics right, before they matter</h2>
-          <div className="landing-grid landing-benefits">
-            {BENEFITS.map((b) => (
-              <article key={b.title} className="card landing-card">
-                <Icon name={b.icon} />
-                <h3>{b.title}</h3>
-                <p className="muted">{b.text}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section
-          id="checks"
-          className="landing-section"
-          aria-labelledby="h-checks"
-        >
-          <p className="landing-eyebrow">Coverage</p>
-          <h2 id="h-checks">What SecureScope checks</h2>
-          <p className="landing-sub muted">
-            Passive checks that are visible from outside. Nothing is attacked or
-            changed.
-          </p>
-          <div className="landing-grid">
-            {CHECKS.map((c) => (
-              <article key={c.title} className="card landing-card">
-                <Icon name={c.icon} />
-                <h3>{c.title}</h3>
-                <p className="muted">{c.text}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="how" className="landing-section" aria-labelledby="h-how">
-          <p className="landing-eyebrow">Getting started</p>
-          <h2 id="h-how">How it works</h2>
-          <ol className="landing-steps">
-            {STEPS.map((s, i) => (
-              <li key={s.title} className="card">
-                <span className="landing-step-no" aria-hidden="true">
-                  {i + 1}
+            <figure className="landing-sample card">
+              <figcaption className="landing-sample-tag">
+                Sample report
+                <span>Illustrative data, not a real scan</span>
+              </figcaption>
+              <div className="landing-sample-head">
+                <span className="landing-grade" aria-label="Grade B">
+                  B
                 </span>
-                <h3>{s.title}</h3>
-                <p className="muted">{s.text}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
+                <div>
+                  <strong>example.com</strong>
+                  <span className="muted small">
+                    4 findings · 9 checks passed
+                  </span>
+                </div>
+              </div>
+              <div className="landing-bar-track" aria-hidden="true">
+                <span style={{ width: "82%" }} />
+              </div>
+              <p className="landing-sample-summary">
+                <span className="sev sev-high">1 High</span>
+                <span className="sev sev-medium">2 Medium</span>
+                <span className="sev sev-low">1 Low</span>
+              </p>
+              <ul className="landing-sample-list">
+                <li>
+                  <span className="sev sev-high">High</span>
+                  <span>Content-Security-Policy header is missing</span>
+                </li>
+                <li>
+                  <span className="sev sev-medium">Medium</span>
+                  <span>Cookies set without the HttpOnly attribute</span>
+                </li>
+                <li>
+                  <span className="sev sev-medium">Medium</span>
+                  <span>Strict-Transport-Security max-age is short</span>
+                </li>
+                <li>
+                  <span className="sev sev-low">Low</span>
+                  <span>No security.txt contact file</span>
+                </li>
+              </ul>
+            </figure>
+          </section>
 
-        <section className="landing-section" aria-labelledby="h-features">
-          <p className="landing-eyebrow">Features</p>
-          <h2 id="h-features">What you get</h2>
-          <div className="landing-grid">
-            {FEATURES.map((f) => (
-              <article key={f.title} className="card landing-card">
-                <Icon name={f.icon} />
-                <h3>{f.title}</h3>
-                <p className="muted">{f.text}</p>
+          <section
+            id="problem"
+            className="landing-section"
+            aria-labelledby="h-problem"
+          >
+            <p className="landing-eyebrow">The problem</p>
+            <h2 id="h-problem">
+              Website security fails in boring ways. That is exactly why it gets
+              missed.
+            </h2>
+            <p className="landing-sub muted">
+              The headline-grabbing attacks are rare. The everyday gaps are not:
+              a setting nobody switched on, a file nobody meant to publish, a
+              certificate that quietly runs out. They sit there for months
+              because checking for them has always been either expensive or
+              exhausting.
+            </p>
+            <div className="landing-grid">
+              {PROBLEMS.map((c) => (
+                <article key={c.title} className="card landing-card">
+                  <Icon name={c.icon} />
+                  <h3>{c.title}</h3>
+                  <p className="muted">{c.text}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="landing-solution" aria-labelledby="h-solution">
+            <p className="landing-eyebrow">The answer</p>
+            <h2 id="h-solution">
+              One calm place to see what is wrong, why it matters and how to fix
+              it.
+            </h2>
+            <p className="muted">
+              SecureScope does the small things well. It reads your site the way
+              any visitor would, checks the basics that attackers look for
+              first, and explains every result in plain language, with the
+              evidence beside it. No agents to install, no dashboards to learn,
+              nothing that touches your site.
+            </p>
+            <dl className="landing-numbers">
+              {NUMBERS.map((n) => (
+                <div key={n.label}>
+                  <dt>{n.value}</dt>
+                  <dd>{n.label}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="landing-fineprint muted small">
+              These describe how SecureScope works. They are not usage
+              statistics or customer results.
+            </p>
+          </section>
+
+          <section className="landing-section" aria-labelledby="h-benefits">
+            <p className="landing-eyebrow">Benefits</p>
+            <h2 id="h-benefits">Get the basics right, before they matter</h2>
+            <div className="landing-grid landing-benefits">
+              {BENEFITS.map((b) => (
+                <article key={b.title} className="card landing-card">
+                  <Icon name={b.icon} />
+                  <h3>{b.title}</h3>
+                  <p className="muted">{b.text}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section
+            id="checks"
+            className="landing-section"
+            aria-labelledby="h-checks"
+          >
+            <p className="landing-eyebrow">Coverage</p>
+            <h2 id="h-checks">What SecureScope checks</h2>
+            <p className="landing-sub muted">
+              Passive checks that are visible from outside. Nothing is attacked
+              or changed.
+            </p>
+            <div className="landing-grid">
+              {CHECKS.map((c) => (
+                <article key={c.title} className="card landing-card">
+                  <Icon name={c.icon} />
+                  <h3>{c.title}</h3>
+                  <p className="muted">{c.text}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section id="how" className="landing-section" aria-labelledby="h-how">
+            <p className="landing-eyebrow">Getting started</p>
+            <h2 id="h-how">How it works</h2>
+            <ol className="landing-steps">
+              {STEPS.map((s, i) => (
+                <li key={s.title} className="card">
+                  <span className="landing-step-no" aria-hidden="true">
+                    {i + 1}
+                  </span>
+                  <h3>{s.title}</h3>
+                  <p className="muted">{s.text}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section className="landing-section" aria-labelledby="h-features">
+            <p className="landing-eyebrow">Features</p>
+            <h2 id="h-features">What you get</h2>
+            <div className="landing-grid">
+              {FEATURES.map((f) => (
+                <article key={f.title} className="card landing-card">
+                  <Icon name={f.icon} />
+                  <h3>{f.title}</h3>
+                  <p className="muted">{f.text}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section
+            id="pricing"
+            className="landing-section"
+            aria-labelledby="h-pricing"
+          >
+            <p className="landing-eyebrow">Plans</p>
+            <h2 id="h-pricing">Pricing</h2>
+            <p className="landing-sub muted">
+              Start free. The paid plans are not on sale yet; they will be
+              announced here.
+            </p>
+            <div className="landing-grid landing-plans">
+              <article className="card landing-plan-live">
+                <h3>
+                  Free <span className="landing-badge">Available now</span>
+                </h3>
+                <p className="landing-price">€0</p>
+                <ul>
+                  <li>1 website</li>
+                  <li>3 scans per month</li>
+                  <li>Scan history kept 30 days</li>
+                  <li>PDF and data exports</li>
+                </ul>
+                <a className="btn" href={register}>
+                  Create free account
+                </a>
               </article>
-            ))}
+              <article className="card landing-plan-soon">
+                <h3>
+                  Professional{" "}
+                  <span className="landing-badge soon">Coming soon</span>
+                </h3>
+                <p className="landing-price">
+                  €19 <span className="muted small">/ month</span>
+                </p>
+                <ul>
+                  <li>5 websites</li>
+                  <li>30 scans per month</li>
+                  <li>Scan history kept 90 days</li>
+                  <li>PDF and data exports</li>
+                </ul>
+              </article>
+              <article className="card landing-plan-soon">
+                <h3>
+                  Agency <span className="landing-badge soon">Coming soon</span>
+                </h3>
+                <p className="landing-price">
+                  €49 <span className="muted small">/ month</span>
+                </p>
+                <ul>
+                  <li>20 websites</li>
+                  <li>150 scans per month</li>
+                  <li>Scan history kept 365 days</li>
+                  <li>Invite team members and clients</li>
+                </ul>
+              </article>
+            </div>
+            <p className="muted small">
+              Prices are planned and may change before launch. If you reach a
+              limit, nothing is deleted; you just can’t add more until the month
+              renews.
+            </p>
+          </section>
+
+          <section className="landing-section" aria-labelledby="h-faq">
+            <h2 id="h-faq">Questions</h2>
+            <div className="landing-faq">
+              {FAQ.map((f) => (
+                <details key={f.q} className="card">
+                  <summary>{f.q}</summary>
+                  <p className="muted">{f.a}</p>
+                </details>
+              ))}
+            </div>
+          </section>
+
+          <section className="landing-final card">
+            <h2>Check your first site in a few minutes</h2>
+            <p className="muted">
+              Create a free account, verify your site and run your first scan.
+            </p>
+            <a className="btn" href={register}>
+              Create free account
+            </a>
+          </section>
+        </main>
+
+        <footer className="landing-foot">
+          <div className="landing-foot-brand">
+            <strong>SecureScope</strong>
+            <p className="muted small">
+              Passive website security checks for sites you own. Operated from
+              Berlin, Germany.
+            </p>
           </div>
-        </section>
-
-        <section
-          id="pricing"
-          className="landing-section"
-          aria-labelledby="h-pricing"
-        >
-          <p className="landing-eyebrow">Plans</p>
-          <h2 id="h-pricing">Pricing</h2>
-          <p className="landing-sub muted">
-            Start free. The paid plans are not on sale yet; they will be
-            announced here.
-          </p>
-          <div className="landing-grid landing-plans">
-            <article className="card landing-plan-live">
-              <h3>
-                Free <span className="landing-badge">Available now</span>
-              </h3>
-              <p className="landing-price">€0</p>
-              <ul>
-                <li>1 website</li>
-                <li>3 scans per month</li>
-                <li>Scan history kept 30 days</li>
-                <li>PDF and data exports</li>
-              </ul>
-              <a className="btn" href={register}>
-                Create free account
-              </a>
-            </article>
-            <article className="card landing-plan-soon">
-              <h3>
-                Professional{" "}
-                <span className="landing-badge soon">Coming soon</span>
-              </h3>
-              <p className="landing-price">
-                €19 <span className="muted small">/ month</span>
-              </p>
-              <ul>
-                <li>5 websites</li>
-                <li>30 scans per month</li>
-                <li>Scan history kept 90 days</li>
-                <li>PDF and data exports</li>
-              </ul>
-            </article>
-            <article className="card landing-plan-soon">
-              <h3>
-                Agency <span className="landing-badge soon">Coming soon</span>
-              </h3>
-              <p className="landing-price">
-                €49 <span className="muted small">/ month</span>
-              </p>
-              <ul>
-                <li>20 websites</li>
-                <li>150 scans per month</li>
-                <li>Scan history kept 365 days</li>
-                <li>Invite team members and clients</li>
-              </ul>
-            </article>
-          </div>
-          <p className="muted small">
-            Prices are planned and may change before launch. If you reach a
-            limit, nothing is deleted; you just can’t add more until the month
-            renews.
-          </p>
-        </section>
-
-        <section className="landing-section" aria-labelledby="h-faq">
-          <h2 id="h-faq">Questions</h2>
-          <div className="landing-faq">
-            {FAQ.map((f) => (
-              <details key={f.q} className="card">
-                <summary>{f.q}</summary>
-                <p className="muted">{f.a}</p>
-              </details>
-            ))}
-          </div>
-        </section>
-
-        <section className="landing-final card">
-          <h2>Check your first site in a few minutes</h2>
-          <p className="muted">
-            Create a free account, verify your site and run your first scan.
-          </p>
-          <a className="btn" href={register}>
-            Create free account
-          </a>
-        </section>
-      </main>
-
-      <footer className="landing-foot">
-        <span className="muted small">
-          SecureScope, operated from Berlin, Germany.
-        </span>
-        <LegalLinks />
-      </footer>
+          <nav aria-label="Product" className="landing-foot-col">
+            <h2>Product</h2>
+            <button type="button" onClick={() => scrollTo("checks")}>
+              What we check
+            </button>
+            <button type="button" onClick={() => scrollTo("how")}>
+              How it works
+            </button>
+            <button type="button" onClick={() => scrollTo("pricing")}>
+              Pricing
+            </button>
+          </nav>
+          <nav aria-label="Account" className="landing-foot-col">
+            <h2>Account</h2>
+            <a href={login}>Sign in</a>
+            <a href={register}>Create free account</a>
+          </nav>
+          <nav aria-label="Legal" className="landing-foot-col">
+            <h2>Legal</h2>
+            <a href="#/impressum">Impressum</a>
+            <a href="#/privacy">Privacy</a>
+            <a href="#/terms">Terms</a>
+          </nav>
+        </footer>
+      </div>
     </div>
   );
 }
