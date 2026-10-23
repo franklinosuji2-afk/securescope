@@ -18,6 +18,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from app.reporting.guidance import guidance_for
 from app.reporting.reports import DISCLAIMER, LIMITS, coverage_notes, passed_checks
 from app.reporting.risk import RiskRating, counting_findings, overall_risk, severity_counts
+from app.scanner.scoring import method_lines, score_note
 from app.schemas.scan import SEVERITY_ORDER, Finding, FindingStatus, ScanDetail
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -143,6 +144,8 @@ def build_context(
         "risk_colour": RISK_COLOUR[risk.level],
         "score": detail.score,
         "grade": detail.grade,
+        "score_note": score_note(detail.findings, detail.score) if detail.score is not None else None,
+        "score_method": method_lines(),
         "severity_rows": [
             {"label": SEVERITY_LABEL[s.value], "count": counts[s.value], "colour": SEVERITY_COLOUR[s.value]}
             for s in SEVERITY_ORDER

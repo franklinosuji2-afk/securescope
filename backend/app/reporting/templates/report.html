@@ -74,7 +74,7 @@
     <div class="label">Overall risk rating</div>
     <div class="level">{{ risk.label }}</div>
     <p style="margin-top:4pt">{{ risk.summary }}</p>
-    {% if score is not none %}<p class="fmeta">Security score {{ score }}/100 (grade {{ grade }}). The score is a rough guide, not a measurement.</p>{% endif %}
+    {% if score is not none %}<p class="fmeta">Security score {{ score }}/100 (grade {{ grade }}). {{ score_note }}</p>{% endif %}
   </div>
   <table class="sev"><tr>
     {% for item in severity_rows %}<td><span class="n" style="color:{{ item.colour }}">{{ item.count }}</span><span class="t">{{ item.label }}</span></td>{% endfor %}
@@ -117,6 +117,9 @@
   <h2>What was checked and passed</h2>
   <ul>{% for item in passed %}<li>{{ item }}</li>{% endfor %}{% for item in coverage %}<li>{{ item }}</li>{% endfor %}</ul>
   {% endif %}
+
+  <h2>How the score is worked out</h2>
+  <ul>{% for item in score_method %}<li>{{ item }}</li>{% endfor %}</ul>
 
   <h2>Limits of this report</h2>
   <ul>{% for item in limits %}<li>{{ item }}</li>{% endfor %}</ul>

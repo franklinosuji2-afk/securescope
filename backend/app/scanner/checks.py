@@ -565,17 +565,24 @@ _CERT_FAILURES: dict[str, tuple[str, str, str, str]] = {
 }
 
 
+# Verification failed for a reason the scanner cannot fully attribute (its own clock, or an unclassified error):
+# still worth fixing, but not asserted as strongly as an expired, mismatched or untrusted certificate.
+_UNCERTAIN_CERT_FAILURES = frozenset({"not_yet_valid", "other"})
+
+
 def check_tls_certificate(result: FetchResult, tls: TlsObservation | None) -> list[Finding]:
     """Findings from the one verified TLS connection. Expects a conclusive observation."""
     if tls is None:
         return []
     if tls.outcome == "verification_failed" and tls.failure_kind is not None:
         fid, title, why, fix = _CERT_FAILURES[tls.failure_kind]
+        uncertain = tls.failure_kind in _UNCERTAIN_CERT_FAILURES
         return [
             Finding(
                 id=fid,
                 title=title,
-                severity=Severity.HIGH,
+                severity=Severity.MEDIUM if uncertain else Severity.HIGH,
+                confidence=Confidence.MEDIUM if uncertain else Confidence.HIGH,
                 category="Transport security",
                 description=why,
                 evidence=f"Certificate verification for {result.host} failed: {tls.detail}",

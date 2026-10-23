@@ -75,7 +75,7 @@ Captured from the running app against a real scan history of my own portfolio si
 - No exploit payloads, brute force, credential attacks, port scans or off-origin crawling. Page bodies are never stored.
 - Containers run as non-root with read-only filesystem and dropped capabilities; security headers on API and UI; strict CORS; pinned dependencies.
 
-See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/DATA_RETENTION.md](docs/DATA_RETENTION.md), [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) and [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md).
+See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/DATA_RETENTION.md](docs/DATA_RETENTION.md), [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md), [docs/SCORING_AND_SEVERITY.md](docs/SCORING_AND_SEVERITY.md) and [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md).
 
 ## API
 

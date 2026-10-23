@@ -6,6 +6,7 @@ import html
 import re
 
 from app.scanner.checks import CHECK_LABELS, NOT_PASSED_AT_INFO
+from app.scanner.scoring import method_lines, score_note
 from app.schemas.scan import SEVERITY_ORDER, Finding, ScanDetail
 
 DISCLAIMER = (
@@ -75,6 +76,8 @@ def _coverage_md(detail: ScanDetail) -> list[str]:
     )
     lines += [f"- Passed: {_md(label)}" for label in passed_checks(detail)]
     lines += [f"- {_md(note)}" for note in coverage_notes(detail)]
+    lines += ["", "## How the score is worked out", ""]
+    lines += [f"- {line}" for line in method_lines()]
     lines += ["", "## Limits of this scan", ""]
     lines += [f"- {limit}" for limit in LIMITS]
     lines.append("")
@@ -124,7 +127,9 @@ def to_markdown(detail: ScanDetail) -> str:
         f"- Scanned: {detail.created_at.isoformat(timespec='seconds')}",
     ]
     if detail.score is not None:
-        lines.append(f"- Heuristic score: {detail.score}/100 (grade {detail.grade})")
+        lines.append(
+            f"- Heuristic score: {detail.score}/100 (grade {detail.grade}). {score_note(detail.findings, detail.score)}"
+        )
     if detail.error:
         lines.append(f"- Error: {_md(detail.error)}")
     lines += ["", f"> {DISCLAIMER}", ""]
@@ -170,7 +175,8 @@ def to_html(detail: ScanDetail) -> str:
             f"<p><strong>Remediation:</strong> {e(finding.remediation)}</p></section>"
         )
     score = (
-        f'<p class="score">Heuristic score: <strong>{detail.score}/100</strong> (grade {e(detail.grade or "")})</p>'
+        f'<p class="score">Heuristic score: <strong>{detail.score}/100</strong> (grade {e(detail.grade or "")}). '
+        f"{e(score_note(detail.findings, detail.score))}</p>"
         if detail.score is not None
         else ""
     )
@@ -185,6 +191,8 @@ def to_html(detail: ScanDetail) -> str:
             "<h2>What was checked</h2>"
             f"<p>Requests made: {md.requests_made}. Final URL: {e(md.final_url or md.requested_url)}. "
             f"HTTP status: {md.status_code}.</p><p>Passed:</p><ul>{passed}</ul>"
+            "<h2>How the score is worked out</h2>"
+            f"<ul>{''.join(f'<li>{e(x)}</li>' for x in method_lines())}</ul>"
             f"<h2>Limits of this scan</h2><ul>{limits}</ul>"
         )
     return (
