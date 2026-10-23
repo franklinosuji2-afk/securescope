@@ -24,6 +24,14 @@ const AVAILABLE = [
     text: "Scan each site daily or weekly. You are told only when something new or worse appears, by email and, if you add an address, by a signed message to your own server. The Professional plan includes this too.",
   },
   {
+    title: "GitHub Action for CI",
+    text: "Run a scan from your build pipeline and fail the job when the score or the findings are worse than you allow. It uses a revocable API token that can only start and read scans. The Professional plan includes this too.",
+  },
+  {
+    title: "A score badge for each site",
+    text: "Show the latest score of a verified site in a README or on a page. It is off until you switch it on, it is public by address, and it shows only the score and grade. Every plan includes it.",
+  },
+  {
     title: "Read-only client access",
     text: "Invite a client into the workspace as a viewer. They can read results and export reports, but cannot scan, change anything or see other clients.",
   },

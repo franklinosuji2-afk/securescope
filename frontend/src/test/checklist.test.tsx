@@ -68,7 +68,7 @@ describe("the checklist", () => {
         )}
       />,
     );
-    expect(screen.getAllByText("⚠ Needs attention")).toHaveLength(4);
+    expect(screen.getAllByText("✕ Needs attention")).toHaveLength(4);
     expect(screen.getAllByText("✓ Passed")).toHaveLength(1);
   });
 });

@@ -129,7 +129,7 @@
 | 98 | TCP vs UDP | Not applicable | None | All traffic is HTTP over TCP | No protocol choice is made in the code. |
 | 99 | HTTP/2 & HTTP/3 | Partially implemented | Low | Negotiated by Cloudflare at the edge | Not configured or verified by the repo. |
 | 100 | gRPC | Not applicable | None | None | REST/JSON only. |
-| 101 | Webhooks | Not implemented | Low | None | No outbound or inbound webhooks. Possible future alert integration. |
+| 101 | Webhooks | Partially implemented | Low | Outbound signed (HMAC-SHA256) alert webhooks to up to 3 HTTPS addresses per workspace; address validated like scan targets, no redirects, key derived from `SECURESCOPE_WEBHOOK_SIGNING_KEY` | Outbound only and best effort (two attempts, no queue). There are no inbound webhooks yet; payment webhooks will be added with billing. |
 | 102 | API Versioning | Implemented and verified | Medium | All routes under `/api/v1`; OpenAPI at `/api/v1/openapi.json` | A v2 path has never been needed. |
 | 103 | Semantic Versioning | Partially implemented | Low | `0.1.0` in `backend/pyproject.toml` and `frontend/package.json` | Version numbers exist, but there are no tagged releases or changelog. |
 | 104 | Infrastructure as Code | Partially implemented | Medium | `render.yaml`, `frontend/wrangler.jsonc`, `docker-compose.yml` | Service definitions are in git. DNS, Email Routing and Cloudflare settings are configured by hand. |

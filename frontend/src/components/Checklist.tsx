@@ -158,7 +158,7 @@ export default function Checklist({ scan }: { scan: ScanDetail }) {
         {rows.map(({ name, info, hits, notes }) => (
           <li key={name}>
             <strong>
-              {hits.length === 0 ? "✓ Passed" : "⚠ Needs attention"}
+              {hits.length === 0 ? "✓ Passed" : "✕ Needs attention"}
             </strong>
             {" · "}
             {info.label}

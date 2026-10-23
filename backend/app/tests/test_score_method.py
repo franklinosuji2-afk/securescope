@@ -85,3 +85,12 @@ def test_certificate_failures_are_graded_by_how_sure_the_scanner_is() -> None:
         "not_yet_valid": ("medium", "medium"),
         "other": ("medium", "medium"),
     }
+
+
+def test_dns_findings_name_the_records_not_a_page() -> None:
+    dns = Finding(
+        id="SS-DNS-CAA-001", title="t", severity=Severity.INFO, category="c", description="d", remediation="r"
+    )
+    html = render_html(detail([dns, finding(1)]), "SSR-TEST", NOW)
+    assert "Affected records: DNS records of a.example" in html
+    assert "Affected URL: https://a.example/" in html

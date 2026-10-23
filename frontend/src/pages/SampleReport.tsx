@@ -71,6 +71,9 @@ const CHECKS_PERFORMED = [
   "Directory listing in the page",
   "A readable .env file or public .git metadata",
   "A security.txt contact file",
+  "Mixed content, subresource integrity and cross-origin (CORS) headers",
+  "What robots.txt and sitemap.xml point to",
+  "For a main domain: SPF, DMARC, CAA and DNSSEC records",
 ];
 
 const CONTENTS = [

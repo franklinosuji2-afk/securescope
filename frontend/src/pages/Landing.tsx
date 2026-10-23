@@ -543,6 +543,7 @@ export default function Landing() {
                   <li>3 scans per month</li>
                   <li>Scan history kept 30 days</li>
                   <li>PDF and data exports</li>
+                  <li>Optional public score badge</li>
                 </ul>
                 <a className="btn" href={register}>
                   Create free account
@@ -561,6 +562,7 @@ export default function Landing() {
                   <li>30 scans per month</li>
                   <li>Scan history kept 90 days</li>
                   <li>Scheduled scans with email and webhook alerts</li>
+                  <li>GitHub Action and API tokens for CI</li>
                   <li>PDF and data exports</li>
                 </ul>
                 <p className="muted small landing-plan-note">
@@ -579,6 +581,7 @@ export default function Landing() {
                   <li>150 scans per month</li>
                   <li>Scan history kept 365 days</li>
                   <li>Scheduled scans with email and webhook alerts</li>
+                  <li>GitHub Action and API tokens for CI</li>
                   <li>Invite team members and clients</li>
                   <li>Client dashboard, branded PDFs, share links</li>
                 </ul>

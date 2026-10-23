@@ -78,6 +78,11 @@ def affected_url(detail: ScanDetail, finding: Finding) -> str:
     return base
 
 
+def _dns_name(detail: ScanDetail) -> str:
+    host = detail.host.lower().rstrip(".")
+    return f"DNS records of {host.removeprefix('www.')}"
+
+
 def _status_label(finding: Finding) -> str:
     return {
         FindingStatus.OPEN: "",
@@ -121,6 +126,11 @@ def build_context(
             "evidence": _clean(f.evidence) if f.evidence else None,
             "remediation": _clean(f.remediation),
             "url": _clean(affected_url(detail, f)),
+            # DNS findings are about the domain's records, not a page, so the report says that.
+            "where_label": "Affected records" if f.id.startswith("SS-DNS-") else "Affected URL",
+            "where": _clean(_dns_name(detail))
+            if f.id.startswith("SS-DNS-")
+            else _clean(affected_url(detail, f)),
             "status_label": _status_label(f),
             "guide": _guidance_context(f),
         }
