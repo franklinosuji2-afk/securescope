@@ -13,3 +13,8 @@ frontend/test-results/
 frontend/playwright-report/
 
 backups/
+
+*.patch
+*.bak
+.env.*
+!.env.example
