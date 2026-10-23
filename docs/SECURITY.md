@@ -81,3 +81,22 @@ Open a private security advisory on the GitHub repository.
 ## Share links
 
 A share link is a random 256-bit token, stored only as a SHA-256 hash and shown once. It exposes one scan's PDF report and nothing else (never client notes). Links expire (default 14 days) and can be revoked. Unknown, revoked, expired and malformed tokens all return the same 404. Responses are `no-store`, `noindex` and `no-referrer`, the token lives in the URL fragment in the app, and the public routes are rate limited.
+
+## Automated security checks
+
+Run on every push by `.github/workflows/ci.yml`, and locally with the same commands:
+
+- **Secrets:** `python scripts/scan_secrets.py --history` looks for common token shapes (cloud keys, GitHub and Slack
+  tokens, private keys, database URLs with passwords, SecureScope tokens) in tracked files and in every commit, and
+  fails on forbidden file types (`.env`, keys, dumps). It prints where, never the value. `.gitignore` also keeps
+  patches, backups and `.env.*` files out of git.
+- **Dependencies:** `pip-audit` (Python, pinned requirements) and `npm audit --audit-level=high` (frontend).
+- **Static analysis:** Bandit, Semgrep (Python, OWASP Top Ten, TypeScript) and Trivy (vulnerabilities, secrets,
+  Dockerfile and Compose).
+- **Customer isolation:** `test_tenancy.py` and `test_cross_customer.py`. The second one calls every route that takes
+  an id (targets, scans, reports in every format including the PDF and its signed download, shares, findings,
+  schedules, webhooks, API tokens, badges) as a different customer and requires a refusal, then checks the owner's
+  data is unchanged. It also checks that a CI token cannot cross workspaces or act as a login.
+- **Scanner network limits:** `test_target.py`, `test_ssrf_matrix.py` and `test_fetcher.py` cover private, loopback,
+  link-local, NAT64, 6to4, IPv4-mapped and reserved addresses, numeric host forms, URL tricks, off-origin and
+  downgrade redirects, DNS rebinding between hops and the pinned connection.

@@ -109,11 +109,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the secrets check below reads the whole history
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
       - name: Install scanners
         run: pip install bandit==1.9.4 pip-audit==2.10.1 semgrep==1.181.0
+      - name: Secrets (token shapes in tracked files and in every commit)
+        run: python scripts/scan_secrets.py --history
       - name: Bandit (Python static analysis, application code)
         run: bandit -q -r backend/app -x backend/app/tests
       - name: pip-audit (known vulnerabilities in pinned Python dependencies)
