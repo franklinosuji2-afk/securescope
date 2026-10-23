@@ -132,3 +132,17 @@ message" and look for the result under the address.
 No new setting is needed. Tokens and badges use the database (migration `0013`). To cut off a token someone leaked,
 revoke it under Targets > API tokens for CI; to cut off a leaked badge address, use "New address" or switch the badge off.
 Token digests are SHA-256 of a 256-bit random value, so there is no key to rotate. Details: `docs/INTEGRATIONS.md`.
+
+## Verification log
+
+Dated proof that the procedures above were actually carried out. Add a line each time one is repeated.
+
+| Date | What was checked | Result |
+|---|---|---|
+| 2026-10-23 | Backup of the production database with `scripts/backup-db.ps1`, restored into a throw-away container with `scripts/restore-test.ps1` | Passed. Schema version 0013; 24 tables restored, including `scan_schedules`, `api_tokens`, `webhook_endpoints` and `site_badges`. An earlier run against an older database branch (schema 0009) was discarded: always compare the host in the Render `SECURESCOPE_DATABASE_URL` with the one you back up, and check the restored schema version against the newest migration. |
+| 2026-10-23 | External monitors (UptimeRobot, 5-minute checks, e-mail alerts) on `/api/v1/health`, `/api/v1/ready` and the site | Alert e-mail received. An earlier false alarm (HTTP 405 on `HEAD`) was fixed on 2026-10-22: the health and ready routes accept `HEAD`. |
+| 2026-10-23 | Scheduled scans | A schedule created on the live site ran by itself (2026-10-22 22:30, completed). A second run is expected after 2026-10-23 22:30. |
+| 2026-10-23 | Cloudflare settings for the domain | SSL/TLS mode Full (strict); Cloudflare Free Managed Ruleset on; Bot Fight Mode on. |
+| 2026-10-23 | Two-factor sign-in | Reported on for the Google account used to sign in to GitHub, Render, Neon, Cloudflare and the registrar, and for GitHub. |
+
+Still not done: a regular (scheduled) backup, a rehearsed rollback, and a rate-limit rule for the sign-in routes at the edge.
