@@ -1,4 +1,6 @@
 import ScheduledScans from "../components/ScheduledScans";
+import ApiTokens from "../components/ApiTokens";
+import ScoreBadges from "../components/ScoreBadges";
 import WebhookAlerts from "../components/WebhookAlerts";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import * as api from "../api";
@@ -7,7 +9,7 @@ import { useAuth } from "../auth";
 import { EmptyState, ErrorNotice, Loading } from "../components/ui";
 import { formatDate } from "../format";
 import type { Target, VerificationMethod } from "../types";
-import { canManageTargets } from "../types";
+import { canManageMembers, canManageTargets } from "../types";
 
 const STATUS_LABEL: Record<Target["status"], string> = {
   verified: "Verified",
@@ -352,6 +354,10 @@ export default function Targets() {
       {targets && targets.some((t) => t.status === "verified") && (
         <WebhookAlerts manage={manage} />
       )}
+      {targets && targets.some((t) => t.status === "verified") && (
+        <ScoreBadges manage={manage} />
+      )}
+      {organization && canManageMembers(organization.role) && <ApiTokens />}
     </div>
   );
 }

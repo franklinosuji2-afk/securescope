@@ -515,3 +515,33 @@ export interface WebhookTestResult {
   ok: boolean;
   status: string;
 }
+
+export interface ApiToken {
+  id: string;
+  name: string;
+  prefix: string;
+  created_at: string;
+  last_used_at: string | null;
+  created_by_email: string | null;
+}
+
+export interface ApiTokenCreated extends ApiToken {
+  token: string;
+}
+
+export interface ApiTokenList {
+  available: boolean;
+  limit: number;
+  items: ApiToken[];
+}
+
+export interface Badge {
+  target_id: string;
+  hostname: string;
+  enabled: boolean;
+  url: string | null;
+}
+
+export interface BadgeList {
+  items: Badge[];
+}

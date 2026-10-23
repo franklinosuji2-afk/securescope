@@ -20,6 +20,10 @@ import type {
   Schedule,
   ScheduleFrequency,
   ScheduleList,
+  ApiTokenCreated,
+  ApiTokenList,
+  Badge,
+  BadgeList,
   Webhook,
   WebhookCreated,
   WebhookList,
@@ -467,3 +471,24 @@ export const setWebhookEnabled = (id: string, enabled: boolean) =>
 
 export const deleteWebhook = (id: string) =>
   request<void>(`/webhooks/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+// --- CI tokens and badges -----------------------------------------------------------------------
+
+export const listApiTokens = () => request<ApiTokenList>("/api-tokens");
+
+export const createApiToken = (name: string) =>
+  request<ApiTokenCreated>("/api-tokens", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+
+export const revokeApiToken = (id: string) =>
+  request<void>(`/api-tokens/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+export const listBadges = () => request<BadgeList>("/badges");
+
+export const setBadge = (targetId: string, enabled: boolean, renew = false) =>
+  request<Badge>(`/badges/${encodeURIComponent(targetId)}`, {
+    method: "PUT",
+    body: JSON.stringify({ enabled, renew }),
+  });

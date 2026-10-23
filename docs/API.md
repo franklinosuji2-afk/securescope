@@ -58,3 +58,15 @@ Every finding in a scan response carries `fingerprint` (a stable id for that che
 ## Overview
 
 `GET /overview` answers "where do my sites stand" in one request. A site appears once it has a completed scan; failed and unfinished scans are ignored. `open_counts` and `fix_first` count only findings whose organization-level status is `open`, so resolved findings, accepted risks and false positives never count. `score_change` is the latest score minus the previous completed scan's score for the same host (null for a first scan). `history` lists completed scans' scores oldest first. The endpoint looks at the organization's 500 most recent completed scans.
+
+## CI tokens and badges
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| GET / POST | `/api-tokens` | OWNER, ADMIN | List / create (`{"name"}`); the token is in the 201 answer once. Needs the Professional or Agency plan to create |
+| DELETE | `/api-tokens/{id}` | OWNER, ADMIN | Revoke; 204 |
+| POST | `/ci/scans` | bearer token | `{"url"}`; 202 with the scan summary; plan, ownership and rate limits as for `POST /scans` |
+| GET | `/ci/scans/{id}` | bearer token | Scan summary: status, score, grade, counts, findings (id, severity, title), link |
+| GET | `/badges` | target:read | One entry per verified site |
+| PUT | `/badges/{target_id}` | target:manage | `{"enabled", "renew"}`; the public address is returned while the badge is on |
+| GET | `/badges/{token}.svg` | none | Public badge image; 404 neutral image for unknown or switched-off addresses |

@@ -212,6 +212,15 @@ function Privacy() {
           feature you turned on (Art. 6(1)(b) GDPR).
         </li>
         <li>
+          <strong>API tokens and score badges (optional):</strong> if you create
+          a CI token we store its name, a short prefix, a one-way digest of the
+          token (never the token itself), who made it and when it was last used.
+          If you switch on a badge for a verified site we store its random
+          public address; anyone who has the address can see that site&apos;s
+          latest score and grade, and nothing else. Needed to provide the
+          features you turned on (Art. 6(1)(b) GDPR).
+        </li>
+        <li>
           <strong>Server logs:</strong> our hosting providers process technical
           data such as your IP address and the time of each request to deliver
           the site and protect it from abuse (Art. 6(1)(f) GDPR).

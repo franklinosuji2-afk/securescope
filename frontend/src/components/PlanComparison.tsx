@@ -110,6 +110,18 @@ const GROUPS: Group[] = [
         pro: true,
         agency: true,
       },
+      {
+        label: "GitHub Action and API tokens for CI",
+        free: false,
+        pro: true,
+        agency: true,
+      },
+      {
+        label: "Public score badge for a verified site",
+        free: true,
+        pro: true,
+        agency: true,
+      },
     ],
   },
   {

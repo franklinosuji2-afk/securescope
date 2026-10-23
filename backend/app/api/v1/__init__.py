@@ -12,7 +12,9 @@ from app.api.v1 import (
     analytics,
     audit,
     auth,
+    ci,
     findings,
+    integrations,
     invitations,
     oauth,
     organizations,
@@ -64,3 +66,6 @@ router.include_router(agency.public_router)
 router.include_router(schedules.router)
 router.include_router(schedules.internal_router)
 router.include_router(webhooks.router)
+router.include_router(integrations.router)
+router.include_router(integrations.badge_router)
+router.include_router(ci.router)

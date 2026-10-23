@@ -23,7 +23,8 @@ class Plan:
     purchasable: bool
     # Clients, agency dashboard, report branding and shared report links.
     client_workspace: bool = False
-    # Scans that run on a schedule, with email alerts when something new appears.
+    # Automation: scans that run on a schedule, with email and webhook alerts when something new appears, and
+    # API tokens for CI (the GitHub Action). Site badges are open to every plan.
     scheduled_scans: bool = False
 
 

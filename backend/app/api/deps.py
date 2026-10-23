@@ -20,6 +20,7 @@ from app.observability.metrics import RequestMetrics
 from app.repositories.accounts import AccountRepository, AuditRepository, SessionRecord, UserRecord
 from app.repositories.agency import AgencyRepository
 from app.repositories.analytics import AnalyticsRepository
+from app.repositories.integrations import IntegrationRepository
 from app.repositories.plans import PlanRepository
 from app.repositories.reports import ReportRepository
 from app.repositories.scans import ScanRepository
@@ -96,6 +97,11 @@ class AppState:
         self.report_limiter = SlidingWindowLimiter(30)
         self.share_limiter = SlidingWindowLimiter(120)
         self.schedules = ScheduleRepository(self.engine)
+        self.integrations = IntegrationRepository(self.engine)
+        self.ci_limiter = SlidingWindowLimiter(1000)
+        self.ci_bad_token_limiter = SlidingWindowLimiter(30, FIFTEEN_MIN)
+        self.badge_limiter = SlidingWindowLimiter(1200)
+        self.token_admin_limiter = SlidingWindowLimiter(20, FIFTEEN_MIN)
         self.webhook_repo = WebhookRepository(self.engine)
         self.webhooks = WebhookService(self.webhook_repo, settings)
         self.alerts = AlertService(self.accounts, self.auth.mailer, settings, self.webhooks)

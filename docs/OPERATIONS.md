@@ -126,3 +126,9 @@ once when the endpoint is added or its secret is renewed. Messages carry `X-Secu
 (public addresses only, connection pinned, no redirects, reply body never read). A failure is retried once; ten
 failures in a row switch the endpoint off until a person switches it on. Check: add an address, press "Send test
 message" and look for the result under the address.
+
+## CI tokens and badges
+
+No new setting is needed. Tokens and badges use the database (migration `0013`). To cut off a token someone leaked,
+revoke it under Targets > API tokens for CI; to cut off a leaked badge address, use "New address" or switch the badge off.
+Token digests are SHA-256 of a 256-bit random value, so there is no key to rotate. Details: `docs/INTEGRATIONS.md`.

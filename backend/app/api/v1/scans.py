@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 
@@ -39,13 +40,23 @@ REPORT_HTML_CSP = "default-src 'none'; style-src 'unsafe-inline'; frame-ancestor
 CanRead = Annotated[OrgContext, Depends(require(Permission.SCAN_READ))]
 CanCreate = Annotated[OrgContext, Depends(require(Permission.SCAN_CREATE))]
 # Reports are downloaded through plain links, so the active organization may come as ?org= as well.
-CanExport = Annotated[
-    OrgContext, Depends(require(Permission.REPORT_EXPORT, download_organization_context))
-]
+CanExport = Annotated[OrgContext, Depends(require(Permission.REPORT_EXPORT, download_organization_context))]
 
 
-async def _start_scan(state: StateDep, request: Request, ctx: OrgContext, url: str) -> ScanDetail:
-    """Runs every safety check, then queues the scan. Used for new scans and for retries alike."""
+@dataclass(frozen=True)
+class Actor:
+    """Who starts a scan: a person with a session, or a CI token acting for the person who made it."""
+
+    organization_id: str
+    user_id: str
+
+
+def actor_of(ctx: OrgContext) -> Actor:
+    return Actor(ctx.organization_id, ctx.principal.user.id)
+
+
+async def start_scan(state: StateDep, request: Request, ctx: Actor, url: str) -> ScanDetail:
+    """Runs every safety check, then queues the scan. Used for new scans, retries and CI alike."""
     try:
         _, host, _, _ = parse_target_url(url, state.settings)
     except TargetError as exc:
@@ -90,7 +101,7 @@ async def _start_scan(state: StateDep, request: Request, ctx: OrgContext, url: s
         scan_id = await asyncio.to_thread(
             state.repo.create_scan,
             ctx.organization_id,
-            ctx.principal.user.id,
+            ctx.user_id,
             target.url,
             target.host,
             verified.id,
@@ -99,7 +110,7 @@ async def _start_scan(state: StateDep, request: Request, ctx: OrgContext, url: s
         )
     except PlanLimitError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
-    await _audit(state, request, ctx, "scan.created", scan_id)
+    await _audit_scan(state, request, ctx, "scan.created", scan_id)
     task = asyncio.create_task(
         execute_scan(scan_id, target.url, target.host, state.settings, state.repo, state.semaphore)
     )
@@ -119,12 +130,12 @@ async def _start_scan(state: StateDep, request: Request, ctx: OrgContext, url: s
     return detail
 
 
-async def _audit(state: StateDep, request: Request, ctx: OrgContext, event: str, scan_id: str) -> None:
+async def _audit_scan(state: StateDep, request: Request, ctx: Actor, event: str, scan_id: str) -> None:
     await asyncio.to_thread(
         state.audit.record,
         event,
         organization_id=ctx.organization_id,
-        actor_user_id=ctx.principal.user.id,
+        actor_user_id=ctx.user_id,
         resource_type="scan",
         resource_id=scan_id,
         request_id=request_id(request),
@@ -138,7 +149,7 @@ async def create_scan(body: ScanCreate, request: Request, state: StateDep, ctx: 
             status_code=400,
             detail="You must confirm that you own this target or have written authorization to test it.",
         )
-    return await _start_scan(state, request, ctx, body.url)
+    return await start_scan(state, request, actor_of(ctx), body.url)
 
 
 @router.get("", response_model=ScanList)
@@ -186,7 +197,9 @@ async def get_results(scan_id: str, state: StateDep, ctx: CanRead) -> ScanResult
         score=detail.score,
         grade=detail.grade,
         severity_counts=severity_counts(detail),
-        findings=[ResultFinding(**f.model_dump(), affected_url=affected_url(detail, f)) for f in detail.findings],
+        findings=[
+            ResultFinding(**f.model_dump(), affected_url=affected_url(detail, f)) for f in detail.findings
+        ],
     )
 
 
@@ -216,7 +229,7 @@ async def report_pdf_link(scan_id: str, request: Request, state: StateDep, ctx: 
                 raise HTTPException(
                     status_code=500, detail="The report could not be created. Please try again."
                 ) from None
-        await _audit(state, request, ctx, "report.created", scan_id)
+        await _audit_scan(state, request, actor_of(ctx), "report.created", scan_id)
     else:
         meta = existing
     link = state.report_service.sign(meta.id, user_id, ctx.organization_id)
@@ -295,7 +308,7 @@ async def cancel_scan(scan_id: str, request: Request, state: StateDep, ctx: CanC
     task = state.scan_tasks.get(scan_id)
     if task is not None:
         task.cancel()
-    await _audit(state, request, ctx, "scan.cancelled", scan_id)
+    await _audit_scan(state, request, actor_of(ctx), "scan.cancelled", scan_id)
     return await _load(state, ctx, scan_id)
 
 
@@ -311,7 +324,7 @@ async def delete_scan(scan_id: str, request: Request, state: StateDep, ctx: CanC
         raise HTTPException(
             status_code=409, detail="This scan could not be deleted because it is still running."
         )
-    await _audit(state, request, ctx, "scan.deleted", scan_id)
+    await _audit_scan(state, request, actor_of(ctx), "scan.deleted", scan_id)
 
 
 @router.post("/{scan_id}/retry", response_model=ScanDetail, status_code=202)
@@ -325,8 +338,8 @@ async def retry_scan(scan_id: str, request: Request, state: StateDep, ctx: CanCr
         raise HTTPException(
             status_code=409, detail="This scan is still running, so it cannot be run again yet."
         )
-    created = await _start_scan(state, request, ctx, detail.target_url)
-    await _audit(state, request, ctx, "scan.retried", scan_id)
+    created = await start_scan(state, request, actor_of(ctx), detail.target_url)
+    await _audit_scan(state, request, actor_of(ctx), "scan.retried", scan_id)
     return created
 
 

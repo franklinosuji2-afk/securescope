@@ -23,3 +23,28 @@ describe("the plan comparison", () => {
     expect(screen.getByText(/A public API/)).toBeTruthy();
   });
 });
+
+describe("CI and badge rows", () => {
+  const cells = (label: string) => {
+    render(<PlanComparison />);
+    const row = screen.getByText(label).closest("tr");
+    expect(row).not.toBeNull();
+    return within(row as HTMLElement)
+      .getAllByRole("cell")
+      .map((c) => c.textContent);
+  };
+  it("CI access is paid only", () => {
+    expect(cells("GitHub Action and API tokens for CI")).toEqual([
+      "–Not included",
+      "✓Included",
+      "✓Included",
+    ]);
+  });
+  it("the badge is on every plan", () => {
+    expect(cells("Public score badge for a verified site")).toEqual([
+      "✓Included",
+      "✓Included",
+      "✓Included",
+    ]);
+  });
+});
