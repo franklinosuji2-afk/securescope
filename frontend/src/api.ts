@@ -88,6 +88,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (method !== "GET" && method !== "HEAD")
     headers["X-CSRF-Token"] = readCookie("ss_csrf");
   if (activeOrganizationId) headers["X-Organization-Id"] = activeOrganizationId;
+  // Callers may add plain header pairs (for example Idempotency-Key); the ones above cannot be replaced.
+  for (const [name, value] of Object.entries(
+    (init.headers ?? {}) as Record<string, string>,
+  ))
+    if (!(name in headers)) headers[name] = value;
 
   let response: Response;
   try {
@@ -256,9 +261,11 @@ export const acceptInvitation = (token: string) =>
 
 // --- scans --------------------------------------------------------------------------------------
 
+/** `idempotencyKey` makes a repeated request (double click, retry after a lost answer) return the same scan. */
 export function createScan(
   url: string,
   authorizationConfirmed: boolean,
+  idempotencyKey?: string,
 ): Promise<ScanDetail> {
   return request<ScanDetail>("/scans", {
     method: "POST",
@@ -266,6 +273,9 @@ export function createScan(
       url,
       authorization_confirmed: authorizationConfirmed,
     }),
+    ...(idempotencyKey
+      ? { headers: { "Idempotency-Key": idempotencyKey } }
+      : {}),
   });
 }
 

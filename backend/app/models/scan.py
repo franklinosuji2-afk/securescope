@@ -26,6 +26,8 @@ class ScanRow(Base):
     grade: Mapped[str | None] = mapped_column(String(2))
     error: Mapped[str | None] = mapped_column(Text)
     metadata_json: Mapped[str | None] = mapped_column(Text)
+    # Optional client-chosen key (Idempotency-Key header): the same key in one workspace never makes two scans.
+    idempotency_key: Mapped[str | None] = mapped_column(String(80))
     authorization_confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -38,6 +40,7 @@ class ScanRow(Base):
     __table_args__ = (
         Index("ix_scans_created_at", "created_at"),
         Index("ix_scans_organization_id_created_at", "organization_id", "created_at"),
+        Index("uq_scans_organization_id_idempotency_key", "organization_id", "idempotency_key", unique=True),
     )
 
 

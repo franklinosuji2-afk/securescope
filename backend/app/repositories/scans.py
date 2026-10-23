@@ -7,6 +7,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import Engine, delete, func, or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.billing.errors import PlanLimitError
@@ -54,6 +55,10 @@ def _aware(value: datetime | None) -> datetime | None:
     return value
 
 
+class IdempotencyKeyTaken(Exception):
+    """A scan with this idempotency key already exists in the workspace (also raised by a lost race)."""
+
+
 class ScanRepository:
     def __init__(self, engine: Engine) -> None:
         self.engine = engine
@@ -70,9 +75,44 @@ class ScanRepository:
         target_id: str | None = None,
         monthly_limit: int | None = None,
         period_start: datetime | None = None,
+        idempotency_key: str | None = None,
     ) -> str:
         scan_id = uuid.uuid4().hex
         now = _now()
+        try:
+            self._insert_scan(
+                scan_id, now, organization_id, requested_by, target_url, host, target_id,
+                monthly_limit, period_start, idempotency_key,
+            )  # fmt: skip
+        except IntegrityError as exc:
+            if idempotency_key is None:
+                raise
+            raise IdempotencyKeyTaken(idempotency_key) from exc
+        return scan_id
+
+    def find_by_idempotency_key(self, organization_id: str, key: str) -> tuple[str, str] | None:
+        """(scan id, host) of this workspace's scan made with `key`, or None. Never looks at other workspaces."""
+        with self._session() as session:
+            row = session.execute(
+                select(ScanRow.id, ScanRow.host).where(
+                    ScanRow.organization_id == organization_id, ScanRow.idempotency_key == key
+                )
+            ).first()
+        return None if row is None else (row[0], row[1])
+
+    def _insert_scan(
+        self,
+        scan_id: str,
+        now: datetime,
+        organization_id: str,
+        requested_by: str | None,
+        target_url: str,
+        host: str,
+        target_id: str | None,
+        monthly_limit: int | None,
+        period_start: datetime | None,
+        idempotency_key: str | None,
+    ) -> None:
         with self._session.begin() as session:
             if monthly_limit is not None and period_start is not None:
                 # Count and insert under one lock, so simultaneous requests cannot both take the last scan.
@@ -100,11 +140,11 @@ class ScanRepository:
                     target_url=target_url,
                     host=host,
                     status=ScanStatus.QUEUED.value,
+                    idempotency_key=idempotency_key,
                     authorization_confirmed_at=now,
                     created_at=now,
                 )
             )
-        return scan_id
 
     def mark_running(self, scan_id: str) -> bool:
         """False when the scan is no longer queued (for example it was cancelled while waiting)."""
@@ -315,10 +355,14 @@ class ScanRepository:
                     on_other_plans = select(OrganizationPlanRow.organization_id).where(
                         OrganizationPlanRow.plan_id.in_(other)
                     )
-                    belongs = or_(ScanRow.organization_id.is_(None), ScanRow.organization_id.not_in(on_other_plans))
+                    belongs = or_(
+                        ScanRow.organization_id.is_(None), ScanRow.organization_id.not_in(on_other_plans)
+                    )
                 else:
                     belongs = ScanRow.organization_id.in_(
-                        select(OrganizationPlanRow.organization_id).where(OrganizationPlanRow.plan_id == plan_id)
+                        select(OrganizationPlanRow.organization_id).where(
+                            OrganizationPlanRow.plan_id == plan_id
+                        )
                     )
                 old = select(ScanRow.id).where(belongs, ScanRow.created_at < cutoff)
                 # Delete findings and reports explicitly so behaviour does not depend on the DB enforcing FKs.

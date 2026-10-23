@@ -521,6 +521,37 @@ describe("Authentication", () => {
     expect(headers["X-Organization-Id"]).toBe("org1");
   });
 
+  it("sends one Idempotency-Key per scan request and reuses it after a failed attempt", async () => {
+    let posts = 0;
+    const mock = mockFetch(
+      () => ({}),
+      (url, init) => {
+        if (!url.endsWith("/scans") || init?.method !== "POST") return 200;
+        posts += 1;
+        return posts === 1 ? 500 : 202;
+      },
+    );
+    renderApp();
+    const user = userEvent.setup();
+    await user.type(
+      await screen.findByLabelText("Target URL"),
+      "https://example.org",
+    );
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: "Start scan" }));
+    await waitFor(() => expect(posts).toBe(1));
+    await user.click(await screen.findByRole("button", { name: "Start scan" }));
+    await waitFor(() => expect(posts).toBe(2));
+    const keys = mock.calls
+      .filter((c) => c.url.endsWith("/scans") && c.init?.method === "POST")
+      .map(
+        (c) => (c.init?.headers as Record<string, string>)["Idempotency-Key"],
+      );
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toMatch(/^[A-Za-z0-9_.:-]{8,80}$/);
+    expect(keys[1]).toBe(keys[0]); // the server's answer was lost, so the retry is the same request
+  });
+
   it("hides the scan form from viewers", async () => {
     mockApi(() => ({}), userWith("VIEWER"));
     renderApp();

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 
 from app.api.deps import OrgContext, StateDep, client_key, download_organization_context, request_id, require
 from app.billing.errors import PlanLimitError
@@ -18,6 +19,7 @@ from app.reporting.csv_export import to_csv
 from app.reporting.pdf import affected_url
 from app.reporting.risk import overall_risk, severity_counts
 from app.repositories.reports import ReportIntegrityError
+from app.repositories.scans import IdempotencyKeyTaken
 from app.scanner.runner import execute_scan
 from app.schemas.compare import ScanComparison
 from app.schemas.scan import (
@@ -43,6 +45,21 @@ CanCreate = Annotated[OrgContext, Depends(require(Permission.SCAN_CREATE))]
 CanExport = Annotated[OrgContext, Depends(require(Permission.REPORT_EXPORT, download_organization_context))]
 
 
+IDEMPOTENCY_KEY = re.compile(r"^[A-Za-z0-9_.:-]{8,80}$")
+
+
+def checked_idempotency_key(value: str | None) -> str | None:
+    """None when no key was sent; a 400 for a key of the wrong shape (it is stored and compared as text)."""
+    if value is None:
+        return None
+    if not IDEMPOTENCY_KEY.fullmatch(value):
+        raise HTTPException(
+            status_code=400,
+            detail="Idempotency-Key must be 8 to 80 characters: letters, digits and . _ : -",
+        )
+    return value
+
+
 @dataclass(frozen=True)
 class Actor:
     """Who starts a scan: a person with a session, or a CI token acting for the person who made it."""
@@ -55,12 +72,47 @@ def actor_of(ctx: OrgContext) -> Actor:
     return Actor(ctx.organization_id, ctx.principal.user.id)
 
 
-async def start_scan(state: StateDep, request: Request, ctx: Actor, url: str) -> ScanDetail:
-    """Runs every safety check, then queues the scan. Used for new scans, retries and CI alike."""
+async def _replay(
+    state: StateDep, ctx: Actor, key: str, host: str, response: Response | None
+) -> ScanDetail | None:
+    """The scan this workspace already made with `key`, if any. The same key for another site is refused."""
+    found = await asyncio.to_thread(state.repo.find_by_idempotency_key, ctx.organization_id, key)
+    if found is None:
+        return None
+    scan_id, existing_host = found
+    if existing_host != host:
+        raise HTTPException(
+            status_code=422, detail="This Idempotency-Key was already used for a different site."
+        )
+    detail = await asyncio.to_thread(state.repo.get_scan, scan_id, ctx.organization_id)
+    if detail is None:  # deleted between the two lookups: treat as a new request
+        return None
+    if response is not None:
+        response.headers["Idempotent-Replayed"] = "true"
+    return detail
+
+
+async def start_scan(
+    state: StateDep,
+    request: Request,
+    ctx: Actor,
+    url: str,
+    idempotency_key: str | None = None,
+    response: Response | None = None,
+) -> ScanDetail:
+    """Runs every safety check, then queues the scan. Used for new scans, retries and CI alike.
+
+    With an idempotency key, repeating the request returns the scan already made instead of a second one
+    (it uses no scan allowance and no rate-limit slot).
+    """
     try:
         _, host, _, _ = parse_target_url(url, state.settings)
     except TargetError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if idempotency_key is not None:
+        replayed = await _replay(state, ctx, idempotency_key, host, response)
+        if replayed is not None:
+            return replayed
     # Ownership is checked before any DNS lookup or outbound request is made for this host.
     verified = await asyncio.to_thread(state.targets.find_verified, ctx.organization_id, host)
     if verified is None:
@@ -107,9 +159,16 @@ async def start_scan(state: StateDep, request: Request, ctx: Actor, url: str) ->
             verified.id,
             plan.scans_per_month,
             period_start,
+            idempotency_key,
         )
     except PlanLimitError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except IdempotencyKeyTaken:
+        # Two identical requests arrived together and the other one won: answer with its scan.
+        replayed = await _replay(state, ctx, idempotency_key or "", host, response)
+        if replayed is None:
+            raise HTTPException(status_code=409, detail="That request is already being processed.") from None
+        return replayed
     await _audit_scan(state, request, ctx, "scan.created", scan_id)
     task = asyncio.create_task(
         execute_scan(scan_id, target.url, target.host, state.settings, state.repo, state.semaphore)
@@ -143,13 +202,21 @@ async def _audit_scan(state: StateDep, request: Request, ctx: Actor, event: str,
 
 
 @router.post("", response_model=ScanDetail, status_code=202)
-async def create_scan(body: ScanCreate, request: Request, state: StateDep, ctx: CanCreate) -> ScanDetail:
+async def create_scan(
+    body: ScanCreate,
+    request: Request,
+    response: Response,
+    state: StateDep,
+    ctx: CanCreate,
+    idempotency_key: Annotated[str | None, Header()] = None,
+) -> ScanDetail:
+    key = checked_idempotency_key(idempotency_key)
     if not body.authorization_confirmed:
         raise HTTPException(
             status_code=400,
             detail="You must confirm that you own this target or have written authorization to test it.",
         )
-    return await start_scan(state, request, actor_of(ctx), body.url)
+    return await start_scan(state, request, actor_of(ctx), body.url, key, response)
 
 
 @router.get("", response_model=ScanList)

@@ -12,18 +12,18 @@
 | Status | Count |
 |---|---|
 | Implemented and verified | 20 |
-| Partially implemented | 39 |
-| Not implemented | 21 |
+| Partially implemented | 40 |
+| Not implemented | 20 |
 | Not applicable | 31 |
 | **Total** | **111** |
 
-**Counting method:** coverage is calculated on the 80 applicable topics (111 minus 31 not applicable). "Implemented and verified" = 20/80 (25%); "implemented and verified" plus "partially implemented" = 59/80 (74%). The percentages are only a summary of the table; the table is the source of truth. They are not a quality score.
+**Counting method:** coverage is calculated on the 80 applicable topics (111 minus 31 not applicable). "Implemented and verified" = 20/80 (25%); "implemented and verified" plus "partially implemented" = 60/80 (75%). The percentages are only a summary of the table; the table is the source of truth. They are not a quality score.
 
 ## Findings from the audit that need action
 1. **Backups and disaster recovery (83, 84):** scripts and a runbook now exist, but no backup has been taken from the real database and no restore rehearsed. Do this once and record the date in `OPERATIONS.md`.
 2. **Alerting (62):** still not configured. The runbook describes a free monitor on `/api/v1/ready`.
 3. **Rollback and incidents (55, 109, 111):** now written down and templated, not yet rehearsed.
-4. **Idempotency for scan creation (14)** and **durable scan queue (15):** a restart loses running scans, and the API can create duplicate scans on a double submit.
+4. **Idempotency for scan creation (14)** is now in place for `POST /scans`; the **durable scan queue (15)** is not: a restart marks running scans failed and nothing resumes them.
 5. **Stale documentation corrected:** `KNOWN_LIMITATIONS.md` said the audit log had no API or UI; `GET /api/v1/audit-events` and the Audit page exist and are tested. The line was removed.
 6. **Single-instance assumptions (46):** rate limits and metrics are in memory; horizontal scaling needs shared state first.
 ## Topic table
@@ -42,7 +42,7 @@
 | 11 | Timeouts | Implemented and verified | High | `core/config.py` (`request_timeout_seconds`, `max_scan_seconds`, `mail_timeout_seconds`); `scanner/runner.py` `wait_for`; `tests/test_fetcher.py` | Per-request, per-scan and mail timeouts exist. The scan time limit covers the page fetch, the TLS check and the probes. |
 | 12 | Retries | Partially implemented | Low | `api/v1/scans.py` `POST /{scan_id}/retry` | Only a user-triggered re-scan exists. There are no automatic retries of failed outbound calls. |
 | 13 | Exponential Backoff | Not implemented | Low | None | No automatic retries, so nothing to back off. Add only together with automatic retries. |
-| 14 | Idempotency | Not implemented | Medium | Only schema migrations are tested as idempotent (`test_db_and_reports.py::test_migrations_are_idempotent_and_create_schema`) | No idempotency keys on create endpoints; a double submit can create two scans. The scan form disables its button while a request is in flight (`ScanForm.tsx`), but the API does not deduplicate. |
+| 14 | Idempotency | Partially implemented | Medium | `POST /scans` accepts an `Idempotency-Key` header (`api/v1/scans.py`, migration 0014, unique index per workspace); `tests/test_idempotency.py`; the scan form sends a key (`ScanForm.tsx`, `test/app.test.tsx`) | A repeated request returns the scan already made. Not yet covered: the CI route, retry, schedule and other create endpoints. |
 | 15 | Message Queues | Not implemented | Low | Scans run as in-process asyncio tasks limited by a semaphore (`api/deps.py`, `scanner/runner.py`) | No durable queue. A restart loses queued/running scans. Acceptable at current scale; revisit if scans become long or numerous. |
 | 16 | Pub/Sub | Not applicable | None | None | No component needs to broadcast events. |
 | 17 | Event-Driven Architecture | Not applicable | None | None | Request/response plus one background task is sufficient. |

@@ -102,7 +102,7 @@ def create_app(settings: Settings | None = None, mailer: Mailer | None = None) -
         allow_origins=settings.cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "DELETE"],
-        allow_headers=["Content-Type", "X-CSRF-Token", "X-Organization-Id"],
+        allow_headers=["Content-Type", "X-CSRF-Token", "X-Organization-Id", "Idempotency-Key"],
         max_age=600,
     )
 
