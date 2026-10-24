@@ -42,11 +42,13 @@ class Endpoint:
     url: str
     key_version: int
     enabled: bool
+    kind: str = "webhook"
 
 
 def _out(row: WebhookEndpointRow) -> WebhookOut:
     return WebhookOut(
         id=row.id,
+        kind=row.kind,
         address=address_of(row.url),
         enabled=row.enabled,
         last_attempt_at=_aware(row.last_attempt_at) if row.last_attempt_at else None,
@@ -57,7 +59,7 @@ def _out(row: WebhookEndpointRow) -> WebhookOut:
 
 
 def _endpoint(row: WebhookEndpointRow) -> Endpoint:
-    return Endpoint(row.id, row.organization_id, row.url, row.key_version, row.enabled)
+    return Endpoint(row.id, row.organization_id, row.url, row.key_version, row.enabled, row.kind)
 
 
 class WebhookRepository:
@@ -90,7 +92,7 @@ class WebhookRepository:
             return _endpoint(row) if row else None
 
     def create(
-        self, organization_id: str, url: str, user_id: str | None
+        self, organization_id: str, url: str, user_id: str | None, kind: str = "webhook"
     ) -> tuple[Endpoint, WebhookOut] | None:
         """None when the workspace already has the maximum."""
         with self._session.begin() as session:
@@ -105,6 +107,7 @@ class WebhookRepository:
                 id=uuid.uuid4().hex,
                 organization_id=organization_id,
                 url=url,
+                kind=kind,
                 key_version=1,
                 enabled=True,
                 consecutive_failures=0,

@@ -163,4 +163,34 @@ describe("webhook alerts", () => {
     expect(screen.getByText(/2 attempts/)).toBeTruthy();
     expect(api.listWebhookDeliveries).toHaveBeenCalledWith("w1");
   });
+
+  it("adds a Slack address without a signing secret", async () => {
+    // Assembled at run time: a literal Slack webhook address is treated as a secret by GitHub push protection.
+    const slackUrl = `https://hooks.slack.com/${["services", "T" + "0".repeat(8), "B" + "0".repeat(8), "x".repeat(24)].join("/")}`;
+    vi.mocked(api.listWebhooks).mockResolvedValue(list());
+    vi.mocked(api.createWebhook).mockResolvedValue({
+      ...hook({ kind: "slack", address: "https://hooks.slack.com/…" }),
+      signing_secret: null,
+    });
+    render(<WebhookAlerts manage />);
+    await userEvent.selectOptions(
+      await screen.findByLabelText("Send alerts to"),
+      "slack",
+    );
+    await userEvent.type(
+      screen.getByLabelText("Slack webhook address"),
+      slackUrl,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add webhook address" }),
+    );
+    await waitFor(() =>
+      expect(api.createWebhook).toHaveBeenCalledWith(slackUrl, "slack"),
+    );
+    expect(
+      await screen.findByText(/Slack · https:\/\/hooks\.slack\.com/),
+    ).toBeTruthy();
+    expect(screen.queryByText(/Signing secret/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Renew secret" })).toBeNull();
+  });
 });

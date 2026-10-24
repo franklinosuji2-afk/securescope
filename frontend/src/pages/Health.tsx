@@ -52,6 +52,15 @@ export function attention(h: PlatformHealth): string[] {
   return out;
 }
 
+const TOPIC_LABEL: Record<string, string> = {
+  general: "General",
+  ease_of_use: "Ease of use",
+  reports: "Reports",
+  accuracy: "Accuracy of findings",
+  pricing: "Plans and pricing",
+  other: "Something else",
+};
+
 function FeedbackPanel() {
   const [summary, setSummary] = useState<FeedbackSummary | null>(null);
   useEffect(() => {
@@ -66,6 +75,7 @@ function FeedbackPanel() {
     };
   }, []);
   if (!summary) return null;
+  const plans = Object.entries(summary.by_plan ?? {});
   return (
     <Panel title="Customer feedback" aside="private, from the Account page">
       {summary.count === 0 ? (
@@ -80,20 +90,30 @@ function FeedbackPanel() {
               .join(", ")}
             )
           </p>
+          {plans.length > 0 && (
+            <p className="muted small">
+              By plan:{" "}
+              {plans
+                .map(
+                  ([name, s]) => `${name} ${s.average.toFixed(1)} (${s.count})`,
+                )
+                .join(" · ")}
+            </p>
+          )}
           <ul className="plain-list">
-            {summary.latest
-              .filter((f) => f.message)
-              .slice(0, 5)
-              .map((f) => (
-                <li key={f.updated_at + f.rating}>
-                  <span className="muted small">
-                    {f.rating}★{f.category ? ` · ${f.category}` : ""} ·{" "}
-                    {formatDate(f.updated_at)}
-                  </span>
-                  <br />
-                  {f.message}
-                </li>
-              ))}
+            {summary.latest.map((f) => (
+              <li key={f.updated_at + f.rating + (f.plan ?? "")}>
+                <span className="muted small">
+                  {f.rating}★ · {f.plan ?? "Team member"}
+                  {f.category
+                    ? ` · ${TOPIC_LABEL[f.category] ?? f.category}`
+                    : ""}{" "}
+                  · {formatDate(f.updated_at)}
+                </span>
+                <br />
+                {f.message ?? <span className="muted">No comment.</span>}
+              </li>
+            ))}
           </ul>
         </>
       )}

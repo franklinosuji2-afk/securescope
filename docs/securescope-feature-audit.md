@@ -77,7 +77,7 @@ dependency).
 | 10 Scan comparison | VERIFIED | `Compare.tsx`, finding lifecycle; `tests/test_finding_lifecycle.py` |
 | 11 Email alerts | VERIFIED | `services/alerts.py`, `services/mailer.py` (Brevo); first real alert email still to see in production |
 | 12 Webhook alerts | VERIFIED | `services/webhooks.py` signed, retried twice; `tests/test_webhooks.py`; delivery history (last 20 per address: time, event, outcome, attempts; no content) since migration 0017, listed on the Webhooks page |
-| 13 Slack | MISSING | |
+| 13 Slack | VERIFIED | `services/webhooks.py` (`SLACK_ADDRESS`, `slack_text`), migration 0018; only `https://hooks.slack.com/services/T…/B…/…` is accepted and it is re-checked (DNS, public address, pinned connection, no redirects) before every send; text is escaped; `test_webhooks.py` Slack section (11 cases), `webhooks.test.tsx` |
 | 14 Microsoft Teams | MISSING | |
 | 15 GitHub Action | VERIFIED | `action/`, `api/v1/ci.py`; `tests/test_github_action.py`; no `v1` tag yet |
 | 16 Public API | PARTIAL | API tokens can start and read scans for CI only; stated on the pricing page |

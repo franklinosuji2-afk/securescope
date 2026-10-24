@@ -229,8 +229,11 @@ function Privacy() {
           shown again in full) and when we last sent to it and what came back.
           On the same triggers as the alert email we send it the site&apos;s
           host name, the scan&apos;s score and link, and the titles of new
-          findings. No evidence or page content is sent. Needed to provide the
-          feature you turned on (Art. 6(1)(b) GDPR).
+          findings. No evidence or page content is sent. If you choose Slack as
+          the destination, the same facts are sent to Slack as a text message,
+          and Slack&apos;s own terms and privacy policy apply to what it
+          receives. Needed to provide the feature you turned on (Art. 6(1)(b)
+          GDPR).
         </li>
         <li>
           <strong>API tokens and score badges (optional):</strong> if you create

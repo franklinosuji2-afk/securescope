@@ -435,3 +435,116 @@ def test_the_history_is_removed_with_its_address(hook_client: TestClient) -> Non
     assert hook_client.delete(f"/api/v1/webhooks/{created['id']}").status_code == 204
     with state.webhook_repo._session() as session:
         assert session.scalar(select(func.count()).select_from(WebhookDeliveryRow)) == 0
+
+
+# --- Slack ------------------------------------------------------------------------------------------------
+
+# Made-up test values, assembled at run time so that no secret-shaped text is stored in the repository
+# (GitHub push protection rightly treats a literal Slack webhook address as a secret).
+_PATH = "/".join(("services", "T" + "0" * 8, "B" + "0" * 8, "x" * 24))
+SLACK = f"https://hooks.slack.com/{_PATH}"
+
+
+@pytest.fixture
+def slack_client(hook_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    """hooks.slack.com resolves to a public address here, so no real DNS lookup is needed."""
+    import ipaddress
+
+    async def resolve(host: str, port: int):  # type: ignore[no-untyped-def]
+        return [ipaddress.ip_address("34.200.1.1")]
+
+    monkeypatch.setattr("app.security.target.resolve_host", resolve)
+    return hook_client
+
+
+def test_a_slack_address_is_accepted_without_a_signing_secret_and_never_shown_in_full(
+    slack_client: TestClient,
+) -> None:
+    response = slack_client.post("/api/v1/webhooks", json={"url": SLACK, "kind": "slack"})
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["kind"] == "slack" and body["signing_secret"] is None
+    assert body["address"] == "https://hooks.slack.com/…"
+    listing = slack_client.get("/api/v1/webhooks").text
+    assert "x" * 24 not in listing and "T" + "0" * 8 not in listing
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        f"https://evil.example.com/{_PATH}",
+        f"https://hooks.slack.com.evil.example.com/{_PATH}",
+        f"https://hooks.slack.com@evil.example.com/{_PATH}",
+        f"http://hooks.slack.com/{_PATH}",
+        f"https://hooks.slack.com/other/{_PATH.split('/', 1)[1]}",
+        f"https://hooks.slack.com/{_PATH}/extra",
+        f"https://hooks.slack.com:8443/{_PATH}",
+        f"https://hooks.slack.com/{_PATH}?x=http://169.254.169.254",
+        "https://127.0.0.1/hook",
+    ],
+)
+def test_a_slack_address_must_be_exactly_a_slack_incoming_webhook(slack_client: TestClient, url: str) -> None:
+    response = slack_client.post("/api/v1/webhooks", json={"url": url, "kind": "slack"})
+    assert response.status_code == 400, response.text
+    assert slack_client.get("/api/v1/webhooks").json()["items"] == []
+
+
+def test_a_slack_message_is_plain_text_and_carries_no_signature(slack_client: TestClient) -> None:
+    receiver = Receiver().install(slack_client)
+    created = slack_client.post("/api/v1/webhooks", json={"url": SLACK, "kind": "slack"}).json()
+    result = slack_client.post(f"/api/v1/webhooks/{created['id']}/test").json()
+    assert result["ok"] is True, result
+    sent = receiver.requests[0]
+    body = json.loads(sent.content)
+    assert list(body) == ["text"] and "test message" in body["text"].lower()
+    assert "x-securescope-signature" not in sent.headers
+    assert sent.url.host == "34.200.1.1" and sent.headers["host"] == "hooks.slack.com"
+    history = slack_client.get(f"/api/v1/webhooks/{created['id']}/deliveries").json()
+    assert history[0]["ok"] is True
+
+
+def test_a_slack_alert_lists_the_facts_escapes_markup_and_leaves_out_evidence() -> None:
+    from app.services.webhooks import slack_text
+
+    text = slack_text(
+        "scan.alert",
+        {
+            "site": {"host": "a<b>&.example"},
+            "scan": {
+                "id": "x",
+                "score": 72,
+                "grade": "C",
+                "url": "https://getsecurescope.com/#/findings?scan=x",
+            },
+            "reasons": ["1 new finding since the previous scan."],
+            "new_findings": [{"id": "SS-1", "severity": "high", "title": "Bad <b>header</b> & more"}],
+        },
+    )
+    assert "a&lt;b&gt;&amp;.example" in text and "Bad &lt;b&gt;header&lt;/b&gt; &amp; more" in text
+    assert "<b>" not in text
+    assert "Score 72 (grade C)" in text and "|Open the scan in SecureScope>" in text
+    assert "evidence" not in text.lower()
+
+
+def test_a_slack_address_has_no_secret_to_renew(slack_client: TestClient) -> None:
+    Receiver().install(slack_client)
+    created = slack_client.post("/api/v1/webhooks", json={"url": SLACK, "kind": "slack"}).json()
+    assert slack_client.post(f"/api/v1/webhooks/{created['id']}/rotate").status_code == 400
+
+
+def test_the_address_is_checked_again_before_every_slack_delivery(
+    slack_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import ipaddress
+
+    receiver = Receiver().install(slack_client)
+    created = slack_client.post("/api/v1/webhooks", json={"url": SLACK, "kind": "slack"}).json()
+
+    async def internal(host: str, port: int):  # type: ignore[no-untyped-def]
+        return [ipaddress.ip_address("10.0.0.5")]
+
+    monkeypatch.setattr("app.security.target.resolve_host", internal)
+    slack_client.app.state.s.settings.allow_private_targets = False  # type: ignore[attr-defined]
+    result = slack_client.post(f"/api/v1/webhooks/{created['id']}/test").json()
+    assert result["ok"] is False and result["status"].startswith("Blocked")
+    assert receiver.requests == []

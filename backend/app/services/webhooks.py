@@ -19,6 +19,7 @@ import hmac
 import ipaddress
 import json
 import logging
+import re
 import time
 import uuid
 from datetime import UTC, datetime
@@ -37,7 +38,31 @@ logger = logging.getLogger("securescope.webhooks")
 USER_AGENT = "SecureScope-Webhook/1"
 MAX_ATTEMPTS = 2
 MAX_FINDINGS_LISTED = 20
+# A Slack incoming webhook: the one host and the one path shape Slack uses, nothing else.
+SLACK_ADDRESS = re.compile(r"^https://hooks\.slack\.com/services/[A-Z0-9]{8,}/[A-Z0-9]{8,}/[A-Za-z0-9]{16,}$")
 SECRET_PREFIX = "whsec_"  # noqa: S105  # nosec B105 (a label, not a secret)
+
+
+def _slack_escape(text: str) -> str:
+    """Slack treats &, < and > as markup, so any text we did not write ourselves is escaped."""
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def slack_text(event: str, payload: dict[str, Any]) -> str:
+    """The Slack message for an event: plain text, the same facts as the signed webhook and nothing more."""
+    if event != "scan.alert":
+        return f"SecureScope: {_slack_escape(str(payload.get('message', 'Test message.')))}"
+    site = payload.get("site", {}).get("host", "a site")
+    scan = payload.get("scan", {})
+    lines = [f":warning: *SecureScope alert for {_slack_escape(str(site))}*"]
+    lines += [f"• {_slack_escape(str(r))}" for r in payload.get("reasons", [])]
+    for f in payload.get("new_findings", [])[:MAX_FINDINGS_LISTED]:
+        lines.append(f"    [{_slack_escape(str(f.get('severity')))}] {_slack_escape(str(f.get('title')))}")
+    if scan.get("score") is not None:
+        lines.append(f"Score {scan['score']} (grade {_slack_escape(str(scan.get('grade')))})")
+    if scan.get("url"):
+        lines.append(f"<{scan['url']}|Open the scan in SecureScope>")
+    return "\n".join(lines)
 
 
 class WebhookService:
@@ -70,9 +95,14 @@ class WebhookService:
         signed = f"{timestamp}.".encode() + body
         return hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()
 
-    async def validate_address(self, url: str) -> str:
+    async def validate_address(self, url: str, kind: str = "webhook") -> str:
         """Returns the cleaned address or raises TargetError with a message that is safe to show."""
         candidate = url.strip()
+        if kind == "slack" and not SLACK_ADDRESS.match(candidate):
+            raise TargetError(
+                "That is not a Slack incoming-webhook address. It looks like "
+                "https://hooks.slack.com/services/T…/B…/… and is created in your Slack app settings."
+            )
         if not candidate.lower().startswith("https://"):
             raise TargetError("The address must start with https://.")
         target = await validate_target(candidate, self._settings)
@@ -90,17 +120,20 @@ class WebhookService:
             return False, False, f"Blocked: {exc}"[:120]
         if target.scheme != "https":
             return False, False, "Blocked: the address is not https."
-        timestamp = int(time.time())
-        signature = self.sign(self.secret_for(endpoint), timestamp, body)
+        if endpoint.kind == "slack" and not SLACK_ADDRESS.match(endpoint.url):
+            return False, False, "Blocked: the address is not a Slack incoming webhook."
         host = target.host if target.port in (80, 443) else f"{target.host}:{target.port}"
         headers = {
             "Host": host,
             "User-Agent": USER_AGENT,
             "Content-Type": "application/json",
-            "X-SecureScope-Event": event,
-            "X-SecureScope-Delivery": delivery_id,
-            "X-SecureScope-Signature": f"t={timestamp},v1={signature}",
         }
+        if endpoint.kind != "slack":
+            timestamp = int(time.time())
+            signature = self.sign(self.secret_for(endpoint), timestamp, body)
+            headers["X-SecureScope-Event"] = event
+            headers["X-SecureScope-Delivery"] = delivery_id
+            headers["X-SecureScope-Signature"] = f"t={timestamp},v1={signature}"
         ip = ipaddress.ip_address(target.addresses[0])
         shown = f"[{ip}]" if ip.version == 6 else str(ip)
         pinned = f"https://{shown}:{target.port}{target.path_and_query}"
@@ -137,7 +170,8 @@ class WebhookService:
             "created_at": datetime.now(UTC).isoformat(),
             **data,
         }
-        body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode()
+        shown = {"text": slack_text(event, payload)} if endpoint.kind == "slack" else payload
+        body = json.dumps(shown, separators=(",", ":"), ensure_ascii=False).encode()
         ok, status = False, "Not sent"
         attempts = 0
         for attempt in range(MAX_ATTEMPTS):

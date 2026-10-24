@@ -19,6 +19,8 @@ class WebhookEndpointRow(Base):
     url: Mapped[str] = mapped_column(Text)
     # The signing secret is derived from the server key, this id and this version. Rotating adds one.
     key_version: Mapped[int] = mapped_column(Integer, default=1)
+    # "webhook" (a signed JSON message) or "slack" (a Slack incoming-webhook message).
+    kind: Mapped[str] = mapped_column(String(8), default="webhook", server_default="webhook")
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     consecutive_failures: Mapped[int] = mapped_column(Integer, default=0)
     last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -27,8 +27,7 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
 
 ## Product
 
-- **Slack integration** (next in the agreed order). Same triggers as the email and webhook alerts, incoming-webhook
-  style, no evidence in the message.
+- **Slack alerts** are built (Targets > Webhook alerts > "A Slack channel"): same triggers as the email and webhook alerts, incoming-webhook style, no evidence in the message. Not built: Microsoft Teams, interactive Slack features (buttons, a Slack app with sign-in).
 - **Verification workflow.** Separate "no longer detected" from "confirmed resolved" (needs a later scan that examined
   the same resource), and add a "Verify fix" action that re-checks one finding.
 - **Premium PDF cover and layout** from the product brief: a cover page with reference, dates, scope and an executive

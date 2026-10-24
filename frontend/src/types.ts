@@ -492,6 +492,7 @@ export interface ScheduleList {
 
 export interface Webhook {
   id: string;
+  kind?: "webhook" | "slack";
   address: string;
   enabled: boolean;
   last_attempt_at: string | null;
@@ -501,7 +502,7 @@ export interface Webhook {
 }
 
 export interface WebhookCreated extends Webhook {
-  signing_secret: string;
+  signing_secret: string | null;
 }
 
 export interface WebhookList {

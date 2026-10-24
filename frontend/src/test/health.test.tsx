@@ -78,8 +78,13 @@ function mockApi(me: User, h: PlatformHealth) {
             count: 2,
             average: 4.5,
             by_rating: { "5": 1, "4": 1 },
+            by_plan: {
+              Agency: { count: 1, average: 5 },
+              Free: { count: 1, average: 4 },
+            },
             latest: [
               {
+                plan: "Agency",
                 rating: 5,
                 category: "reports",
                 message: "Great reports",
@@ -130,6 +135,10 @@ describe("platform health page", () => {
     expect(await screen.findByText("Customer feedback")).toBeInTheDocument();
     expect(await screen.findByText("Great reports")).toBeInTheDocument();
     expect(screen.getByText("4.5")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Agency 5\.0 \(1\) · Free 4\.0 \(1\)/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/5★ · Agency · Reports/)).toBeInTheDocument();
   });
 
   it("is not offered to ordinary accounts", async () => {
