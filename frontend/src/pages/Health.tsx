@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, fetchPlatformHealth } from "../api";
-import { ColumnChart, Kpi } from "../components/charts";
+import { ColumnChart, Flag, Kpi, Panel, Row, Rows } from "../components/charts";
 import { ErrorNotice, Loading } from "../components/ui";
 import { formatDate } from "../format";
 import type { PlatformHealth } from "../types";
@@ -77,43 +77,56 @@ export default function Health() {
   const problems = data ? attention(data) : [];
   return (
     <div className="stack dash">
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <h1>Platform health</h1>
-        <button type="button" className="btn-ghost" onClick={load}>
-          Refresh
-        </button>
-      </div>
-      <p className="muted small">
-        Measured by the API process itself. Request figures cover this process
-        since it last started (free hosting restarts it when idle), so they
-        begin again after every restart. Nothing here is estimated.
-      </p>
+      <header className="dash-head">
+        <div>
+          <h1>Platform health</h1>
+          <p className="dash-sub">
+            Measured by the API process itself. Request figures cover this
+            process since it last started (free hosting restarts it when idle),
+            so they begin again after every restart. Nothing here is estimated.
+          </p>
+        </div>
+        <div className="dash-tools">
+          {loadedAt && (
+            <span className="dash-stamp">
+              Updated {loadedAt.toLocaleTimeString()}. Refreshes every 30
+              seconds.
+            </span>
+          )}
+          <button type="button" className="btn-ghost" onClick={load}>
+            Refresh
+          </button>
+        </div>
+      </header>
       {error && <ErrorNotice message={error} />}
       {!data && !error && <Loading label="Loading platform health…" />}
       {data && (
         <>
           <section
-            className={`card ${problems.length ? "notice-warn" : ""}`}
+            className={`status-banner ${problems.length ? "is-warn" : "is-ok"}`}
             role="status"
             aria-label="Overall status"
           >
-            <h2>
-              {problems.length ? "Needs attention" : "No problems detected"}
-            </h2>
-            {problems.length ? (
-              <ul>
-                {problems.map((p) => (
-                  <li key={p}>{p}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="muted small">
-                The database answers, recent requests are succeeding and email
-                is being delivered.
-              </p>
-            )}
+            <span className="status-dot" aria-hidden="true" />
+            <div>
+              <h2>
+                {problems.length ? "Needs attention" : "No problems detected"}
+              </h2>
+              {problems.length ? (
+                <ul>
+                  {problems.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p>
+                  The database answers, recent requests are succeeding and email
+                  is being delivered.
+                </p>
+              )}
+            </div>
           </section>
-          <ul className="summary-grid" aria-label="Key figures">
+          <ul className="dash-kpis" aria-label="Key figures">
             <Kpi
               tone="cyan"
               label="Database"
@@ -147,16 +160,14 @@ export default function Health() {
               note={`median ${ms(data.requests.p50_ms)}, p99 ${ms(data.requests.p99_ms)}`}
             />
           </ul>
-          <div className="an-grid">
-            <section className="card">
-              <h2>Request latency</h2>
+          <div className="dash-cols dash-cols-2">
+            <Panel title="Request latency" aside="milliseconds">
               {data.requests.p50_ms === null ||
               data.requests.p95_ms === null ||
               data.requests.p99_ms === null ? (
                 <p className="muted small">No requests measured yet.</p>
               ) : (
                 <ColumnChart
-                  unit="ms"
                   label={`Latency: median ${data.requests.p50_ms} ms, p95 ${data.requests.p95_ms} ms, p99 ${data.requests.p99_ms} ms`}
                   columns={[
                     {
@@ -173,9 +184,10 @@ export default function Health() {
                   ]}
                 />
               )}
-            </section>
-            <section className="card">
-              <h2>Scan outcomes, last {data.scans.window_hours} hours</h2>
+            </Panel>
+            <Panel
+              title={`Scan outcomes, last ${data.scans.window_hours} hours`}
+            >
               <ColumnChart
                 label="Scans by outcome"
                 columns={[
@@ -197,160 +209,128 @@ export default function Health() {
                   },
                 ]}
               />
-            </section>
-            <section className="card an-list">
-              <h2>Scans, last {data.scans.window_hours} hours</h2>
-              <ul>
-                <li className="an-row">
-                  <span>Completed</span>
-                  <strong>{data.scans.completed}</strong>
-                </li>
-                <li className="an-row">
-                  <span>Ended in an error</span>
-                  <strong>{data.scans.failed}</strong>
-                </li>
-                <li className="an-row">
-                  <span>Cancelled</span>
-                  <strong>{data.scans.cancelled}</strong>
-                </li>
-                <li className="an-row">
-                  <span>Queued or running now</span>
-                  <strong>{data.scans.in_progress}</strong>
-                </li>
-                <li className="an-row">
-                  <span>Average duration</span>
-                  <strong>
-                    {data.scans.avg_seconds === null
-                      ? "–"
-                      : `${data.scans.avg_seconds.toFixed(1)} s`}
-                  </strong>
-                </li>
-                <li className="an-row">
-                  <span>Parallel scan limit</span>
-                  <strong>
-                    {data.scans.running_here} of {data.scans.max_concurrent}{" "}
-                    slots in use
-                  </strong>
-                </li>
-              </ul>
-              <p className="muted small">
+            </Panel>
+          </div>
+          <div className="dash-cols dash-cols-3">
+            <Panel title={`Scans, last ${data.scans.window_hours} hours`}>
+              <Rows>
+                <Row label="Completed">{data.scans.completed}</Row>
+                <Row label="Ended in an error">{data.scans.failed}</Row>
+                <Row label="Cancelled">{data.scans.cancelled}</Row>
+                <Row label="Queued or running now">
+                  {data.scans.in_progress}
+                </Row>
+                <Row label="Average duration">
+                  {data.scans.avg_seconds === null
+                    ? "–"
+                    : `${data.scans.avg_seconds.toFixed(1)} s`}
+                </Row>
+                <Row label="Parallel scan limit">
+                  {data.scans.running_here} of {data.scans.max_concurrent} slots
+                  in use
+                </Row>
+              </Rows>
+              <p className="panel-note">
                 From the database; scans you delete or that age out are not
                 counted.
               </p>
-            </section>
-            <section className="card an-list">
-              <h2>Email</h2>
-              <ul>
-                <li className="an-row">
-                  <span>Provider</span>
-                  <strong>{data.mail.provider}</strong>
-                </li>
-                <li className="an-row">
-                  <span>Sent since start</span>
-                  <strong>{data.mail.sent}</strong>
-                </li>
-                <li className="an-row">
-                  <span>Failed since start</span>
-                  <strong>{data.mail.failed}</strong>
-                </li>
-                <li className="an-row">
-                  <span>Last success</span>
-                  <strong>
-                    {data.mail.last_success_at
-                      ? formatDate(data.mail.last_success_at)
-                      : "none yet"}
-                  </strong>
-                </li>
-                <li className="an-row">
-                  <span>Last failure</span>
-                  <strong>
-                    {data.mail.last_failure_at
-                      ? formatDate(data.mail.last_failure_at)
-                      : "none"}
-                  </strong>
-                </li>
-              </ul>
-            </section>
-            <section className="card an-list an-wide">
-              <h2>Busiest routes</h2>
-              {data.requests.routes.length === 0 ? (
-                <p className="muted small">No requests measured yet.</p>
-              ) : (
-                <table className="small">
+            </Panel>
+            <Panel title="Email">
+              <Rows>
+                <Row label="Provider">{data.mail.provider}</Row>
+                <Row label="Sent since start">{data.mail.sent}</Row>
+                <Row label="Failed since start">{data.mail.failed}</Row>
+                <Row label="Last success">
+                  {data.mail.last_success_at
+                    ? formatDate(data.mail.last_success_at)
+                    : "none yet"}
+                </Row>
+                <Row label="Last failure">
+                  {data.mail.last_failure_at
+                    ? formatDate(data.mail.last_failure_at)
+                    : "none"}
+                </Row>
+              </Rows>
+            </Panel>
+            <Panel title="Configuration">
+              <Rows>
+                <Row label="Trusted proxy secret">
+                  <Flag
+                    on={data.configuration.trusted_proxy}
+                    yes="set"
+                    no="not set"
+                  />
+                </Row>
+                <Row label="Secure cookies">
+                  <Flag
+                    on={data.configuration.cookie_secure}
+                    yes="on"
+                    no="off"
+                  />
+                </Row>
+                <Row label="Visitor analytics">
+                  <Flag
+                    on={data.configuration.analytics_enabled}
+                    yes="on"
+                    no="off"
+                  />
+                </Row>
+                <Row label="/metrics endpoint">
+                  <Flag
+                    on={data.configuration.metrics_endpoint}
+                    yes="enabled"
+                    no="off"
+                  />
+                </Row>
+                <Row label="Ownership proof valid">
+                  {data.configuration.verification_valid_days === 0
+                    ? "never expires"
+                    : `${data.configuration.verification_valid_days} days`}
+                </Row>
+                <Row label="Scan retention">
+                  {data.configuration.retention_days} days
+                </Row>
+                <Row label="Version">{data.version}</Row>
+              </Rows>
+            </Panel>
+          </div>
+          <Panel title="Busiest routes" aside="since the last restart">
+            {data.requests.routes.length === 0 ? (
+              <p className="muted small">No requests measured yet.</p>
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table">
                   <caption className="visually-hidden">
                     Requests per route since the last restart
                   </caption>
                   <thead>
                     <tr>
                       <th scope="col">Route</th>
-                      <th scope="col">Requests</th>
-                      <th scope="col">Errors</th>
-                      <th scope="col">p95</th>
+                      <th scope="col" className="num">
+                        Requests
+                      </th>
+                      <th scope="col" className="num">
+                        Errors
+                      </th>
+                      <th scope="col" className="num">
+                        p95
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.requests.routes.map((r) => (
                       <tr key={r.route}>
-                        <td style={{ overflowWrap: "anywhere" }}>{r.route}</td>
-                        <td>{r.requests}</td>
-                        <td>{r.errors}</td>
-                        <td>{ms(r.p95_ms)}</td>
+                        <td className="route">{r.route}</td>
+                        <td className="num">{r.requests}</td>
+                        <td className="num">{r.errors}</td>
+                        <td className="num">{ms(r.p95_ms)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              )}
-            </section>
-            <section className="card an-list">
-              <h2>Configuration</h2>
-              <ul>
-                <li className="an-row">
-                  <span>Trusted proxy secret</span>
-                  <strong>
-                    {data.configuration.trusted_proxy ? "set" : "not set"}
-                  </strong>
-                </li>
-                <li className="an-row">
-                  <span>Secure cookies</span>
-                  <strong>
-                    {data.configuration.cookie_secure ? "on" : "off"}
-                  </strong>
-                </li>
-                <li className="an-row">
-                  <span>Visitor analytics</span>
-                  <strong>
-                    {data.configuration.analytics_enabled ? "on" : "off"}
-                  </strong>
-                </li>
-                <li className="an-row">
-                  <span>/metrics endpoint</span>
-                  <strong>
-                    {data.configuration.metrics_endpoint ? "enabled" : "off"}
-                  </strong>
-                </li>
-                <li className="an-row">
-                  <span>Ownership proof valid</span>
-                  <strong>
-                    {data.configuration.verification_valid_days === 0
-                      ? "never expires"
-                      : `${data.configuration.verification_valid_days} days`}
-                  </strong>
-                </li>
-                <li className="an-row">
-                  <span>Scan retention</span>
-                  <strong>{data.configuration.retention_days} days</strong>
-                </li>
-                <li className="an-row">
-                  <span>Version</span>
-                  <strong>{data.version}</strong>
-                </li>
-              </ul>
-            </section>
-          </div>
-          <p className="muted small">
-            {loadedAt ? `Updated ${loadedAt.toLocaleTimeString()}. ` : ""}
-            Refreshes every 30 seconds.
-          </p>
+              </div>
+            )}
+          </Panel>
         </>
       )}
     </div>

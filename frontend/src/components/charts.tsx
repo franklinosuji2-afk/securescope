@@ -13,24 +13,97 @@ export function niceMax(max: number): { max: number; ticks: number[] } {
   return { max: top, ticks: [4, 3, 2, 1, 0].map((n) => n * s) };
 }
 
-/** A figure with a coloured label rule, like the tiles of a monitoring dashboard. */
+export type Trend = "up" | "down" | "flat";
+
+/** Up, down or flat, from two measured numbers. */
+export function trendOf(current: number, previous: number): Trend {
+  if (previous === 0 || current === previous) return "flat";
+  return current > previous ? "up" : "down";
+}
+
+/** A figure under a small coloured label, like the tiles of a monitoring dashboard. */
 export function Kpi({
   label,
   value,
   note,
   tone,
+  trend,
 }: {
   label: string;
   value: ReactNode;
   note?: ReactNode;
   tone: Tone;
+  trend?: Trend;
 }) {
   return (
     <li className={`card kpi kpi-${tone}`}>
       <div className="kpi-label">{label}</div>
       <div className="kpi-value">{value}</div>
-      {note ? <div className="kpi-note">{note}</div> : null}
+      {note ? (
+        <div className={`kpi-note${trend ? ` kpi-${trend}` : ""}`}>{note}</div>
+      ) : null}
     </li>
+  );
+}
+
+/** A dashboard panel: a title (with an optional aside such as a legend) above its content. */
+export function Panel({
+  title,
+  aside,
+  className = "",
+  children,
+}: {
+  title: string;
+  aside?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={`card panel ${className}`.trim()}>
+      <div className="panel-head">
+        <h2>{title}</h2>
+        {aside ? <div className="panel-aside">{aside}</div> : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** One label and value per line, divided by thin rules. */
+export function Rows({ children }: { children: ReactNode }) {
+  return <ul className="rows">{children}</ul>;
+}
+
+export function Row({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <li className="row-item">
+      <span>{label}</span>
+      <strong>{children}</strong>
+    </li>
+  );
+}
+
+/** A setting that is on or off, shown with a dot as well as the word. */
+export function Flag({
+  on,
+  yes,
+  no,
+}: {
+  on: boolean;
+  yes: string;
+  no: string;
+}) {
+  return (
+    <span className={`flag ${on ? "flag-on" : "flag-off"}`}>
+      <i aria-hidden="true" />
+      {on ? yes : no}
+    </span>
   );
 }
 

@@ -141,7 +141,7 @@ Dated proof that the procedures above were actually carried out. Add a line each
 |---|---|---|
 | 2026-10-23 | Backup of the production database with `scripts/backup-db.ps1`, restored into a throw-away container with `scripts/restore-test.ps1` | Passed. Schema version 0013; 24 tables restored, including `scan_schedules`, `api_tokens`, `webhook_endpoints` and `site_badges`. An earlier run against an older database branch (schema 0009) was discarded: always compare the host in the Render `SECURESCOPE_DATABASE_URL` with the one you back up, and check the restored schema version against the newest migration. |
 | 2026-10-23 | External monitors (UptimeRobot, 5-minute checks, e-mail alerts) on `/api/v1/health`, `/api/v1/ready` and the site | Alert e-mail received. An earlier false alarm (HTTP 405 on `HEAD`) was fixed on 2026-10-22: the health and ready routes accept `HEAD`. |
-| 2026-10-23 | Scheduled scans | A schedule created on the live site ran by itself (2026-10-22 22:30, completed). A second run is expected after 2026-10-23 22:30. |
+| 2026-10-23 | Scheduled scans | A schedule created on the live site ran by itself (2026-10-22 22:30, completed). A second run followed on 2026-10-23 at 22:45 (completed, score 100), so the cron path is confirmed. |
 | 2026-10-23 | Cloudflare settings for the domain | SSL/TLS mode Full (strict); Cloudflare Free Managed Ruleset on; Bot Fight Mode on. |
 | 2026-10-23 | Two-factor sign-in | Reported on for the Google account used to sign in to GitHub, Render, Neon, Cloudflare and the registrar, and for GitHub. |
 

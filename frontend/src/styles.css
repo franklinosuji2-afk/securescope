@@ -1318,25 +1318,6 @@ a.btn {
   stroke: var(--surface);
   stroke-width: 1.5;
 }
-.trend-table summary {
-  cursor: pointer;
-  color: var(--muted);
-}
-.trend-table table {
-  border-collapse: collapse;
-  margin-top: 6px;
-}
-.trend-table th,
-.trend-table td {
-  text-align: left;
-  padding: 3px 14px 3px 0;
-  font-variant-numeric: tabular-nums;
-}
-.trend-table th {
-  color: var(--muted);
-  font-weight: 500;
-}
-
 /* Overview: summary row, then findings and sites beside the scan form on wide screens. */
 .summary-grid {
   list-style: none;
@@ -1367,71 +1348,8 @@ a.btn {
   }
 }
 
-/* Analytics */
-.an-chart {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-.an-views {
-  fill: var(--border-strong);
-}
-.an-visitors {
-  fill: var(--accent);
-}
-.an-key {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  margin: 0 6px 0 12px;
-}
-.an-key:first-child {
-  margin-left: 0;
-}
-.an-key-visitors {
-  background: var(--accent);
-}
-.an-key-views {
-  background: var(--border-strong);
-}
-.an-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-}
-.an-list ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.an-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  overflow-wrap: anywhere;
-}
-.an-track {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--surface-2);
-  margin-top: 4px;
-}
-.an-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: var(--accent);
-}
 .notice-warn {
   border-color: var(--sev-medium);
-}
-@media (min-width: 700px) {
-  .an-wide {
-    grid-column: 1 / -1;
-  }
 }
 
 /* "A new version is available" notice: stays out of the way at the bottom of the screen. */

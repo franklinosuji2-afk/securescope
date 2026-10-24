@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ApiError, fetchAnalytics } from "../api";
-import { DailyHistogram, Kpi } from "../components/charts";
+import { DailyHistogram, Kpi, Panel, trendOf } from "../components/charts";
 import { EmptyState, ErrorNotice, Loading } from "../components/ui";
 import { formatDate } from "../format";
 import type { AnalyticsCount, AnalyticsSummary } from "../types";
@@ -37,21 +37,20 @@ function Bars({
 }) {
   const max = Math.max(1, ...items.map((i) => i.count));
   return (
-    <section className="card an-list">
-      <h2>{title}</h2>
+    <Panel title={title}>
       {items.length === 0 ? (
         <p className="muted small">Nothing in this period.</p>
       ) : (
-        <ul>
+        <ul className="bar-list">
           {items.map((i) => (
             <li key={i.name}>
-              <div className="an-row">
+              <div className="bar-line">
                 <span>{label(i.name)}</span>
                 <strong>{i.count}</strong>
               </div>
-              <div className="an-track" aria-hidden="true">
+              <div className="bar-track" aria-hidden="true">
                 <div
-                  className="an-fill"
+                  className="bar-fill"
                   style={{ width: `${(i.count / max) * 100}%` }}
                 />
               </div>
@@ -59,7 +58,7 @@ function Bars({
           ))}
         </ul>
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -67,38 +66,47 @@ function DailyChart({ data }: { data: AnalyticsSummary }) {
   const series = data.current.series;
   const total = `${data.current.visitors} visitors and ${data.current.views} page views in ${series.length} days`;
   return (
-    <section className="card">
-      <h2>Daily visitors and views</h2>
+    <Panel
+      title="Daily visitors and views"
+      aside={
+        <p className="chart-legend">
+          <span>Visitors</span>
+          <span>Page views</span>
+        </p>
+      }
+    >
       <DailyHistogram series={series} label={total} />
-      <p className="chart-legend">
-        <span>Visitors</span>
-        <span>Page views</span>
-      </p>
       <details className="trend-table">
         <summary className="small">Show as a table</summary>
-        <table className="small">
-          <caption className="visually-hidden">
-            Visitors and views per day
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">Day</th>
-              <th scope="col">Visitors</th>
-              <th scope="col">Views</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...series].reverse().map((d) => (
-              <tr key={d.date}>
-                <td>{d.date}</td>
-                <td>{d.visitors}</td>
-                <td>{d.views}</td>
+        <div className="table-wrap">
+          <table className="data-table">
+            <caption className="visually-hidden">
+              Visitors and views per day
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Day</th>
+                <th scope="col" className="num">
+                  Visitors
+                </th>
+                <th scope="col" className="num">
+                  Views
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {[...series].reverse().map((d) => (
+                <tr key={d.date}>
+                  <td>{d.date}</td>
+                  <td className="num">{d.visitors}</td>
+                  <td className="num">{d.views}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </details>
-    </section>
+    </Panel>
   );
 }
 
@@ -132,14 +140,22 @@ export default function Analytics() {
   const loading = data === null && error === null;
   return (
     <div className="stack dash">
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <h1>Website analytics</h1>
-        <div role="group" aria-label="Time range" className="row">
+      <header className="dash-head">
+        <div>
+          <h1>Website analytics</h1>
+          <p className="dash-sub">
+            Visits to the public pages only (sign-in, registration, legal
+            pages). Signed-in use of the app is not counted. No cookies, no
+            stored IP addresses; visitors are counted with a one-way hash that
+            changes every day, so a person returning on another day counts
+            again.
+          </p>
+        </div>
+        <div role="group" aria-label="Time range" className="segmented">
           {RANGES.map((r) => (
             <button
               key={r}
               type="button"
-              className={r === days ? "btn" : "btn-ghost"}
               aria-pressed={r === days}
               onClick={() => setDays(r)}
             >
@@ -147,25 +163,25 @@ export default function Analytics() {
             </button>
           ))}
         </div>
-      </div>
-      <p className="muted small">
-        Visits to the public pages only (sign-in, registration, legal pages).
-        Signed-in use of the app is not counted. No cookies, no stored IP
-        addresses; visitors are counted with a one-way hash that changes every
-        day, so a person returning on another day counts again.
-      </p>
+      </header>
       {error && <ErrorNotice message={error} />}
       {loading && <Loading label="Loading analytics…" />}
       {data && (
         <>
-          <p className="muted small" role="status">
-            {data.tracking_enabled
-              ? "Counting is on."
-              : "Counting is switched off."}{" "}
-            {data.last_event_at
-              ? `Last visit recorded ${formatDate(data.last_event_at)}.`
-              : "No visit has been recorded yet."}{" "}
-            Days follow your time zone ({data.timezone}).
+          <p className="dash-meta" role="status">
+            <i
+              className={`meta-dot ${data.tracking_enabled ? "is-on" : "is-off"}`}
+              aria-hidden="true"
+            />
+            <span>
+              {data.tracking_enabled
+                ? "Counting is on."
+                : "Counting is switched off."}{" "}
+              {data.last_event_at
+                ? `Last visit recorded ${formatDate(data.last_event_at)}.`
+                : "No visit has been recorded yet."}{" "}
+              Days follow your time zone ({data.timezone}).
+            </span>
           </p>
           {data.current.views === 0 && data.previous.views === 0 ? (
             <EmptyState title="No visits recorded yet">
@@ -173,7 +189,7 @@ export default function Analytics() {
               sign-in page in a private window to check that counting works.
             </EmptyState>
           ) : null}
-          <ul className="summary-grid" aria-label="Visitors">
+          <ul className="dash-kpis" aria-label="Visitors">
             <Kpi
               tone="cyan"
               label="Visitors today"
@@ -191,16 +207,18 @@ export default function Analytics() {
               label={`Visitors, ${days} days`}
               value={data.current.visitors}
               note={change(data.current.visitors, data.previous.visitors)}
+              trend={trendOf(data.current.visitors, data.previous.visitors)}
             />
             <Kpi
               tone="lime"
               label={`Page views, ${days} days`}
               value={data.current.views}
               note={change(data.current.views, data.previous.views)}
+              trend={trendOf(data.current.views, data.previous.views)}
             />
           </ul>
           <DailyChart data={data} />
-          <div className="an-grid">
+          <div className="dash-cols dash-cols-2">
             <Bars
               title="Top pages"
               items={data.top_pages}
