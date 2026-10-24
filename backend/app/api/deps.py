@@ -20,6 +20,7 @@ from app.observability.metrics import RequestMetrics
 from app.repositories.accounts import AccountRepository, AuditRepository, SessionRecord, UserRecord
 from app.repositories.agency import AgencyRepository
 from app.repositories.analytics import AnalyticsRepository
+from app.repositories.feedback import FeedbackRepository
 from app.repositories.integrations import IntegrationRepository
 from app.repositories.plans import PlanRepository
 from app.repositories.reports import ReportRepository
@@ -73,6 +74,9 @@ class AppState:
         self.analytics_salt = salt
         self.analytics_limiter = SlidingWindowLimiter(settings.analytics_events_per_client_per_hour)
         self.audit = AuditRepository(self.engine)
+        self.feedback = FeedbackRepository(self.engine)
+        # Saves or changes of feedback per person per hour.
+        self.feedback_limiter = SlidingWindowLimiter(20)
         self.auth = AuthService(self.accounts, settings, mailer or build_mailer(settings))
         self.oauth = OAuthService(self.accounts, settings, self.auth.begin_session)
         self.invitations = InvitationService(self.accounts, settings, self.auth.mailer)

@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, fetchPlatformHealth } from "../api";
+import {
+  ApiError,
+  fetchPlatformHealth,
+  getFeedbackSummary,
+  type FeedbackSummary,
+} from "../api";
 import { ColumnChart, Flag, Kpi, Panel, Row, Rows } from "../components/charts";
 import { ErrorNotice, Loading } from "../components/ui";
 import { formatDate } from "../format";
@@ -45,6 +50,55 @@ export function attention(h: PlatformHealth): string[] {
       "The trusted proxy secret is not set, so rate limits use the proxy's address.",
     );
   return out;
+}
+
+function FeedbackPanel() {
+  const [summary, setSummary] = useState<FeedbackSummary | null>(null);
+  useEffect(() => {
+    let live = true;
+    getFeedbackSummary()
+      .then((next) => {
+        if (live && next && typeof next.count === "number") setSummary(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (!summary) return null;
+  return (
+    <Panel title="Customer feedback" aside="private, from the Account page">
+      {summary.count === 0 ? (
+        <p className="muted small">No feedback has been submitted yet.</p>
+      ) : (
+        <>
+          <p>
+            <strong>{summary.average?.toFixed(1)}</strong> average from{" "}
+            {summary.count} {summary.count === 1 ? "entry" : "entries"} (
+            {[5, 4, 3, 2, 1]
+              .map((n) => `${n}★ ${summary.by_rating[String(n)] ?? 0}`)
+              .join(", ")}
+            )
+          </p>
+          <ul className="plain-list">
+            {summary.latest
+              .filter((f) => f.message)
+              .slice(0, 5)
+              .map((f) => (
+                <li key={f.updated_at + f.rating}>
+                  <span className="muted small">
+                    {f.rating}★{f.category ? ` · ${f.category}` : ""} ·{" "}
+                    {formatDate(f.updated_at)}
+                  </span>
+                  <br />
+                  {f.message}
+                </li>
+              ))}
+          </ul>
+        </>
+      )}
+    </Panel>
+  );
 }
 
 export default function Health() {
@@ -331,6 +385,7 @@ export default function Health() {
               </div>
             )}
           </Panel>
+          <FeedbackPanel />
         </>
       )}
     </div>

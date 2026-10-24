@@ -1488,3 +1488,27 @@ a.btn {
 .break-all {
   overflow-wrap: anywhere;
 }
+
+.rating {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.rating-star {
+  position: relative;
+  cursor: pointer;
+  font-size: 1.7rem;
+  line-height: 1;
+  color: var(--sev-medium, #d9a441);
+}
+.rating-star input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  cursor: pointer;
+}
+.rating-star:has(input:focus-visible) {
+  outline: 2px solid var(--accent, #2dd4bf);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

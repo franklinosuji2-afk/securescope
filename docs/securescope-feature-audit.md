@@ -57,7 +57,8 @@ dependency).
 
 | Capability | Class | Evidence |
 | --- | --- | --- |
-| Any review, rating or feedback feature | MISSING | no model, endpoint or page (searched `backend/app`, `frontend/src`) |
+| Private feedback (1 to 5 stars, topic, comment; edit and withdraw) | VERIFIED | `models/feedback.py`, `repositories/feedback.py`, `api/v1/feedback.py`, migration `0015`; `test_feedback.py` (rating bounds, one entry per user, other users cannot read it, deleted with the account, operator summary without names or emails); Account page "Your feedback" in `account.test.tsx` |
+| Operator view of feedback | VERIFIED | `GET /feedback/summary` (administrators only, 404 otherwise); Platform health "Customer feedback" panel |
 | Public reviews with moderation | MISSING | not ready: needs real customers, a moderation path and legal wording |
 
 ## 6. Additional services

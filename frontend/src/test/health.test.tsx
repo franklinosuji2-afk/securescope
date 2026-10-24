@@ -70,6 +70,25 @@ function mockApi(me: User, h: PlatformHealth) {
         return { ok: true, status: 200, json: async () => me };
       if (url.endsWith("/platform/health"))
         return { ok: true, status: 200, json: async () => h };
+      if (url.endsWith("/feedback/summary"))
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            count: 2,
+            average: 4.5,
+            by_rating: { "5": 1, "4": 1 },
+            latest: [
+              {
+                rating: 5,
+                category: "reports",
+                message: "Great reports",
+                created_at: "2026-10-24T10:00:00Z",
+                updated_at: "2026-10-24T10:00:00Z",
+              },
+            ],
+          }),
+        };
       return {
         ok: true,
         status: 200,
@@ -98,6 +117,19 @@ describe("platform health page", () => {
     expect(screen.getByText("180 ms")).toBeInTheDocument();
     expect(screen.getByText("/api/v1/scans")).toBeInTheDocument();
     expect(screen.getByText("4.2 s")).toBeInTheDocument();
+  });
+
+  it("shows the private feedback summary to the operator", async () => {
+    mockApi(admin, health());
+    window.location.hash = "#/health";
+    render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>,
+    );
+    expect(await screen.findByText("Customer feedback")).toBeInTheDocument();
+    expect(await screen.findByText("Great reports")).toBeInTheDocument();
+    expect(screen.getByText("4.5")).toBeInTheDocument();
   });
 
   it("is not offered to ordinary accounts", async () => {

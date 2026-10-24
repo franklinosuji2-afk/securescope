@@ -169,6 +169,14 @@ function Privacy() {
           keeping the service secure and accountable (Art. 6(1)(f) GDPR).
         </li>
         <li>
+          <strong>Feedback (optional):</strong> if you choose to rate
+          SecureScope under Account, we store your star rating, the topic you
+          pick and any comment you write, together with your account. It is read
+          only by the operator, never published, and you can change or withdraw
+          it at any time; it is also deleted with your account. Your consent
+          (Art. 6(1)(a) GDPR), which you can withdraw whenever you like.
+        </li>
+        <li>
           <strong>Abuse protection:</strong> to limit abuse, such as repeated
           sign-in attempts, the server counts recent requests per IP address in
           its memory. These counters are not written to our database and
