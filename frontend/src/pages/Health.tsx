@@ -287,7 +287,7 @@ export default function Health() {
                     ? "never expires"
                     : `${data.configuration.verification_valid_days} days`}
                 </Row>
-                <Row label="Scan retention">
+                <Row label="Scan retention (Free plan)">
                   {data.configuration.retention_days} days
                 </Row>
                 <Row label="Version">{data.version}</Row>

@@ -15,6 +15,14 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # typescript-eslint supports TypeScript below 6.1 only; @types/node must match the Node version in use (22).
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
+      - dependency-name: jsdom
+        update-types: [version-update:semver-major]
     groups:
       npm-minor-and-patch:
         update-types: [minor, patch]
@@ -27,7 +35,15 @@ updates:
     directory: /backend
     schedule:
       interval: weekly
+    ignore:
+      # Stay on the Python version the code is tested against; move it by hand.
+      - dependency-name: python
+        update-types: [version-update:semver-major, version-update:semver-minor]
   - package-ecosystem: docker
     directory: /frontend
     schedule:
       interval: weekly
+    ignore:
+      # Node base image: stay on a long-term-support release; move it by hand.
+      - dependency-name: node
+        update-types: [version-update:semver-major]

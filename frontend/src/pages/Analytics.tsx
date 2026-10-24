@@ -14,6 +14,8 @@ const PAGE_LABEL: Record<string, string> = {
   "forgot-password": "Forgot password",
   "reset-password": "Reset password",
   "verify-email": "Confirm email",
+  "sample-report": "Sample report",
+  "agency-features": "Agency features",
   impressum: "Impressum",
   privacy: "Privacy notice",
   terms: "Terms",
