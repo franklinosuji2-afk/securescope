@@ -27,10 +27,10 @@ dependency).
 | Central plan catalogue | VERIFIED | `billing/plans.py` (Free, Professional, Agency, Internal); no literals elsewhere |
 | Backend enforcement (websites, scans per month, history, schedules, invites, client workspace) | VERIFIED | `billing/entitlements.py`, `repositories/plans.py`, `lock_organization`; `tests/test_plans.py`, `tests/test_cross_customer.py` |
 | Plan, usage and limits shown | VERIFIED | `Account.tsx` "Your plan"; `PlanComparison.tsx` on the landing page |
-| Subscription record (status, period, provider ids) | MISSING | only `organization_plans(plan_id, source)`; `current_period` is the calendar month |
+| Subscription record (status, period, provider ids) | PARTIAL | table, effective-plan rule and idempotent event log built and tested (`billing/lifecycle.py`, `repositories/billing.py`, migration 0016, `test_subscriptions.py`); nothing writes it until a provider is connected; usage still counts calendar months |
 | Upgrade, downgrade, cancel | BLOCKED | no billing provider code; Paddle seller account not approved |
 | Invoices, billing history, payment methods | BLOCKED | same |
-| Over-limit handling after a downgrade | MISSING | needed with billing: choose what stays active, never delete silently |
+| Over-limit handling after a downgrade | VERIFIED (preview) | nothing is deleted; `GET .../plan/downgrade-preview` lists what exceeds or is lost; existing enforcement blocks only new additions (`test_subscriptions.py`, `test_plans.py`) |
 
 ## 3. Account settings
 
@@ -49,7 +49,7 @@ dependency).
 | Self-service deletion with password and confirmation | VERIFIED | `api/v1/account.py` (`DELETE`); `repositories/accounts.py`; `tests/test_client_accounts.py` |
 | Sole-owner hand-over rule | VERIFIED | same; Terms section 6 |
 | Every newer table removed | VERIFIED | `tests/test_account_deletion_data.py` (added this session) |
-| Active subscription handling | BLOCKED | no subscriptions exist yet; must cancel through the provider before deletion once they do |
+| Active subscription handling | BLOCKED | no subscriptions exist yet; Phase 4 must cancel through the provider (or refuse deletion until it is cancelled) before deleting; the subscription row is removed with the account (`test_subscriptions.py`) |
 | Asynchronous deletion status | N/A | deletion is immediate and transactional |
 | Deletion audit record | UNVERIFIED | deleted accounts have no rows left by design; operator-level log not present |
 

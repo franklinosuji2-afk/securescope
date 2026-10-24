@@ -20,6 +20,7 @@ from app.observability.metrics import RequestMetrics
 from app.repositories.accounts import AccountRepository, AuditRepository, SessionRecord, UserRecord
 from app.repositories.agency import AgencyRepository
 from app.repositories.analytics import AnalyticsRepository
+from app.repositories.billing import BillingRepository
 from app.repositories.feedback import FeedbackRepository
 from app.repositories.integrations import IntegrationRepository
 from app.repositories.plans import PlanRepository
@@ -64,7 +65,8 @@ class AppState:
         )
         self.repo = ScanRepository(self.engine)
         self.plans = PlanRepository(self.engine)
-        self.entitlements = Entitlements(self.plans, settings.default_plan)
+        self.billing = BillingRepository(self.engine)
+        self.entitlements = Entitlements(self.plans, settings.default_plan, self.billing)
         self.targets = TargetRepository(self.engine, settings.target_verification_valid_days)
         self.accounts = AccountRepository(self.engine)
         self.analytics = AnalyticsRepository(self.engine)
