@@ -6,9 +6,7 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
 
 1. **Paddle.** Paid plans stay "Coming soon" until the seller account is approved. Then: checkout, subscription state,
    idempotent payment webhooks, billing page. Nothing is sold or shown as active before that.
-2. **Tag the GitHub Action.** `git tag v1` and `git push origin v1`, so `uses: franklinosuji2-afk/securescope/action@v1`
-   resolves. If the repository stays private, other repositories need access (Settings > Actions > General). Try the
-   Action once on a real workflow run with a new API token (Targets > API tokens for CI).
+2. **Try the GitHub Action** once on a real workflow run with a new API token (Targets > API tokens for CI). The `v1` tag exists (24 October). If the repository stays private, other repositories need access (Settings > Actions > General).
 3. **DNS hardening for getsecurescope.com** (the scan's own informational notes): add a CAA record, turn on DNSSEC in
    Cloudflare and add the DS record at the registrar, and move DMARC from `p=none` to `p=quarantine` once the
    reports show only your own senders.
@@ -41,7 +39,7 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
 - **Agency**: client-level reports across all of a client's sites; scheduled report e-mails (not built, not promised).
 - **Public API** with documented, versioned endpoints beyond the CI ones, still behind plan limits.
 
-- **Audit-log retention** (found by the legal audit): decide a period and add the cleanup job. The personal-data JSON export now exists (Account > Your data).
+- **Audit-log retention** is built: 12 months, deleted hourly (`SECURESCOPE_AUDIT_RETENTION_DAYS`). The personal-data JSON export exists (Account > Your data).
 - **Account and billing self-service, still open** (from the product brief): customer reviews and ratings (nothing
   exists yet, and no fake reviews), billing pages and plan changes (groundwork built: subscription tables, plan rule, downgrade preview; the provider part waits for Paddle), a legal-page audit against the
   code with a German/EU lawyer's review. Account deletion and data export already exist (`api/v1/account.py`).

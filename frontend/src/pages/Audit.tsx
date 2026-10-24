@@ -38,6 +38,7 @@ export default function Audit() {
   const [items, setItems] = useState<AuditEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [types, setTypes] = useState<string[]>([]);
+  const [retentionDays, setRetentionDays] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +52,7 @@ export default function Audit() {
         setItems(page.items);
         setTotal(page.total);
         setTypes(page.event_types);
+        setRetentionDays(page.retention_days ?? null);
         setError(null);
       })
       .catch((err: unknown) => {
@@ -98,6 +100,9 @@ export default function Audit() {
         <p>
           Who did what in this organization, newest first. Only owners and
           admins can see it.
+          {retentionDays
+            ? ` Entries older than ${retentionDays} days are deleted automatically.`
+            : ""}
         </p>
       </header>
       {!allowed ? (

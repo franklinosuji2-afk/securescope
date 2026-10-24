@@ -29,7 +29,7 @@ signed-in app (`App.tsx`). A tab bar on each legal page links the three. Contact
 | Pages counted                                                                                 | `TRACKED_PAGES` includes home, sample report and Agency features                                                                                              | **Notice listed too few pages. Corrected.**                                                                     |
 | "Hash is one-way, so we cannot recognise you on another day"                                  | HMAC-SHA256 over day, address and browser string, key from `analytics_salt`                                                                                   | Accurate, but the value is pseudonymous. **Notice now says it is treated as personal data.**                    |
 | Audit log "and your IP address"                                                               | `AuditEventRow` has no IP column; the rate limiter keeps addresses in memory only (`middleware/ratelimit.py`)                                                 | **Inaccurate. Corrected: audit log has no IPs; in-memory abuse counters described separately.**                 |
-| Audit log "kept only as long as needed"                                                       | no cleanup job; events live until the workspace is deleted                                                                                                    | **Unsupported. Now says "until the workspace is deleted".** A retention period is a decision (section 6).       |
+| Audit log "kept only as long as needed"                                                       | no cleanup job; events live until the workspace is deleted                                                                                                    | **Unsupported at the time. Fixed 25 Oct: entries are deleted after 12 months** (`SECURESCOPE_AUDIT_RETENTION_DAYS`, default 365; hourly job; `test_audit_retention.py`). |
 | Scan history deleted after 30/90/365 days by plan                                             | `repositories/scans.delete_expired_history`, hourly loop in `main.py`; reports go with the scan                                                               | Verified. Note: the loop runs only while the API process is awake; the 15-minute Cloudflare cron keeps it awake |
 | Invitations deleted a month after expiry                                                      | `purge_old_invitations`                                                                                                                                       | Verified                                                                                                        |
 | Account deletion immediate, needs password                                                    | `api/v1/account.py`, `repositories/accounts.delete_account`; tests in `test_client_accounts.py`                                                               | Verified                                                                                                        |
@@ -48,7 +48,7 @@ signed-in app (`App.tsx`). A tab bar on each legal page links the three. Contact
 ## 3. Statements corrected in this round
 
 1. Visit statistics: full list of counted pages; hash described as personal data.
-2. Audit log: no IP addresses; kept until the workspace is deleted. In-memory abuse counters described on their own.
+2. Audit log: no IP addresses; deleted automatically after 12 months, or with the workspace. In-memory abuse counters described on their own.
 3. New paragraph on the three browser-storage items.
 4. Google and GitHub are not processors; Neon location stated; transfer sentence no longer asserts one mechanism for all.
 5. Backups, restore history and hosting logs after deletion.
@@ -75,7 +75,7 @@ signed-in app (`App.tsx`). A tab bar on each legal page links the three. Contact
 - Hosting logs (Cloudflare, Render) are governed by those providers' retention; the notice says so but gives no period. **Operator**: check each provider's log settings.
 - Processor agreements (Art. 28) with Cloudflare, Render, Neon and Brevo and their transfer terms: **Operator** to confirm they are accepted in each dashboard.
 - Brevo is described as "Brevo (Sendinblue SAS), France". Confirm the contracting entity.
-- Audit-log retention: decide on a period (suggested: 12 months) and add a cleanup job, or keep "until the workspace is deleted".
+- Audit-log retention: decided and built on 25 October 2026 (12 months, adjustable by `SECURESCOPE_AUDIT_RETENTION_DAYS`). The operator may change the period; the Privacy notice says 12 months and must be edited with it.
 - Optional feedback (rating, topic, comment) is listed in the Privacy notice as consent-based (Art. 6(1)(a)), is withdrawable on the Account page and is deleted with the account (`test_feedback.py`).
 - Self-service export exists since 24 October 2026 (`GET /account/export`, button under Account > Your data); it covers account data, sign-in providers, memberships and the person's audit actions. Workspace data (sites, scans, reports) is exported from the workspace pages.
 - The supervisory authority named (Berlin) is right for an operator based in Berlin.
@@ -92,7 +92,7 @@ signed-in app (`App.tsx`). A tab bar on each legal page links the three. Contact
 | Item                                                        | Status                                                   |
 | ----------------------------------------------------------- | -------------------------------------------------------- |
 | Deletion of rows in newer tables                            | Tested now                                               |
-| Audit-log retention job                                     | Not built                                                |
+| Audit-log retention job                                     | Built 25 Oct (12 months)                                 |
 | Self-service export of personal data                        | Built: `GET /account/export`; tests in `test_account_settings.py` |
 | Log-leak test (no secrets or addresses in application logs) | Not built; roadmap                                       |
 | Request lines in Render's own platform logs                 | Outside the application; **Operator** to check retention |
