@@ -68,6 +68,8 @@ describe("pre-launch: no unconfirmed business, tax or hosting claims", () => {
       /all (your )?data (is|are) (stored|hosted|processed) in the (EU|European)/i,
     );
     expect(t).not.toMatch(/Render[^.]*(Frankfurt|Germany|EU)/);
+    // Verified in the Render dashboard on 24 October 2026: the API service runs in Oregon.
+    expect(t).toContain("United States, Oregon");
   });
 
   it("the terms say the service is in development and promise no payment terms", () => {

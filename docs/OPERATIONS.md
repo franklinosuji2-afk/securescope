@@ -128,6 +128,20 @@ These are what the setup can deliver today, not promises.
 - **Time to recover:** a few hours by hand with this runbook. Not rehearsed on production.
 - **Single points of failure:** one API instance, one database, one maintainer. See `KNOWN_LIMITATIONS.md`.
 
+## 8. Moving the API to Frankfurt (decision pending)
+
+The API service `securescope-api` currently runs in Oregon (verified 24 October 2026) while the database is in Frankfurt.
+Moving it keeps the application server in the EU and removes the transatlantic hop (database checks currently take
+about half a second). Render cannot change a service's region, so this means a new service:
+
+1. In Render create a new web service from the same repository and Dockerfile, region **Frankfurt**, with the same
+   environment variables (copy each value in the dashboard; never paste them elsewhere).
+2. Wait until `/api/v1/ready` on the new `onrender.com` address returns 200.
+3. In Cloudflare set the Worker variable `BACKEND_URL` to the new address; check sign-in, a scan and `/api/v1/ready` through
+   `getsecurescope.com`.
+4. Update the privacy notice ("United States, Oregon" becomes "Germany, Frankfurt") and the checklist in the same
+   release; keep the old service for a day, then delete it.
+
 ## Scheduled scans
 
 A Cloudflare cron trigger (every 15 minutes, `frontend/wrangler.jsonc`) calls `POST /api/v1/internal/run-due` on the

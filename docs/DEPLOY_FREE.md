@@ -27,7 +27,7 @@ Never commit these and never paste them into chat. Each lives only in the provid
 
 ## 1. Neon (database)
 
-1. Create a project and database. Choose the region closest to Render's (Frankfurt if available).
+1. Create a project and database. Choose the region closest to Render's. Pick Render's **Frankfurt** region when you create the web service: the region cannot be changed later, and a service left on the default (Oregon) sends every request across the Atlantic to a Frankfurt database.
 2. Copy the connection string. Change the scheme to `postgresql+psycopg://` and keep `?sslmode=require`.
 3. Migrations run automatically every time the API starts, so there is nothing to run by hand.
 

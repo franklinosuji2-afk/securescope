@@ -20,8 +20,9 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
    from reaching your files"). Install the latest Windows update and restart. File delivery still works.
 
 8. **Legal questions only you can answer** (details in `docs/legal-audit.md`): are you a Kleinunternehmer (§ 19 UStG)?
-   Which region does Render run in? Are the data-processing terms accepted in Cloudflare, Render, Neon and Brevo? Is
-   "early access" still the right wording? Do you have any trade-register or professional-body details to show? Then
+   Render runs in Oregon (US), verified 24 October 2026: do you want to move it to Frankfurt (see
+   `OPERATIONS.md` section 8)? You stated the data-processing terms are accepted. Is "early access" still the right
+   wording (the Terms now say "in development")? Do you have any trade-register or professional-body details to show? Then
    have a German/EU lawyer read the three pages before paid plans open.
 
 ## Product

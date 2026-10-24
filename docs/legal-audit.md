@@ -100,6 +100,6 @@ signed-in app (`App.tsx`). A tab bar on each legal page links the three. Contact
 ## 8. Order of work
 
 1. (done) Corrections above, with tests.
-2. Operator answers: VAT status (Kleinunternehmer), Render region, processor agreements, early-access status, trade registration.
+2. Operator answers: VAT status (Kleinunternehmer), Render region (verified: Oregon, USA; privacy notice updated), processor agreements (operator states accepted), early-access status (Terms now say "in development"), trade registration.
 3. Audit-log retention decision and job; data export.
 4. Lawyer review of the three pages before paid plans open.

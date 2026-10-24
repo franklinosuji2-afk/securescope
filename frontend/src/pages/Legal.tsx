@@ -269,7 +269,8 @@ function Privacy() {
           Cloudflare, Inc. &ndash; hosting of the website and request routing.
         </li>
         <li>
-          Render Services, Inc. &ndash; hosting of the application server.
+          Render Services, Inc. &ndash; hosting of the application server
+          (United States, Oregon).
         </li>
         <li>Neon, Inc. &ndash; database hosting (Frankfurt, Germany).</li>
         <li>Brevo (Sendinblue SAS), France &ndash; sending service emails.</li>
@@ -281,10 +282,12 @@ function Privacy() {
         policies. If you do not, nothing is exchanged with them.
       </p>
       <p>
-        Some providers are based in the USA or may process data there. We rely
-        on each provider&apos;s own transfer safeguards (EU-US Data Privacy
-        Framework certification or standard contractual clauses); write to us if
-        you want to know which one applies to which provider.
+        The application server runs in the USA, so account and scan data is
+        processed there while you use the service; the database is in Frankfurt.
+        Other providers may also process data in the USA. We rely on each
+        provider&apos;s own transfer safeguards (EU-US Data Privacy Framework
+        certification or standard contractual clauses); write to us if you want
+        to know which one applies to which provider.
       </p>
 
       <h2>Your rights</h2>

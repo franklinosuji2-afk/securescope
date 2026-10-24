@@ -70,7 +70,7 @@ Sources for the evidence column are in `docs/legal-audit.md`.
 
 | Item | What to verify | Why | Blocks launch | Owner | Status |
 | --- | --- | --- | --- | --- | --- |
-| Render region | Region of the web service in the Render dashboard | Not stated in `render.yaml`; EU hosting must not be assumed | Yes | Operator | Open. Pages make no claim about it |
+| Render region | Region of the web service in the Render dashboard | EU hosting must not be assumed | Yes | Operator | Done: Render dashboard screenshot (24 Oct 2026) shows `securescope-api` in **Oregon (USA)**. The privacy notice now says so. Decision open: move to Frankfurt (new service, same settings) to keep data in the EU and cut database latency |
 | Neon region | Dashboard shows the project region | Notice says Frankfurt | Yes | Operator | Done: Neon dashboard screenshot (24 Oct 2026) shows project `securescope`, region AWS Europe Central 1 (Frankfurt), Free plan, restore history 6 hours, no IP restrictions, Postgres 18 |
 | Cloudflare | Edge network, logs, processing locations | Notice mentions routing only | No | Operator | Open |
 
@@ -78,7 +78,7 @@ Sources for the evidence column are in `docs/legal-audit.md`.
 
 | Item | What to verify | Why | Blocks launch | Owner | Status |
 | --- | --- | --- | --- | --- | --- |
-| Cloudflare, Render, Neon, Brevo | Art. 28 DPA accepted in each dashboard; which transfer mechanism applies (DPF or SCCs) | Required for processors; the notice must not assert unverified mechanisms | Yes | Operator | Open. The notice says each provider's own safeguards apply |
+| Cloudflare, Render, Neon, Brevo | Art. 28 DPA accepted in each dashboard; which transfer mechanism applies (DPF or SCCs) | Required for processors; the notice must not assert unverified mechanisms | Yes | Operator | Operator states on 24 Oct 2026 that all DPAs are accepted (no document seen by engineering). Transfer mechanism for the US-hosted Render server still to confirm from Render's DPA |
 | Brevo entity | Contracting entity and country | Notice names Brevo (Sendinblue SAS), France | No | Operator | Open |
 | Provider logs | Retention in each dashboard | Notice gives no period | No | Operator | Open |
 
