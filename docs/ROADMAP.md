@@ -19,6 +19,11 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
 7. **Windows update.** The desktop workspace link is broken on this computer ("a Windows update prevents the workspace
    from reaching your files"). Install the latest Windows update and restart. File delivery still works.
 
+8. **Legal questions only you can answer** (details in `docs/legal-audit.md`): are you a Kleinunternehmer (§ 19 UStG)?
+   Which region does Render run in? Are the data-processing terms accepted in Cloudflare, Render, Neon and Brevo? Is
+   "early access" still the right wording? Do you have any trade-register or professional-body details to show? Then
+   have a German/EU lawyer read the three pages before paid plans open.
+
 ## Product
 
 - **Slack integration** (next in the agreed order). Same triggers as the email and webhook alerts, incoming-webhook
@@ -36,6 +41,7 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
 - **Agency**: client-level reports across all of a client's sites; scheduled report e-mails (not built, not promised).
 - **Public API** with documented, versioned endpoints beyond the CI ones, still behind plan limits.
 
+- **Audit-log retention and personal-data export** (found by the legal audit): decide a period and add the cleanup job; add a JSON export.
 - **Account and billing self-service, still open** (from the product brief): customer reviews and ratings (nothing
   exists yet, and no fake reviews), billing pages and plan changes (wait for Paddle), a legal-page audit against the
   code with a German/EU lawyer's review. Account deletion and data export already exist (`api/v1/account.py`).

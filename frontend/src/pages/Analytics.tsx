@@ -144,11 +144,11 @@ export default function Analytics() {
         <div>
           <h1>Website analytics</h1>
           <p className="dash-sub">
-            Visits to the public pages only (sign-in, registration, legal
-            pages). Signed-in use of the app is not counted. No cookies, no
-            stored IP addresses; visitors are counted with a one-way hash that
-            changes every day, so a person returning on another day counts
-            again.
+            Visits to the public pages only (home, sign-in, registration, sample
+            report, legal pages). Signed-in use of the app is not counted. No
+            cookies, no stored IP addresses; visitors are counted with a one-way
+            hash that changes every day, so a person returning on another day
+            counts again.
           </p>
         </div>
         <div role="group" aria-label="Time range" className="segmented">

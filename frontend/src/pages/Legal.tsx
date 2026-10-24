@@ -9,7 +9,7 @@ import { buildHash } from "../router";
 const OPERATOR = "Franklin Chinonso Osuji";
 const STREET = "Mariendorfer Weg 52";
 const CITY = "12051 Berlin";
-const UPDATED = "23 October 2026";
+const UPDATED = "24 October 2026";
 
 const TABS: { page: Page; label: string }[] = [
   { page: "impressum", label: "Impressum" },
@@ -139,7 +139,10 @@ function Privacy() {
         <li>
           <strong>Account data:</strong> your email address, a salted hash of
           your password (never the password itself) and your workspace name.
-          Needed to provide your account (Art. 6(1)(b) GDPR).
+          Needed to provide your account (Art. 6(1)(b) GDPR). Your email address
+          and a password are required to create an account; without them we
+          cannot offer one. Everything else listed below is optional or follows
+          from the features you switch on.
         </li>
         <li>
           <strong>Invitations:</strong> when someone invites you to a workspace,
@@ -159,22 +162,32 @@ function Privacy() {
           90 on Professional, 365 on Agency).
         </li>
         <li>
-          <strong>Audit log and security data:</strong> actions in your
-          workspace and, for abuse and rate limiting, your IP address, kept only
-          as long as needed. Our legitimate interest in keeping the service
-          secure (Art. 6(1)(f) GDPR).
+          <strong>Audit log:</strong> a record of actions in your workspace:
+          what happened, when, and which account did it (for example sign-in,
+          scans started, members invited). It contains no IP addresses and is
+          kept until the workspace is deleted. Our legitimate interest in
+          keeping the service secure and accountable (Art. 6(1)(f) GDPR).
         </li>
         <li>
-          <strong>Visit statistics:</strong> when you open a public page
-          (sign-in, registration, password reset, legal pages) while signed out,
-          we count the visit to learn whether the site is used. We store the
-          page name, the website that linked to us (host name only), a coarse
-          device type (desktop, mobile or tablet) and a one-way hash that
-          changes every day. We do not store your IP address or browser details,
-          set no cookie and keep nothing on your device, so we cannot recognise
-          you on another day. Your address is used briefly in memory to create
-          the hash and to limit abuse. Visits are not counted while you are
-          signed in, or if your browser sends Do Not Track or Global Privacy
+          <strong>Abuse protection:</strong> to limit abuse, such as repeated
+          sign-in attempts, the server counts recent requests per IP address in
+          its memory. These counters are not written to our database and
+          disappear after a short time or when the server restarts. Our
+          legitimate interest in keeping the service secure (Art. 6(1)(f) GDPR).
+        </li>
+        <li>
+          <strong>Visit statistics:</strong> when you open a public page (the
+          home page, sign-in, registration, password and email-confirmation
+          pages, the sample report, the Agency features page and these legal
+          pages) while signed out, we count the visit to learn whether the site
+          is used. We store the page name, the website that linked to us (host
+          name only), a coarse device type (desktop, mobile or tablet) and a
+          one-way hash that changes every day. We do not store your IP address
+          or browser details, set no cookie and keep nothing on your device, so
+          we cannot recognise you on another day. We treat the hash as personal
+          data, not as anonymous data. Your address is used briefly in memory to
+          create the hash and to limit abuse. Visits are not counted while you
+          are signed in, or if your browser sends Do Not Track or Global Privacy
           Control. These statistics are deleted after 90 days. Our legitimate
           interest in running and improving the service (Art. 6(1)(f) GDPR).
         </li>
@@ -238,8 +251,19 @@ function Privacy() {
         necessary. We use no advertising or tracking cookies. Our visit
         statistics use no cookies or other storage on your device.
       </p>
+      <p>
+        Your browser also keeps three small items so the app can do what you
+        asked: your light or dark theme choice (local storage,{" "}
+        <code>securescope-theme</code>, kept until you clear it), the workspace
+        you selected (session storage, <code>securescope.org</code>, cleared
+        when the tab closes) and, if you open an invitation link while signed
+        out, the invitation token (session storage,{" "}
+        <code>securescope.invite</code>, removed once it is used or the tab
+        closes). They are used only for the feature you are using and are not
+        used to track you.
+      </p>
 
-      <h2>Service providers (processors)</h2>
+      <h2>Service providers</h2>
       <ul>
         <li>
           Cloudflare, Inc. &ndash; hosting of the website and request routing.
@@ -247,17 +271,20 @@ function Privacy() {
         <li>
           Render Services, Inc. &ndash; hosting of the application server.
         </li>
-        <li>Neon, Inc. &ndash; database hosting.</li>
+        <li>Neon, Inc. &ndash; database hosting (Frankfurt, Germany).</li>
         <li>Brevo (Sendinblue SAS), France &ndash; sending service emails.</li>
-        <li>
-          Google Ireland Limited and GitHub, Inc. &ndash; only if you choose to
-          sign in with them.
-        </li>
       </ul>
       <p>
-        Some providers are based in the USA or may process data there. Transfers
-        rely on the EU-US Data Privacy Framework or standard contractual
-        clauses.
+        Cloudflare, Render, Neon and Brevo process data on our behalf. Google
+        Ireland Limited and GitHub, Inc. are not our processors: if you choose
+        to sign in with them, they handle that sign-in under their own privacy
+        policies. If you do not, nothing is exchanged with them.
+      </p>
+      <p>
+        Some providers are based in the USA or may process data there. We rely
+        on each provider&apos;s own transfer safeguards (EU-US Data Privacy
+        Framework certification or standard contractual clauses); write to us if
+        you want to know which one applies to which provider.
       </p>
 
       <h2>Your rights</h2>
@@ -266,17 +293,31 @@ function Privacy() {
         your data, and object to processing based on legitimate interest. To
         delete your account and its data, use <strong>Account</strong> in the
         app (it needs your password and takes effect at once), or email us. We
-        keep account data until you delete the account or ask us to. You can
-        also complain to a supervisory authority, for Berlin the Berliner
-        Beauftragte für Datenschutz und Informationsfreiheit.
+        keep account data until you delete the account or ask us to. Deleting
+        removes your data from our database at once. Copies can remain for a
+        limited time in the database provider&apos;s restore history and in our
+        own backups until they are replaced, and in hosting logs under the
+        providers&apos; own retention rules; we do not restore deleted accounts.
+        You can also complain to a supervisory authority, for Berlin the
+        Berliner Beauftragte für Datenschutz und Informationsfreiheit.
       </p>
 
-      <h2>Scanning other people&apos;s sites</h2>
+      <h2>Automated decisions</h2>
       <p>
-        SecureScope sends ordinary web requests to domains you have verified as
-        yours. It does not scan domains whose ownership has not been verified.
-        For a main domain it also looks up that domain&apos;s public DNS records
-        (SPF, DMARC, CAA and DNSSEC); no other domain is queried.
+        We make no automated decisions that have legal or similarly significant
+        effects on you. A scan&apos;s score is a heuristic summary of its checks
+        and nothing more.
+      </p>
+
+      <h2>How scanning works</h2>
+      <p>
+        SecureScope sends ordinary read-only web requests to domains you have
+        verified as yours. It does not scan domains whose ownership has not been
+        verified. Ownership is shown with a DNS TXT record or a small file you
+        publish under <code>/.well-known/</code>, and the proof expires after a
+        set period, after which it must be repeated. For a main domain it also
+        looks up that domain&apos;s public DNS records (SPF, DMARC, CAA and
+        DNSSEC); no other domain is queried.
       </p>
     </Doc>
   );
@@ -295,14 +336,18 @@ function Terms() {
       <p>
         You may add and scan only domains that you own or are explicitly
         authorized to test. You must prove control of each domain through the
-        verification step. Using SecureScope against systems you are not
-        authorized to test is forbidden and may be illegal.
+        verification step. That step shows technical control only; it does not
+        replace the permission of the owner if the domain is not yours. Using
+        SecureScope against systems you are not authorized to test is forbidden
+        and may be illegal.
       </p>
       <h2>3. Your account</h2>
       <p>
         Keep your password private and do not share your account. You are
-        responsible for activity in your workspace. We may suspend accounts that
-        abuse the service.
+        responsible for activity in your workspace. We may suspend or restrict
+        an account that abuses the service, endangers its security or
+        availability, or is used to scan sites without authorization; where
+        possible we will tell you why first.
       </p>
       <h2>4. Early access and no guarantees</h2>
       <p>
@@ -321,8 +366,12 @@ function Terms() {
       <h2>6. Ending your use</h2>
       <p>
         You can stop using SecureScope at any time and delete your account
-        yourself under Account, or ask us to. We may end access for accounts
-        that break these terms.
+        yourself under Account (it needs your password and takes effect at
+        once), or ask us to. If you are the only owner of a workspace that other
+        people still use, hand over ownership first. We may end access for
+        accounts that break these terms. Paid plans are not on sale yet; terms
+        for payment, renewal and cancellation will be added here before any
+        payment is taken.
       </p>
       <h2>7. Governing law</h2>
       <p>
@@ -331,8 +380,10 @@ function Terms() {
       </p>
       <h2>8. Changes and contact</h2>
       <p>
-        We may update these terms; the date above shows the latest version.
-        Questions: <Mail kind="support" />.
+        We may update these terms; the date above shows the latest version. If a
+        change is material, we will announce it in the app or by email before it
+        applies, and continued use does not replace any consent the law
+        requires. Questions: <Mail kind="support" />.
       </p>
     </Doc>
   );
