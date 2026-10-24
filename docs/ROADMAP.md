@@ -42,7 +42,7 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
 - **Agency**: client-level reports across all of a client's sites; scheduled report e-mails (not built, not promised).
 - **Public API** with documented, versioned endpoints beyond the CI ones, still behind plan limits.
 
-- **Audit-log retention and personal-data export** (found by the legal audit): decide a period and add the cleanup job; add a JSON export.
+- **Audit-log retention** (found by the legal audit): decide a period and add the cleanup job. The personal-data JSON export now exists (Account > Your data).
 - **Account and billing self-service, still open** (from the product brief): customer reviews and ratings (nothing
   exists yet, and no fake reviews), billing pages and plan changes (wait for Paddle), a legal-page audit against the
   code with a German/EU lawyer's review. Account deletion and data export already exist (`api/v1/account.py`).

@@ -17,8 +17,8 @@ dependency).
 | Password change | VERIFIED | `api/v1/account.py` (`PATCH /password`) |
 | Onboarding checklist | UNVERIFIED | `frontend/src/overview.ts` (`add`, `verify`, `scan`, `review` steps) shown on Overview; unit-tested in `src/test`, not end to end |
 | Profile name / display name | MISSING | `models/account.py` `UserRow` has email only |
-| Session or device list, sign out other devices | PARTIAL | sessions exist (`SessionRow`); password change signs other devices out; no list or revoke UI or endpoint |
-| Account status, creation date | PARTIAL | columns exist (`account_status`, `created_at`); `Account.tsx` does not show them |
+| Session or device list, sign out other devices | VERIFIED (Phase 1) | `GET/DELETE /account/sessions`, `POST /account/sessions/revoke-others`; Account > Signed-in devices; `tests/test_account_settings.py` |
+| Account status, creation date | VERIFIED (Phase 1) | `GET /account`; Account > Your account |
 
 ## 2. Plans and entitlements
 
@@ -38,7 +38,7 @@ dependency).
 | --- | --- | --- |
 | Unified settings area | PARTIAL | `Account.tsx` has plan, password, deletion only |
 | Notification preferences | MISSING | no model or endpoint; alert emails are per schedule (`models/schedule.py`, `services/alerts.py`) |
-| Personal-data export | MISSING | the Privacy notice tells users to ask by email |
+| Personal-data export | VERIFIED (Phase 1) | `GET /account/export`; `tests/test_account_settings.py` |
 | Privacy preferences | N/A | analytics is cookie-free and honours DNT/GPC; nothing to configure |
 | Domain and scan management within limits | VERIFIED | Targets, History, Compare pages; limit errors in `billing/errors.py` |
 
@@ -93,7 +93,7 @@ limit (`test_scan_control.py`), injection payloads (`test_injection_payloads.py`
 
 ## 8. Existing bugs and security concerns found
 
-1. Sessions cannot be listed or revoked individually (see section 1).
+1. Sessions could not be listed or revoked individually: fixed in Phase 1.
 2. Account deletion leaves no operator-side record; acceptable for privacy, but note it.
 3. No audit-log retention job (also in `legal-audit.md`).
 4. Webhook delivery has no history; a failed delivery after two tries is not shown.

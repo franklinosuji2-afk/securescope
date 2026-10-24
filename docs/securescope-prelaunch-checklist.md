@@ -34,7 +34,7 @@ Sources for the evidence column are in `docs/legal-audit.md`.
 
 | Item | What to verify | Why | Blocks launch | Owner | Status |
 | --- | --- | --- | --- | --- | --- |
-| Paddle seller approval | Account approved; whether Paddle acts as merchant of record | Paddle then handles VAT and invoices, which changes what you must do | Yes, for paid plans | Operator | Open. Plans show "Coming soon" |
+| Paddle seller approval | Account approved; whether Paddle acts as merchant of record | Paddle then handles VAT and invoices, which changes what you must do | Yes, for paid plans | Operator | In progress: Paddle dashboard (screenshot, 24 Oct 2026) shows website approval for `getsecurescope.com` **In review**. Seller-account approval not yet seen. Paddle reviews the pricing, terms and privacy pages, and expects refund and cancellation terms; the Terms say payment terms will be added, so a refund policy is an Operator decision before approval |
 | Price display | Gross/net statement matches the tax outcome | German price-display rules | Yes, for paid plans | Tax adviser + Lawyer | Open |
 | Billing code | Checkout, webhooks, plan changes, cancellation | None exists yet | Yes, for paid plans | Engineering | Not built |
 | Withdrawal and cancellation terms | Consumer withdrawal right, cancel button (§ 312k BGB) | Required for consumer subscriptions | Yes, for paid plans | Lawyer | Open |

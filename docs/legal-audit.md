@@ -76,7 +76,7 @@ signed-in app (`App.tsx`). A tab bar on each legal page links the three. Contact
 - Processor agreements (Art. 28) with Cloudflare, Render, Neon and Brevo and their transfer terms: **Operator** to confirm they are accepted in each dashboard.
 - Brevo is described as "Brevo (Sendinblue SAS), France". Confirm the contracting entity.
 - Audit-log retention: decide on a period (suggested: 12 months) and add a cleanup job, or keep "until the workspace is deleted".
-- No self-service data export exists; the notice says to ask by email. A JSON export would remove the manual step.
+- Self-service export exists since 24 October 2026 (`GET /account/export`, button under Account > Your data); it covers account data, sign-in providers, memberships and the person's audit actions. Workspace data (sites, scans, reports) is exported from the workspace pages.
 - The supervisory authority named (Berlin) is right for an operator based in Berlin.
 
 ## 6. Terms: remaining questions
@@ -92,7 +92,7 @@ signed-in app (`App.tsx`). A tab bar on each legal page links the three. Contact
 | ----------------------------------------------------------- | -------------------------------------------------------- |
 | Deletion of rows in newer tables                            | Tested now                                               |
 | Audit-log retention job                                     | Not built                                                |
-| Self-service export of personal data                        | Not built                                                |
+| Self-service export of personal data                        | Built: `GET /account/export`; tests in `test_account_settings.py` |
 | Log-leak test (no secrets or addresses in application logs) | Not built; roadmap                                       |
 | Request lines in Render's own platform logs                 | Outside the application; **Operator** to check retention |
 | Cookie names and flags match the notice                     | Verified in code; check once in the browser after deploy |

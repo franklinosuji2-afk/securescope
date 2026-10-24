@@ -293,8 +293,9 @@ function Privacy() {
       <h2>Your rights</h2>
       <p>
         You can ask for access, correction, deletion, restriction or export of
-        your data, and object to processing based on legitimate interest. To
-        delete your account and its data, use <strong>Account</strong> in the
+        your data (under <strong>Account</strong> you can download your account
+        data as a file), and object to processing based on legitimate interest.
+        To delete your account and its data, use <strong>Account</strong> in the
         app (it needs your password and takes effect at once), or email us. We
         keep account data until you delete the account or ask us to. Deleting
         removes your data from our database at once. Copies can remain for a

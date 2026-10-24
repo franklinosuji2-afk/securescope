@@ -267,3 +267,94 @@ describe("the plan", () => {
     ).toBeNull();
   });
 });
+
+describe("account settings: details, devices and your data", () => {
+  const sessions = [
+    {
+      id: "s-now",
+      created_at: "2026-10-24T10:00:00Z",
+      expires_at: "2026-11-24T10:00:00Z",
+      current: true,
+    },
+    {
+      id: "s-phone",
+      created_at: "2026-10-20T08:00:00Z",
+      expires_at: "2026-11-20T08:00:00Z",
+      current: false,
+    },
+  ];
+
+  it("shows the account facts", async () => {
+    stub(me(), {
+      "GET /account": {
+        status: 200,
+        body: {
+          email: "owner@example.com",
+          email_verified: true,
+          status: "active",
+          created_at: "2026-10-01T09:00:00Z",
+          has_password: true,
+        },
+      },
+    });
+    open("#/account");
+    expect(await screen.findByText(/· verified/)).toBeInTheDocument();
+    expect(screen.getByText("Member since")).toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeInTheDocument();
+  });
+
+  it("lists devices, never offers to sign out this one, and signs out another", async () => {
+    const calls = stub(me(), {
+      "GET /account/sessions": { status: 200, body: sessions },
+      "DELETE /account/sessions/s-phone": { status: 204 },
+    });
+    open("#/account");
+    expect(await screen.findByText("This device")).toBeInTheDocument();
+    const buttons = screen.getAllByRole("button", {
+      name: /^Sign out the device/,
+    });
+    expect(buttons).toHaveLength(1);
+    await userEvent.setup().click(buttons[0]!);
+    await waitFor(() =>
+      expect(
+        calls.some(
+          (c) =>
+            c.method === "DELETE" &&
+            c.url.endsWith("/account/sessions/s-phone"),
+        ),
+      ).toBe(true),
+    );
+  });
+
+  it("signs out all other devices with one button", async () => {
+    const calls = stub(me(), {
+      "GET /account/sessions": { status: 200, body: sessions },
+      "POST /account/sessions/revoke-others": { status: 204 },
+    });
+    open("#/account");
+    await userEvent.setup().click(
+      await screen.findByRole("button", {
+        name: "Sign out all other devices",
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        calls.some(
+          (c) =>
+            c.method === "POST" &&
+            c.url.endsWith("/account/sessions/revoke-others"),
+        ),
+      ).toBe(true),
+    );
+  });
+
+  it("offers the data download as a plain link to the export", async () => {
+    stub(me());
+    open("#/account");
+    const link = await screen.findByRole("link", {
+      name: "Download my data (JSON)",
+    });
+    expect(link).toHaveAttribute("href", "/api/v1/account/export");
+    expect(link).toHaveAttribute("download");
+  });
+});
