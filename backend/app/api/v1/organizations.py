@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import asdict
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.api.deps import PrincipalDep, StateDep, request_id
+from app.billing.plans import PLANS
+from app.billing.preview import downgrade_effects
 from app.repositories.accounts import LastOwnerError
 from app.schemas.auth import (
     InvitationCreate,
@@ -16,7 +19,14 @@ from app.schemas.auth import (
     OrganizationDetail,
     OrganizationOut,
 )
-from app.schemas.billing import PlanLimits, PlanOut, PlanUsage
+from app.schemas.billing import (
+    DowngradeEffectOut,
+    DowngradePreview,
+    PlanLimits,
+    PlanOut,
+    PlanUsage,
+    SubscriptionOut,
+)
 from app.security.permissions import Permission, Role, can, may_assign
 from app.services.invitations import MAX_PENDING_PER_ORGANIZATION
 
@@ -91,6 +101,7 @@ async def get_plan(organization_id: str, principal: PrincipalDep, state: StateDe
         raise _forbidden()
     summary = await asyncio.to_thread(state.entitlements.summary, organization_id)
     plan = summary.plan
+    sub = await asyncio.to_thread(state.billing.subscription, organization_id)
     return PlanOut(
         plan_id=plan.id,
         name=plan.name,
@@ -109,6 +120,40 @@ async def get_plan(organization_id: str, principal: PrincipalDep, state: StateDe
             period_start=summary.period_start,
             period_end=summary.period_end,
         ),
+        subscription=SubscriptionOut(
+            status=sub.status,
+            plan_id=sub.plan_id,
+            current_period_end=sub.current_period_end,
+            cancel_at_period_end=sub.cancel_at_period_end,
+            pending_plan_id=sub.pending_plan_id,
+        )
+        if sub
+        else None,
+    )
+
+
+@router.get("/{organization_id}/plan/downgrade-preview", response_model=DowngradePreview)
+async def downgrade_preview(
+    organization_id: str, to: str, principal: PrincipalDep, state: StateDep
+) -> DowngradePreview:
+    """What moving to a lower plan would change, so nobody is surprised. It only counts: nothing is changed or
+    deleted. Owners and admins only, like the plan itself."""
+    me = await _membership(state, principal, organization_id)
+    if not can(me.role, Permission.ORG_MANAGE_MEMBERS):
+        raise _forbidden()
+    target = PLANS.get(to)
+    if target is None or target.id == "internal":
+        raise HTTPException(status_code=404, detail="Unknown plan.")
+    summary = await asyncio.to_thread(state.entitlements.summary, organization_id)
+    usage = await asyncio.to_thread(
+        state.billing.usage, organization_id, summary.period_start, summary.plan.history_days
+    )
+    effects = downgrade_effects(summary.plan, target, usage)
+    return DowngradePreview(
+        current_plan_id=summary.plan.id,
+        target_plan_id=target.id,
+        target_name=target.name,
+        effects=[DowngradeEffectOut(**asdict(e)) for e in effects],
     )
 
 

@@ -21,7 +21,18 @@ An internal plan (no limits, 365 days, can invite) is given automatically to wor
 - `app/billing/plans.py`: the catalogue (the only place limits are written down).
 - `organization_plans` table (migration 0009): one row per workspace that has a plan. **No row means the default plan, Free.** An unknown plan id also behaves as Free.
 - `app/billing/entitlements.py`: looks up a workspace's plan and its usage.
-- `GET /api/v1/organizations/{id}/plan` (owner/admin): plan, limits and usage, shown on the Account page.
+- `GET /api/v1/organizations/{id}/plan` (owner/admin): plan, limits and usage, shown on the Account page. When a subscription exists it also reports its status, period end, whether it ends and any pending downgrade.
+- `subscriptions` and `billing_events` tables (migration 0016): groundwork for a billing provider. **Nothing writes them yet**, so every workspace's plan is exactly what it was before. `billing_events` holds only the provider's event id and type, so a repeated delivery is recognised and ignored; no payload is kept.
+- `app/billing/lifecycle.py`: the rule for which plan applies (below).
+- `GET /api/v1/organizations/{id}/plan/downgrade-preview?to=<plan>` (owner/admin): read-only list of what a lower plan would exceed or lose (`app/billing/preview.py`).
+
+## Which plan applies
+
+1. The internal plan (the operator's own workspaces) is never changed by a subscription.
+2. No subscription: the workspace keeps the plan it has (Free unless one was assigned).
+3. A paid subscription gives its plan while the paid period lasts, including a cancelled one or one that is behind on payment: what was paid for stays until the period ends, and not longer.
+4. After the period ends, a requested downgrade starts (only if the subscription is still active); otherwise the workspace returns to the plan it had before.
+5. A subscription can only name a plan that can be bought (Professional or Agency), never Free, internal or an unknown id.
 
 ## Counting rules
 
@@ -36,7 +47,7 @@ Nothing is deleted early. A workspace over a limit (for example after a downgrad
 
 ## Not built yet
 
-Payment (Paddle sandbox first, then live after approval), subscription state and webhooks, billing page, annual billing, a job queue for scans, and scheduled scans. Do not advertise a feature on this page until it exists. Before real payments: accurate reports, customer isolation, backend-enforced limits (done), secure idempotent webhooks, sustainable pricing, and no advertised feature that does not exist.
+Payment (Paddle sandbox first, then live after approval), the webhook receiver that fills the subscription tables, the billing page, cancelling from the app, annual billing, a job queue for scans, and scheduled scans. Do not advertise a feature on this page until it exists. Before real payments: accurate reports, customer isolation, backend-enforced limits (done), secure idempotent webhooks, sustainable pricing, and no advertised feature that does not exist.
 
 ## Load and storage notes
 
