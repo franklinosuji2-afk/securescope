@@ -116,7 +116,10 @@ export default function SampleReport() {
         <strong>Sample report.</strong> This is a demonstration. It is not a
         scan of a real website. <code>example.com</code> is a domain reserved
         for documentation, and the findings were produced by SecureScope’s own
-        checks against a described test site.
+        checks against a described test site.{" "}
+        <a href="/sample-report.pdf" download="SecureScope-sample-report.pdf">
+          Download this sample as a PDF.
+        </a>
       </div>
 
       <section className="sample-title" aria-labelledby="h-sample">

@@ -2,6 +2,7 @@ import BrandMark from "../components/BrandMark";
 import ThemeToggle from "../components/ThemeToggle";
 import PlanComparison from "../components/PlanComparison";
 import { useEffect, useRef, useState } from "react";
+import sample from "../sample/sampleReport.json";
 import { buildHash } from "../router";
 import "../landing.css";
 
@@ -358,18 +359,22 @@ export default function Landing() {
                 <span>Illustrative data, not a real scan</span>
               </figcaption>
               <div className="landing-sample-head">
-                <span className="landing-grade" aria-label="Grade B">
-                  B
+                <span
+                  className="landing-grade"
+                  aria-label={`Grade ${sample.grade}`}
+                >
+                  {sample.grade}
                 </span>
                 <div>
                   <strong>example.com</strong>
                   <span className="muted small">
-                    4 findings · 9 checks passed
+                    {sample.findings.length} findings ·{" "}
+                    {sample.checks_passed.length} checks passed
                   </span>
                 </div>
               </div>
               <div className="landing-bar-track" aria-hidden="true">
-                <span style={{ width: "82%" }} />
+                <span style={{ width: `${sample.score}%` }} />
               </div>
               <p className="landing-sample-summary">
                 <span className="sev sev-medium">1 Medium</span>
@@ -394,9 +399,18 @@ export default function Landing() {
                   <span>No security.txt contact file</span>
                 </li>
               </ul>
-              <a className="landing-sample-link" href="#/sample-report">
-                Open the full sample report <span aria-hidden="true">→</span>
-              </a>
+              <div className="landing-sample-links">
+                <a className="landing-sample-link" href="#/sample-report">
+                  Open the full sample report <span aria-hidden="true">→</span>
+                </a>
+                <a
+                  className="landing-sample-link"
+                  href="/sample-report.pdf"
+                  download="SecureScope-sample-report.pdf"
+                >
+                  Download the sample PDF <span aria-hidden="true">↓</span>
+                </a>
+              </div>
             </figure>
           </section>
 
@@ -522,6 +536,49 @@ export default function Landing() {
           </section>
 
           <section
+            id="sample-pdf"
+            className="landing-section landing-pdf"
+            aria-labelledby="h-sample-pdf"
+          >
+            <div className="landing-pdf-text">
+              <p className="landing-eyebrow">Sample report</p>
+              <h2 id="h-sample-pdf">See exactly what you hand over</h2>
+              <p className="landing-sub muted">
+                This is the PDF SecureScope produces for a scan: the overall
+                result, every finding with its evidence and fix, the checks that
+                passed, and how the score is worked out. It describes
+                example.com, a domain reserved for documentation, so it is
+                clearly a demonstration and not a real customer or scan.
+              </p>
+              <div className="landing-cta">
+                <a
+                  className="btn"
+                  href="/sample-report.pdf"
+                  download="SecureScope-sample-report.pdf"
+                >
+                  Download the sample PDF
+                </a>
+                <a className="btn-ghost" href="#/sample-report">
+                  Read it on the web
+                </a>
+              </div>
+            </div>
+            <a
+              className="landing-pdf-cover"
+              href="/sample-report.pdf"
+              aria-label="Open the sample PDF report"
+            >
+              <img
+                src="/sample-report-cover.webp"
+                width="745"
+                height="1053"
+                loading="lazy"
+                alt="First page of the sample website security report for example.com: title, scan details and an overall risk rating of Medium"
+              />
+            </a>
+          </section>
+
+          <section
             id="pricing"
             className="landing-section"
             aria-labelledby="h-pricing"
@@ -545,9 +602,14 @@ export default function Landing() {
                   <li>PDF and data exports</li>
                   <li>Optional public score badge</li>
                 </ul>
-                <a className="btn" href={register}>
-                  Create free account
-                </a>
+                <div className="landing-plan-foot">
+                  <a className="btn" href={register}>
+                    Create free account
+                  </a>
+                  <p className="muted small landing-plan-note">
+                    Available now.
+                  </p>
+                </div>
               </article>
               <article className="card landing-plan-soon">
                 <h3>
@@ -565,9 +627,18 @@ export default function Landing() {
                   <li>GitHub Action and API tokens for CI</li>
                   <li>PDF and data exports</li>
                 </ul>
-                <p className="muted small landing-plan-note">
-                  Not on sale yet.
-                </p>
+                <div className="landing-plan-foot">
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => scrollTo("h-compare")}
+                  >
+                    Compare plans
+                  </button>
+                  <p className="muted small landing-plan-note">
+                    Not on sale yet.
+                  </p>
+                </div>
               </article>
               <article className="card landing-plan-soon">
                 <h3>
@@ -585,12 +656,14 @@ export default function Landing() {
                   <li>Invite team members and clients</li>
                   <li>Client dashboard, branded PDFs, share links</li>
                 </ul>
-                <a className="btn-ghost" href="#/agency-features">
-                  Explore Agency features
-                </a>
-                <p className="muted small landing-plan-note">
-                  Not on sale yet.
-                </p>
+                <div className="landing-plan-foot">
+                  <a className="btn-ghost" href="#/agency-features">
+                    Explore Agency features
+                  </a>
+                  <p className="muted small landing-plan-note">
+                    Not on sale yet.
+                  </p>
+                </div>
               </article>
             </div>
             <PlanComparison />

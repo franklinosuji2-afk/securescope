@@ -173,7 +173,9 @@ const GROUPS: Group[] = [
   },
 ];
 
-const PLANNED = ["A public API"];
+const PLANNED = [
+  "A general-purpose public API (today, API tokens can only start and read scans, for the GitHub Action and CI)",
+];
 
 const NOT_OFFERED = [
   "Active exploit scanners (ZAP, Nuclei, OpenVAS) or port scanning",

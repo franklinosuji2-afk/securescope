@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
@@ -452,6 +458,24 @@ describe("Authentication", () => {
     ).toHaveAttribute("href", "#/register");
     expect(screen.getByRole("link", { name: "Impressum" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Target URL")).not.toBeInTheDocument();
+  });
+
+  it("offers the sample PDF report on the home page, labelled as a demonstration", async () => {
+    mockApi(() => ({}), null);
+    renderApp();
+    const section = (
+      await screen.findByRole("heading", { name: /what you hand over/ })
+    ).closest("section") as HTMLElement;
+    const download = within(section).getByRole("link", {
+      name: "Download the sample PDF",
+    });
+    expect(download).toHaveAttribute("href", "/sample-report.pdf");
+    expect(section.textContent).toMatch(/not a real customer or scan/);
+    expect(
+      within(section).getByRole("img", {
+        name: /sample website security report/,
+      }),
+    ).toHaveAttribute("src", "/sample-report-cover.webp");
   });
 
   it("asks for sign-in on an app page when there is no session", async () => {

@@ -20,7 +20,8 @@ describe("the plan comparison", () => {
   it("no longer lists webhooks as planned", () => {
     render(<PlanComparison />);
     expect(screen.queryByText(/API and webhooks/)).toBeNull();
-    expect(screen.getByText(/A public API/)).toBeTruthy();
+    expect(screen.getByText(/general-purpose public API/)).toBeTruthy();
+    expect(screen.getByText(/only start and read scans/)).toBeTruthy(); // what exists today is not overstated
   });
 });
 

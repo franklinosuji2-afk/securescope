@@ -278,7 +278,7 @@ test.describe("floating cards", () => {
         ".sample-cta",
       ],
     ],
-    ["agency-features", [".landing-card", ".sample-cta"]],
+    ["agency-features", [".landing-card", ".agency-availability"]],
   ];
   for (const [route, selectors] of cases) {
     test(`cards on /${route || "home"} lift under the pointer`, async ({
@@ -337,3 +337,62 @@ test.describe("floating cards", () => {
       .not.toBe(before);
   });
 });
+
+test("the home page offers the sample report as a PDF that really downloads", async ({
+  page,
+}) => {
+  await page.goto("/#/");
+  const links = page.getByRole("link", { name: /Download the sample PDF/ });
+  await expect(links).toHaveCount(2); // the hero card and the sample section
+  for (const link of await links.all())
+    await expect(link).toHaveAttribute("href", "/sample-report.pdf");
+  const response = await page.request.get("/sample-report.pdf");
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toContain("application/pdf");
+  const body = await response.body();
+  expect(body.subarray(0, 5).toString()).toBe("%PDF-");
+  expect(body.length).toBeGreaterThan(10_000);
+});
+
+for (const scheme of ["dark", "light"] as const) {
+  test(`the agency page is accessible, balanced and fits every width (${scheme} theme)`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.goto("/#/agency-features");
+    await expect(
+      page.getByRole("heading", { level: 1, name: /Security reports/ }),
+    ).toBeVisible();
+    // Two groups of four feature cards, and an availability note.
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Work for your clients" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Share and automate" }),
+    ).toBeVisible();
+    await expect(page.locator(".agency-grid .landing-card")).toHaveCount(8);
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Availability" }),
+    ).toBeVisible();
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+    expect(
+      results.violations
+        .filter((v) => v.impact === "serious" || v.impact === "critical")
+        .map((v) => v.id),
+    ).toEqual([]);
+    for (const width of [320, 390, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () =>
+              document.documentElement.scrollWidth -
+              document.documentElement.clientWidth,
+          ),
+        )
+        .toBeLessThanOrEqual(0);
+    }
+  });
+}

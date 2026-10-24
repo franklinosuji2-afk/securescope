@@ -254,3 +254,80 @@
     border-right: 0;
   }
 }
+
+/* Agency page: two balanced groups of four, with room between the sections. */
+.agency-hero {
+  padding-top: 56px;
+  padding-bottom: 24px;
+}
+.agency-hero .landing-cta {
+  margin-top: 8px;
+}
+.agency-body {
+  padding-top: 24px;
+}
+.agency-group {
+  padding: 32px 0 8px;
+}
+.agency-group h2 {
+  margin: 0 0 8px;
+  font-size: 1.5rem;
+}
+.agency-intro {
+  max-width: 72ch;
+  margin: 0 0 24px;
+  line-height: 1.6;
+}
+.agency-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+.agency-grid .landing-card {
+  padding: 28px;
+}
+.agency-grid h3 {
+  margin: 0 0 10px;
+  font-size: 1.125rem;
+  line-height: 1.3;
+}
+.agency-grid p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.card.agency-availability {
+  margin: 40px 0 16px;
+  padding: 32px 36px;
+  border-radius: var(--radius);
+  box-shadow: none;
+}
+.agency-availability h2 {
+  margin: 0 0 16px;
+  font-size: 1.5rem;
+}
+.agency-availability-text {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 40px;
+}
+.agency-availability-text p {
+  margin: 0;
+  line-height: 1.65;
+}
+@media (max-width: 760px) {
+  .agency-hero {
+    padding-top: 36px;
+  }
+  .agency-grid,
+  .agency-availability-text {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .agency-grid .landing-card {
+    padding: 22px;
+  }
+  .card.agency-availability {
+    padding: 24px 22px;
+  }
+}
