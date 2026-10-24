@@ -357,4 +357,74 @@ describe("account settings: details, devices and your data", () => {
     expect(link).toHaveAttribute("href", "/api/v1/account/export");
     expect(link).toHaveAttribute("download");
   });
+
+  it("saves a rating with a comment and can withdraw it", async () => {
+    const saved = {
+      rating: 4,
+      category: "reports",
+      message: "Clear reports",
+      created_at: "2026-10-24T10:00:00Z",
+      updated_at: "2026-10-24T10:00:00Z",
+    };
+    const calls = stub(me(), {
+      "GET /feedback": { status: 200, body: null },
+      "PUT /feedback": { status: 200, body: saved },
+      "DELETE /feedback": { status: 204 },
+    });
+    open("#/account");
+    const user = userEvent.setup();
+    await screen.findByRole("heading", { name: "Your feedback" });
+    await user.click(
+      await screen.findByRole("button", { name: "Send feedback" }),
+    );
+    expect(
+      await screen.findByText(/Choose a rating from 1 to 5 stars/),
+    ).toBeInTheDocument();
+    expect(calls.some((c) => c.method === "PUT")).toBe(false);
+
+    await user.click(screen.getByRole("radio", { name: /4 stars/ }));
+    await user.selectOptions(screen.getByLabelText(/Topic/), "reports");
+    await user.type(screen.getByLabelText(/Your comments/), "Clear reports");
+    await user.click(screen.getByRole("button", { name: "Send feedback" }));
+    await waitFor(() => {
+      const put = calls.find((c) => c.method === "PUT");
+      expect(put?.body).toEqual({
+        rating: 4,
+        category: "reports",
+        message: "Clear reports",
+      });
+    });
+    await user.click(
+      await screen.findByRole("button", { name: "Withdraw my feedback" }),
+    );
+    await waitFor(() =>
+      expect(
+        calls.some((c) => c.method === "DELETE" && c.url.endsWith("/feedback")),
+      ).toBe(true),
+    );
+    expect(
+      await screen.findByRole("button", { name: "Send feedback" }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows an existing entry for editing", async () => {
+    stub(me(), {
+      "GET /feedback": {
+        status: 200,
+        body: {
+          rating: 2,
+          category: null,
+          message: "Slow",
+          created_at: "2026-10-24T10:00:00Z",
+          updated_at: "2026-10-24T10:00:00Z",
+        },
+      },
+    });
+    open("#/account");
+    expect(
+      await screen.findByRole("button", { name: "Update feedback" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/Your comments/)).toHaveValue("Slow");
+    expect(screen.getByRole("radio", { name: /2 stars/ })).toBeChecked();
+  });
 });

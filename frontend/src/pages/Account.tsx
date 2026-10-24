@@ -146,6 +146,193 @@ function Devices() {
   );
 }
 
+const CATEGORIES: { value: api.FeedbackCategory; label: string }[] = [
+  { value: "general", label: "General" },
+  { value: "ease_of_use", label: "Ease of use" },
+  { value: "reports", label: "Reports" },
+  { value: "accuracy", label: "Accuracy of findings" },
+  { value: "pricing", label: "Plans and pricing" },
+  { value: "other", label: "Something else" },
+];
+const MESSAGE_LIMIT = 2000;
+
+function FeedbackCard() {
+  const [saved, setSaved] = useState<api.Feedback | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [category, setCategory] = useState<string>("");
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    api
+      .getFeedback()
+      .then((next) => {
+        if (!live) return;
+        if (next && typeof next.rating === "number") {
+          setSaved(next);
+          setRating(next.rating);
+          setCategory(next.category ?? "");
+          setText(next.message ?? "");
+        }
+        setLoaded(true);
+      })
+      .catch((err: unknown) => {
+        if (live) {
+          setError(message(err));
+          setLoaded(true);
+        }
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (rating < 1) {
+      setError("Choose a rating from 1 to 5 stars first.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const next = await api.saveFeedback({
+        rating,
+        category: (category || null) as api.FeedbackCategory | null,
+        message: text.trim() || null,
+      });
+      setSaved(next);
+      setNotice("Thank you. Your feedback was saved.");
+    } catch (err) {
+      setError(message(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function withdraw() {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await api.withdrawFeedback();
+      setSaved(null);
+      setRating(0);
+      setCategory("");
+      setText("");
+      setNotice("Your feedback was withdrawn and deleted.");
+    } catch (err) {
+      setError(message(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="card" aria-labelledby="account-feedback">
+      <h2 id="account-feedback">Your feedback</h2>
+      <p className="muted small">
+        Tell us how SecureScope is working for you. It is private: only the
+        operator reads it, it is never published, and you can change or withdraw
+        it at any time. You never need to give feedback to use or leave
+        SecureScope.
+      </p>
+      {!loaded && <Loading label="Loading…" />}
+      {loaded && (
+        <form className="scan-form" onSubmit={submit}>
+          <fieldset className="rating">
+            <legend className="field-label">Rating</legend>
+            <div className="row" role="radiogroup" aria-label="Rating">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <label key={n} className="rating-star">
+                  <input
+                    type="radio"
+                    name="rating"
+                    value={n}
+                    checked={rating === n}
+                    onChange={() => setRating(n)}
+                  />
+                  <span aria-hidden="true">{n <= rating ? "★" : "☆"}</span>
+                  <span className="visually-hidden">
+                    {n} {n === 1 ? "star" : "stars"}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <div>
+            <label className="field-label" htmlFor="feedback-category">
+              Topic (optional)
+            </label>
+            <select
+              id="feedback-category"
+              className="input"
+              style={{ width: "100%", marginTop: 6 }}
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="">No topic</option>
+              {CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="field-label" htmlFor="feedback-text">
+              Your comments (optional)
+            </label>
+            <textarea
+              id="feedback-text"
+              className="input"
+              style={{ width: "100%", marginTop: 6 }}
+              rows={4}
+              maxLength={MESSAGE_LIMIT}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+            <p className="muted small">
+              {text.length} of {MESSAGE_LIMIT} characters
+            </p>
+          </div>
+          {error && <ErrorNotice message={error} />}
+          {notice && (
+            <p role="status" className="muted small">
+              {notice}
+            </p>
+          )}
+          <div className="row">
+            <button className="btn" type="submit" disabled={busy}>
+              {saved ? "Update feedback" : "Send feedback"}
+            </button>
+            {saved && (
+              <button
+                className="btn btn-ghost"
+                type="button"
+                disabled={busy}
+                onClick={() => void withdraw()}
+              >
+                Withdraw my feedback
+              </button>
+            )}
+          </div>
+          {saved && (
+            <p className="muted small">
+              Last saved {formatDate(saved.updated_at)}.
+            </p>
+          )}
+        </form>
+      )}
+    </section>
+  );
+}
+
 function YourData() {
   return (
     <section className="card" aria-labelledby="account-data">
@@ -415,6 +602,7 @@ export default function Account() {
       <ChangePassword />
       <Devices />
       <YourData />
+      <FeedbackCard />
       <DeleteAccount />
     </div>
   );

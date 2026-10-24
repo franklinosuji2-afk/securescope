@@ -37,6 +37,10 @@ Base path `/api/v1`. Interactive schema at `/api/docs` only when `SECURESCOPE_AP
 | GET            | `/account/sessions`                             | session                          | The caller's usable sign-ins (id, created, expires, `current`). Never a token or digest |
 | DELETE         | `/account/sessions/{id}`                        | session                          | Signs out one other device; 400 for the current one; 404 for an id that is not the caller's |
 | POST           | `/account/sessions/revoke-others`               | session                          | Signs out every device except this one; 204 |
+| GET            | `/feedback`                                     | session                          | The caller's own feedback entry, or `null` |
+| PUT            | `/feedback`                                     | session + CSRF                   | Create or replace the caller's feedback (`rating` 1 to 5, optional `category`, optional `message` up to 2000 characters); 20 per hour; audited |
+| DELETE         | `/feedback`                                     | session + CSRF                   | Withdraw and delete the caller's feedback (204 even when none existed) |
+| GET            | `/feedback/summary`                             | administrator                    | Count, average, per-rating counts and latest entries, without names or emails; 404 for everyone else |
 | GET            | `/account/export`                               | session                          | The caller's personal data as a JSON attachment (no password hash, tokens or other customers' data); recorded in the audit log |
 | DELETE         | `/account`                                      | session                          | `{password, confirm: "DELETE"}`; 204 and the session ends; 409 if the person is the only owner of a workspace other people use. See `DATA_RETENTION.md` |
 | GET            | `/organizations/{id}/plan`                      | OWNER, ADMIN                     | The workspace's plan, its limits and current usage. See `PLANS.md` |

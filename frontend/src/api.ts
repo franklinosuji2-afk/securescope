@@ -204,6 +204,35 @@ export interface DeviceSession {
   expires_at: string;
   current: boolean;
 }
+export type FeedbackCategory =
+  "general" | "ease_of_use" | "reports" | "accuracy" | "pricing" | "other";
+export interface Feedback {
+  rating: number;
+  category: FeedbackCategory | null;
+  message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface FeedbackSummary {
+  count: number;
+  average: number | null;
+  by_rating: Record<string, number>;
+  latest: Feedback[];
+}
+export const getFeedback = () => request<Feedback | null>("/feedback");
+export const saveFeedback = (input: {
+  rating: number;
+  category: FeedbackCategory | null;
+  message: string | null;
+}) =>
+  request<Feedback>("/feedback", {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+export const withdrawFeedback = () =>
+  request<void>("/feedback", { method: "DELETE" });
+export const getFeedbackSummary = () =>
+  request<FeedbackSummary>("/feedback/summary");
 export const getAccount = () => request<AccountInfo>("/account");
 export const listSessions = () => request<DeviceSession[]>("/account/sessions");
 export const revokeSession = (id: string) =>

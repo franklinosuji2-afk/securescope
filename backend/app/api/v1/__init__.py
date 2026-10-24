@@ -13,6 +13,7 @@ from app.api.v1 import (
     audit,
     auth,
     ci,
+    feedback,
     findings,
     integrations,
     invitations,
@@ -52,6 +53,7 @@ async def ready(state: StateDep, response: Response) -> dict[str, str]:
 
 router.include_router(auth.router)
 router.include_router(account.router)
+router.include_router(feedback.router)
 router.include_router(oauth.router)
 router.include_router(organizations.router)
 router.include_router(invitations.router)
