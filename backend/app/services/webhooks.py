@@ -13,6 +13,7 @@ Safety rules, in the order they matter:
 from __future__ import annotations
 
 import asyncio
+import functools
 import hashlib
 import hmac
 import ipaddress
@@ -138,12 +139,24 @@ class WebhookService:
         }
         body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode()
         ok, status = False, "Not sent"
+        attempts = 0
         for attempt in range(MAX_ATTEMPTS):
+            attempts += 1
             ok, retry, status = await self._post_once(endpoint, body, event, delivery_id)
             if ok or not retry or attempt == MAX_ATTEMPTS - 1:
                 break
             await asyncio.sleep(self.retry_delay)
-        await asyncio.to_thread(self._repo.record_attempt, endpoint.id, ok, status)
+        await asyncio.to_thread(
+            functools.partial(
+                self._repo.record_attempt,
+                endpoint.id,
+                ok,
+                status,
+                event=event,
+                delivery_id=delivery_id,
+                attempts=attempts,
+            )
+        )
         return ok, status
 
     async def send_test(self, endpoint: Endpoint) -> tuple[bool, str]:

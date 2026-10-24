@@ -76,7 +76,7 @@ dependency).
 | 9 Branded client reports | VERIFIED | `api/v1/agency.py`; `tests/test_agency.py` |
 | 10 Scan comparison | VERIFIED | `Compare.tsx`, finding lifecycle; `tests/test_finding_lifecycle.py` |
 | 11 Email alerts | VERIFIED | `services/alerts.py`, `services/mailer.py` (Brevo); first real alert email still to see in production |
-| 12 Webhook alerts | VERIFIED | `services/webhooks.py` signed, retried twice; `tests/test_webhooks.py`; no delivery history |
+| 12 Webhook alerts | VERIFIED | `services/webhooks.py` signed, retried twice; `tests/test_webhooks.py`; delivery history (last 20 per address: time, event, outcome, attempts; no content) since migration 0017, listed on the Webhooks page |
 | 13 Slack | MISSING | |
 | 14 Microsoft Teams | MISSING | |
 | 15 GitHub Action | VERIFIED | `action/`, `api/v1/ci.py`; `tests/test_github_action.py`; no `v1` tag yet |
@@ -97,7 +97,7 @@ limit (`test_scan_control.py`), injection payloads (`test_injection_payloads.py`
 1. Sessions could not be listed or revoked individually: fixed in Phase 1.
 2. Account deletion leaves no operator-side record; acceptable for privacy, but note it.
 3. No audit-log retention job (also in `legal-audit.md`).
-4. Webhook delivery has no history; a failed delivery after two tries is not shown.
+4. Webhook delivery is still best effort: two tries, no retry queue. A failure after the second try is shown in the delivery history but is not retried later.
 5. Nothing found that exposes another customer's data; `tests/test_cross_customer.py` and `test_tenancy.py` pass.
 
 ## 9. Reuse rather than recreate

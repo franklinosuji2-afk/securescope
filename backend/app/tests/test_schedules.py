@@ -116,6 +116,18 @@ def test_a_big_score_drop_alerts_even_without_new_findings() -> None:
     assert decide(scan([], 95, 0), scan([], 92, 10)).send is False
 
 
+def test_a_certificate_that_is_about_to_expire_alerts_by_email_and_webhook() -> None:
+    """The "expires soon" finding (SS-TLS-CERT-001, scanner/checks.py) is a new finding in the first scan after
+    the certificate gets close to its end, so the ordinary alert rule covers it; there is no separate alert."""
+    healthy = scan([], 100, 0)
+    expiring = scan([finding("SS-TLS-CERT-001", Severity.MEDIUM)], 90, 10)
+    decision = decide(healthy, expiring)
+    assert decision.send is True
+    assert [f.id for f in decision.new_findings] == ["SS-TLS-CERT-001"]
+    # The next scheduled run, with the same finding still open, stays quiet instead of repeating the alert.
+    assert decide(expiring, scan([finding("SS-TLS-CERT-001", Severity.HIGH)], 90, 20)).send is False
+
+
 def test_a_failed_scheduled_scan_alerts() -> None:
     failed = scan([], 0, 10, ScanStatus.FAILED)
     assert decide(None, failed).send is True

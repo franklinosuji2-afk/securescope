@@ -27,3 +27,22 @@ class WebhookEndpointRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (Index("ix_webhook_endpoints_organization_id", "organization_id"),)
+
+
+class WebhookDeliveryRow(Base):
+    """One delivery to an endpoint: when, which event, and the outcome. No message body, no address, no secret.
+
+    Only the most recent entries per endpoint are kept."""
+
+    __tablename__ = "webhook_deliveries"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    webhook_id: Mapped[str] = mapped_column(ForeignKey("webhook_endpoints.id", ondelete="CASCADE"))
+    delivery_id: Mapped[str] = mapped_column(String(32))
+    event: Mapped[str] = mapped_column(String(32))
+    ok: Mapped[bool] = mapped_column(Boolean)
+    status: Mapped[str] = mapped_column(String(120))
+    attempts: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (Index("ix_webhook_deliveries_webhook_id_created_at", "webhook_id", "created_at"),)

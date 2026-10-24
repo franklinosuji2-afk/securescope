@@ -41,3 +41,12 @@ class WebhookUpdate(BaseModel):
 class WebhookTestResult(BaseModel):
     ok: bool
     status: str
+
+
+class WebhookDeliveryOut(BaseModel):
+    delivery_id: str
+    event: str
+    ok: bool
+    status: str
+    attempts: int
+    created_at: datetime

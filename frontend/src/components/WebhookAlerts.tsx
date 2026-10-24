@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import * as api from "../api";
 import { formatDate } from "../format";
-import type { Webhook, WebhookList } from "../types";
+import type { Webhook, WebhookDelivery, WebhookList } from "../types";
 import { ErrorNotice, Loading } from "./ui";
 
 function message(err: unknown): string {
@@ -16,6 +16,45 @@ function lastDelivery(w: Webhook): string {
   }
   if (!w.last_attempt_at) return "No message sent yet.";
   return `Last attempt ${formatDate(w.last_attempt_at)}: ${w.last_status ?? "unknown"}`;
+}
+
+const EVENT_LABEL: Record<string, string> = {
+  "scan.alert": "Scan alert",
+  "webhook.test": "Test message",
+};
+
+function Deliveries({ id, refresh }: { id: string; refresh: number }) {
+  const [items, setItems] = useState<WebhookDelivery[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    api
+      .listWebhookDeliveries(id)
+      .then((next) => {
+        if (live) setItems(Array.isArray(next) ? next : []);
+      })
+      .catch((err: unknown) => {
+        if (live) setError(message(err));
+      });
+    return () => {
+      live = false;
+    };
+  }, [id, refresh]);
+  if (error) return <ErrorNotice message={error} />;
+  if (!items) return <Loading label="Loading deliveries…" />;
+  if (items.length === 0)
+    return <p className="muted small">Nothing has been sent yet.</p>;
+  return (
+    <ul className="plain-list">
+      {items.map((d) => (
+        <li key={d.delivery_id + d.created_at} className="small">
+          {formatDate(d.created_at)} · {EVENT_LABEL[d.event] ?? d.event} ·{" "}
+          <strong>{d.ok ? "Delivered" : "Failed"}</strong> · {d.status}
+          {d.attempts > 1 ? ` (${d.attempts} attempts)` : ""}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function SecretBox({
@@ -71,6 +110,8 @@ function Row({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyTick, setHistoryTick] = useState(0);
 
   const run = async (work: () => Promise<void>) => {
     setBusy(true);
@@ -103,6 +144,7 @@ function Row({
                     ? `Test message delivered. ${r.status}`
                     : `Test message failed. ${r.status}`,
                 );
+                setHistoryTick((n) => n + 1);
                 onChange(
                   (await api.listWebhooks()).items.find(
                     (i) => i.id === hook.id,
@@ -173,6 +215,14 @@ function Row({
           )}
         </div>
       )}
+      <details
+        onToggle={(e) =>
+          setHistoryOpen((e.currentTarget as HTMLDetailsElement).open)
+        }
+      >
+        <summary>Recent deliveries</summary>
+        {historyOpen && <Deliveries id={hook.id} refresh={historyTick} />}
+      </details>
       {result && (
         <p className="muted small" role="status">
           {result}

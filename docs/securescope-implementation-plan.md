@@ -25,7 +25,7 @@ billing or reviews. Phases ship as separate patches so each can be checked and d
 | 2 | Private feedback: one rating (1 to 5), optional category and text per user; edit and withdraw; never required for any other action; nothing shown publicly | 1 | Invalid rating rejected; one row per user (update replaces); other users cannot read it; withdrawal deletes it; deleted with the account; no seeded rows |
 | 3 | Subscription groundwork: `subscriptions` and `billing_events` tables (migration 0016, built 24 Oct), effective-plan rule (paid access kept until period end after cancellation), downgrade preview that lists what would exceed a lower plan, never deleting anything | none | Entitlements unchanged for every existing account; duplicate provider events are idempotent in unit tests; preview endpoint reads only |
 | 4 | Billing provider integration (Paddle): checkout, webhook receiver with signature check, cancel, downgrade, invoices link | Paddle approval, credentials supplied by you in the host dashboard | Verified provider events only; no state change on unverified input; sandbox tests before any live use |
-| 5 | Webhook delivery history, TLS "expires soon" alert, usage page, `v1` tag for the GitHub Action | none | Tests per item |
+| 5 | Webhook delivery history (built, migration 0017), TLS "expires soon" alert (already covered by the scanner finding and the alert rule; test added), usage page (already on Account > Your plan, nothing added), `v1` tag for the GitHub Action (your git command) | none | Tests per item |
 | 6 | Slack notifications | 5 | Only to a user-supplied incoming-webhook URL, validated like the webhook addresses (SSRF rules), signed test message |
 
 ## Cross-cutting checks per phase

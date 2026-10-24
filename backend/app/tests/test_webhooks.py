@@ -370,3 +370,68 @@ def test_a_disabled_endpoint_gets_no_alerts_and_a_broken_one_does_not_stop_the_r
 
 def test_the_cron_endpoint_constant_is_unchanged() -> None:
     assert CRON == "/api/v1/internal/run-due"
+
+
+# --- delivery history ------------------------------------------------------------------------------------
+
+
+def test_every_delivery_is_listed_with_its_outcome_and_no_message_content(hook_client: TestClient) -> None:
+    Receiver(500, 200).install(hook_client)
+    created = create(hook_client)
+    assert hook_client.post(f"/api/v1/webhooks/{created['id']}/test").json()["ok"] is True
+    Receiver(404).install(hook_client)
+    assert hook_client.post(f"/api/v1/webhooks/{created['id']}/test").json()["ok"] is False
+    items = hook_client.get(f"/api/v1/webhooks/{created['id']}/deliveries").json()
+    assert [(i["ok"], i["event"], i["attempts"]) for i in items] == [
+        (False, "webhook.test", 1),
+        (True, "webhook.test", 2),
+    ]
+    assert items[0]["status"].startswith("Failed (HTTP 404)")
+    assert all(len(i["delivery_id"]) == 32 for i in items)
+    text = hook_client.get(f"/api/v1/webhooks/{created['id']}/deliveries").text
+    assert "abc123-secret-token" not in text and "whsec_" not in text and "127.0.0.1" not in text
+
+
+def test_only_the_most_recent_deliveries_are_kept(hook_client: TestClient) -> None:
+    from app.repositories.webhooks import KEEP_DELIVERIES
+
+    Receiver().install(hook_client)
+    created = create(hook_client)
+    state = hook_client.app.state.s  # type: ignore[attr-defined]
+    for n in range(KEEP_DELIVERIES + 5):
+        state.webhook_repo.record_attempt(created["id"], True, f"Delivered #{n}", event="scan.alert")
+    items = hook_client.get(f"/api/v1/webhooks/{created['id']}/deliveries").json()
+    assert len(items) == KEEP_DELIVERIES
+    assert items[0]["status"] == f"Delivered #{KEEP_DELIVERIES + 4}"
+    assert hook_client.get("/api/v1/webhooks").json()["items"][0]["last_status"].startswith("Delivered #")
+
+
+def test_deliveries_of_another_workspace_or_a_missing_address_are_not_found(
+    hook_client: TestClient,
+) -> None:
+    Receiver().install(hook_client)
+    created = create(hook_client)
+    hook_client.post(f"/api/v1/webhooks/{created['id']}/test")
+    with TestClient(hook_client.app) as bob:
+        signup(bob, "bob@example.com", "Bob Org")
+        assert bob.get(f"/api/v1/webhooks/{created['id']}/deliveries").status_code == 404
+    assert hook_client.get("/api/v1/webhooks/" + "f" * 32 + "/deliveries").status_code == 404
+    assert hook_client.get("/api/v1/webhooks/bad-id/deliveries").status_code == 404
+    with TestClient(hook_client.app) as anonymous:
+        assert anonymous.get(f"/api/v1/webhooks/{created['id']}/deliveries").status_code == 401
+
+
+def test_the_history_is_removed_with_its_address(hook_client: TestClient) -> None:
+    from sqlalchemy import func, select
+
+    from app.models.webhook import WebhookDeliveryRow
+
+    Receiver().install(hook_client)
+    created = create(hook_client)
+    hook_client.post(f"/api/v1/webhooks/{created['id']}/test")
+    state = hook_client.app.state.s  # type: ignore[attr-defined]
+    with state.webhook_repo._session() as session:
+        assert session.scalar(select(func.count()).select_from(WebhookDeliveryRow)) == 1
+    assert hook_client.delete(f"/api/v1/webhooks/{created['id']}").status_code == 204
+    with state.webhook_repo._session() as session:
+        assert session.scalar(select(func.count()).select_from(WebhookDeliveryRow)) == 0
