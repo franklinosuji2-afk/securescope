@@ -43,11 +43,22 @@ class FeedbackOut(BaseModel):
     updated_at: datetime
 
 
+class FeedbackEntryOut(FeedbackOut):
+    # The plan of the workspace the author owns; None for someone who only belongs to other workspaces.
+    plan: str | None = None
+
+
+class PlanStat(BaseModel):
+    count: int
+    average: float
+
+
 class FeedbackSummaryOut(BaseModel):
     count: int
     average: float | None
     by_rating: dict[int, int]
-    latest: list[FeedbackOut]
+    by_plan: dict[str, PlanStat] = {}
+    latest: list[FeedbackEntryOut]
 
 
 def _out(record: FeedbackRecord) -> FeedbackOut:
@@ -104,11 +115,26 @@ async def withdraw_feedback(request: Request, principal: PrincipalDep, state: St
 
 @router.get("/summary", response_model=FeedbackSummaryOut)
 async def feedback_summary(_admin: AdminDep, state: StateDep) -> FeedbackSummaryOut:
-    """Operator only: totals and the latest entries, without names or email addresses."""
+    """Operator only: totals, an average per plan and the newest entries, without names or email addresses."""
     summary = await asyncio.to_thread(state.feedback.summary)
+    entries = await asyncio.to_thread(state.feedback.entries)
+    plan_names: dict[str, str] = {}
+    out: list[FeedbackEntryOut] = []
+    ratings: dict[str, list[int]] = {}
+    for record, org_id in entries:
+        name = None
+        if org_id is not None:
+            if org_id not in plan_names:
+                plan_names[org_id] = (await state.entitlements.plan_for_async(org_id)).name
+            name = plan_names[org_id]
+        out.append(FeedbackEntryOut(**_out(record).model_dump(), plan=name))
+        ratings.setdefault(name or "Team member", []).append(record.rating)
     return FeedbackSummaryOut(
         count=summary.count,
         average=summary.average,
         by_rating=summary.by_rating,
-        latest=[_out(r) for r in summary.latest],
+        by_plan={
+            k: PlanStat(count=len(v), average=round(sum(v) / len(v), 2)) for k, v in sorted(ratings.items())
+        },
+        latest=out[:50],
     )

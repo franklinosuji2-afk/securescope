@@ -81,11 +81,11 @@ async def create_webhook(
     if not plan.scheduled_scans:
         raise HTTPException(status_code=403, detail=NOT_INCLUDED)
     try:
-        url = await state.webhooks.validate_address(body.url)
+        url = await state.webhooks.validate_address(body.url, body.kind)
     except TargetError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     created = await asyncio.to_thread(
-        state.webhook_repo.create, ctx.organization_id, url, ctx.principal.user.id
+        state.webhook_repo.create, ctx.organization_id, url, ctx.principal.user.id, body.kind
     )
     if created is None:
         raise HTTPException(
@@ -93,7 +93,8 @@ async def create_webhook(
         )
     endpoint, out = created
     await _audit(state, request, ctx, "webhook.created", endpoint.id)
-    return WebhookCreated(**out.model_dump(), signing_secret=state.webhooks.secret_for(endpoint))
+    secret = state.webhooks.secret_for(endpoint) if body.kind == "webhook" else None
+    return WebhookCreated(**out.model_dump(), signing_secret=secret)
 
 
 @router.post("/{webhook_id}/test", response_model=WebhookTestResult)
@@ -119,6 +120,9 @@ async def rotate_webhook(
     _check_id(webhook_id)
     if not state.webhooks.configured:
         raise HTTPException(status_code=503, detail=NOT_CONFIGURED)
+    existing = await asyncio.to_thread(state.webhook_repo.get, ctx.organization_id, webhook_id)
+    if existing is not None and existing.kind == "slack":
+        raise HTTPException(status_code=400, detail="A Slack address has no signing secret to renew.")
     endpoint = await asyncio.to_thread(state.webhook_repo.rotate, ctx.organization_id, webhook_id)
     if endpoint is None:
         raise HTTPException(status_code=404, detail=NOT_FOUND)

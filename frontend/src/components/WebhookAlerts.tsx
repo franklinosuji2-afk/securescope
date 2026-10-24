@@ -128,7 +128,10 @@ function Row({
 
   return (
     <li className="card form-stack">
-      <h3 className="break-all">{hook.address}</h3>
+      <h3 className="break-all">
+        {hook.kind === "slack" ? "Slack · " : ""}
+        {hook.address}
+      </h3>
       <p className="muted small">{lastDelivery(hook)}</p>
       {manage && (
         <div className="actions">
@@ -167,19 +170,21 @@ function Row({
           >
             {hook.enabled ? "Switch off" : "Switch on"}
           </button>
-          <button
-            className="btn-ghost"
-            type="button"
-            disabled={busy}
-            onClick={() =>
-              void run(async () => {
-                const renewed = await api.renewWebhookSecret(hook.id);
-                onSecret(renewed.signing_secret);
-              })
-            }
-          >
-            Renew secret
-          </button>
+          {hook.kind !== "slack" && (
+            <button
+              className="btn-ghost"
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  const renewed = await api.renewWebhookSecret(hook.id);
+                  if (renewed.signing_secret) onSecret(renewed.signing_secret);
+                })
+              }
+            >
+              Renew secret
+            </button>
+          )}
           {confirming ? (
             <>
               <button
@@ -237,6 +242,7 @@ export default function WebhookAlerts({ manage }: { manage: boolean }) {
   const [data, setData] = useState<WebhookList | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [url, setUrl] = useState("");
+  const [kind, setKind] = useState<"webhook" | "slack">("webhook");
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
@@ -261,10 +267,10 @@ export default function WebhookAlerts({ manage }: { manage: boolean }) {
     setBusy(true);
     setFormError(null);
     try {
-      const created = await api.createWebhook(url.trim());
+      const created = await api.createWebhook(url.trim(), kind);
       const { signing_secret, ...hook } = created;
       setData({ ...data, items: [...data.items, hook] });
-      setSecret(signing_secret);
+      setSecret(signing_secret ?? null);
       setUrl("");
     } catch (err) {
       setFormError(message(err));
@@ -278,11 +284,11 @@ export default function WebhookAlerts({ manage }: { manage: boolean }) {
     <section className="stack" aria-labelledby="h-webhooks">
       <h2 id="h-webhooks">Webhook alerts</h2>
       <p className="muted">
-        Send the same alerts as the email to your own server, so they can reach
-        a chat tool, a ticket system or a script. SecureScope sends a signed
-        JSON message over HTTPS when a scheduled scan finds something new or the
-        score drops by 5 points or more. No evidence or page content is
-        included.
+        Send the same alerts as the email to your own server or to a Slack
+        channel. SecureScope sends a message over HTTPS when a scheduled scan
+        finds something new or the score drops by 5 points or more. Your own
+        server gets a signed JSON message; Slack gets a short text message. No
+        evidence or page content is included.
       </p>
       {error && <ErrorNotice message={error} />}
       {!data && !error && <Loading label="Loading webhooks…" />}
@@ -333,23 +339,41 @@ export default function WebhookAlerts({ manage }: { manage: boolean }) {
             void add();
           }}
         >
-          <label htmlFor="webhook-url">Webhook address</label>
+          <label htmlFor="webhook-kind">Send alerts to</label>
+          <select
+            id="webhook-kind"
+            className="input"
+            value={kind}
+            onChange={(e) => setKind(e.target.value as "webhook" | "slack")}
+          >
+            <option value="webhook">My own server (signed JSON)</option>
+            <option value="slack">A Slack channel</option>
+          </select>
+          <label htmlFor="webhook-url">
+            {kind === "slack" ? "Slack webhook address" : "Webhook address"}
+          </label>
           <input
             id="webhook-url"
             className="input"
             type="url"
             inputMode="url"
             autoComplete="off"
-            placeholder="https://example.com/securescope-alerts"
+            placeholder={
+              kind === "slack"
+                ? "https://hooks.slack.com/services/T…/B…/…"
+                : "https://example.com/securescope-alerts"
+            }
             value={url}
             maxLength={2048}
             onChange={(e) => setUrl(e.target.value)}
             aria-describedby="webhook-help"
           />
           <p id="webhook-help" className="muted small">
-            Must start with https:// and point to a public server. Up to{" "}
-            {data.limit} addresses. The address is stored but only its host name
-            is shown again.
+            {kind === "slack"
+              ? "Create an incoming webhook in your Slack app settings and paste its address. "
+              : "Must start with https:// and point to a public server. "}
+            Up to {data.limit} addresses in total. The address is stored but
+            only its host name is shown again.
           </p>
           {formError && <ErrorNotice message={formError} />}
           <div className="actions">

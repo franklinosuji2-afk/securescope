@@ -36,6 +36,7 @@ def test_nothing_is_invented(app, mailer) -> None:  # type: ignore[no-untyped-de
             "count": 0,
             "average": None,
             "by_rating": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0},
+            "by_plan": {},
             "latest": [],
         }
         assert admin.get(f"{API}/feedback").json() is None
@@ -139,3 +140,39 @@ def test_feedback_is_never_required_and_leaves_with_the_account(app) -> None:  #
         assert gone.status_code == 204, gone.text
         state = carol.app.state.s  # type: ignore[attr-defined]
         assert state.feedback.summary().count == 0
+
+
+def test_every_plan_can_leave_feedback_and_the_operator_sees_which_plan(app, mailer) -> None:  # type: ignore[no-untyped-def]
+    """Feedback is open to every account whatever its plan; the operator's list shows the plan, never the person."""
+    with (
+        TestClient(app) as free,
+        TestClient(app) as pro,
+        TestClient(app) as agency,
+    ):
+        for client, email, org in (
+            (free, "free@example.com", "Free Org"),
+            (pro, "pro@example.com", "Pro Org"),
+            (agency, "agency@example.com", "Agency Org"),
+        ):
+            signup(client, email, org)
+        state = free.app.state.s  # type: ignore[attr-defined]
+        for client, plan in ((free, "free"), (pro, "professional"), (agency, "agency")):
+            org = client.get(f"{API}/auth/me").json()["organizations"][0]["id"]
+            state.plans.set_plan(org, plan, "system")
+        for client, stars in ((free, 3), (pro, 4), (agency, 5)):
+            assert (
+                client.put(f"{API}/feedback", json={"rating": stars, "message": f"{stars} stars"}).status_code
+                == 200
+            )
+        admin = admin_client(app, mailer)
+        summary = admin.get(f"{API}/feedback/summary").json()
+        plans = {e["message"]: e["plan"] for e in summary["latest"]}
+        assert plans == {"3 stars": "Free", "4 stars": "Professional", "5 stars": "Agency"}
+        assert summary["by_plan"] == {
+            "Agency": {"count": 1, "average": 5.0},
+            "Free": {"count": 1, "average": 3.0},
+            "Professional": {"count": 1, "average": 4.0},
+        }
+        text = json.dumps(summary)
+        for forbidden in ("free@", "pro@", "agency@", "example.com", "user_id", "Org"):
+            assert forbidden not in text

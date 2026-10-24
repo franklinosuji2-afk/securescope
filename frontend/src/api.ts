@@ -214,11 +214,15 @@ export interface Feedback {
   created_at: string;
   updated_at: string;
 }
+export interface FeedbackEntry extends Feedback {
+  plan: string | null;
+}
 export interface FeedbackSummary {
   count: number;
   average: number | null;
   by_rating: Record<string, number>;
-  latest: Feedback[];
+  by_plan?: Record<string, { count: number; average: number }>;
+  latest: FeedbackEntry[];
 }
 export const getFeedback = () => request<Feedback | null>("/feedback");
 export const saveFeedback = (input: {
@@ -511,10 +515,13 @@ export const setSchedule = (
 
 export const listWebhooks = () => request<WebhookList>("/webhooks");
 
-export const createWebhook = (url: string) =>
+export const createWebhook = (
+  url: string,
+  kind: "webhook" | "slack" = "webhook",
+) =>
   request<WebhookCreated>("/webhooks", {
     method: "POST",
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ url, kind }),
   });
 
 export const testWebhook = (id: string) =>

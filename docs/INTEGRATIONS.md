@@ -50,3 +50,14 @@ working. Unknown or switched-off addresses answer 404 with a neutral "unavailabl
 minutes and sent with `Content-Security-Policy: default-src 'none'`. Audit event: `badge.updated`.
 
 The badge is a heuristic from passive checks, not a certificate of security, and its title text says so.
+
+## Slack alerts
+
+Targets > Webhook alerts > "Send alerts to: A Slack channel" (Professional and Agency; the same limit of three addresses
+as webhook addresses). In Slack, create an incoming webhook for a channel and paste its address
+(`https://hooks.slack.com/services/T…/B…/…`). No other address is accepted for Slack. SecureScope sends a short text
+message on the same triggers as the alert email: the site's host name, why the alert was raised, the titles of new
+findings, the score and a link to the scan. No evidence and no page content are sent. The address contains a secret, so
+it is shown only as `https://hooks.slack.com/…` after saving; remove and re-add it to change it. Slack does not sign
+messages, so there is no signing secret. "Send test message" and "Recent deliveries" work as for webhook addresses.
+Anyone who knows the address can post to that channel: treat it like a password and revoke it in Slack if it leaks.

@@ -10,6 +10,7 @@ from sqlalchemy import Engine, delete, func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.database.session import make_session_factory
+from app.models.account import MemberRow
 from app.models.feedback import FeedbackRow
 
 
@@ -88,6 +89,24 @@ class FeedbackRepository:
         with self._session.begin() as session:
             result = session.execute(delete(FeedbackRow).where(FeedbackRow.user_id == user_id))
             return bool(result.rowcount)  # type: ignore[attr-defined]
+
+    def entries(self, limit: int = 500) -> list[tuple[FeedbackRecord, str | None]]:
+        """For the operator: the newest entries, each with the id of a workspace its author owns (or None for
+        someone who only belongs to other people's workspaces). The author's identity is not returned."""
+        owned = (
+            select(MemberRow.user_id, func.min(MemberRow.organization_id).label("organization_id"))
+            .where(MemberRow.role == "OWNER")
+            .group_by(MemberRow.user_id)
+            .subquery()
+        )
+        with self._session() as session:
+            rows = session.execute(
+                select(FeedbackRow, owned.c.organization_id)
+                .outerjoin(owned, owned.c.user_id == FeedbackRow.user_id)
+                .order_by(FeedbackRow.updated_at.desc())
+                .limit(limit)
+            ).all()
+            return [(_record(row), org) for row, org in rows]
 
     def summary(self, limit: int = 20) -> FeedbackSummary:
         """For the operator: totals and the latest entries. Entries carry no name or email address."""

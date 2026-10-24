@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
 
 class WebhookOut(BaseModel):
     id: str
+    kind: str = "webhook"
     # Scheme, host and port only. The path may hold a token, so it is not repeated.
     address: str
     enabled: bool
@@ -19,8 +21,8 @@ class WebhookOut(BaseModel):
 
 
 class WebhookCreated(WebhookOut):
-    # Shown once, when the endpoint is created or its secret is renewed.
-    signing_secret: str
+    # Shown once, when the endpoint is created or its secret is renewed. None for Slack, which has none.
+    signing_secret: str | None
 
 
 class WebhookList(BaseModel):
@@ -32,6 +34,7 @@ class WebhookList(BaseModel):
 
 class WebhookCreate(BaseModel):
     url: str = Field(min_length=8, max_length=2048)
+    kind: Literal["webhook", "slack"] = "webhook"
 
 
 class WebhookUpdate(BaseModel):

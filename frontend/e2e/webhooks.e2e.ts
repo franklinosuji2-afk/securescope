@@ -80,7 +80,7 @@ for (const scheme of ["dark", "light"] as const) {
     await expect(page.getByText(/^whsec_a+$/)).toBeVisible();
     await expect(page.getByText("https://hooks.example.com/…")).toBeVisible();
     expect(created).toEqual([
-      { url: "https://hooks.example.com/secret-token" },
+      { url: "https://hooks.example.com/secret-token", kind: "webhook" },
     ]);
     await page.getByRole("button", { name: "I have saved it" }).click();
     await expect(page.getByText(/^whsec_/)).toHaveCount(0);

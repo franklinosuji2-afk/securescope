@@ -26,7 +26,7 @@ billing or reviews. Phases ship as separate patches so each can be checked and d
 | 3 | Subscription groundwork: `subscriptions` and `billing_events` tables (migration 0016, built 24 Oct), effective-plan rule (paid access kept until period end after cancellation), downgrade preview that lists what would exceed a lower plan, never deleting anything | none | Entitlements unchanged for every existing account; duplicate provider events are idempotent in unit tests; preview endpoint reads only |
 | 4 | Billing provider integration (Paddle): checkout, webhook receiver with signature check, cancel, downgrade, invoices link | Paddle approval, credentials supplied by you in the host dashboard | Verified provider events only; no state change on unverified input; sandbox tests before any live use |
 | 5 | Webhook delivery history (built, migration 0017), TLS "expires soon" alert (already covered by the scanner finding and the alert rule; test added), usage page (already on Account > Your plan, nothing added), `v1` tag for the GitHub Action (your git command) | none | Tests per item |
-| 6 | Slack notifications | 5 | Only to a user-supplied incoming-webhook URL, validated like the webhook addresses (SSRF rules), signed test message |
+| 6 | Slack notifications (built 25 Oct, migration 0018) | 5 | Only to a user-supplied incoming-webhook URL, validated like the webhook addresses (SSRF rules); Slack has no signature, so the test message is plain text |
 
 ## Cross-cutting checks per phase
 
