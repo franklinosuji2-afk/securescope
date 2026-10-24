@@ -182,6 +182,14 @@ describe("a person in several organizations", () => {
     window.location.hash = "#/?scan=scanorg1";
     renderApp();
     expect(await screen.findByText("Score 41, grade F")).toBeInTheDocument();
+    // Wait for the first organization's initial dashboard requests to be complete before taking the
+    // snapshot; on a slow machine the scan list can still be requested after the score has rendered.
+    await waitFor(() =>
+      expect(new Set(dashboardCalls(server.calls).map((c) => c.path))).toEqual(
+        new Set(["/targets", "/overview", "/scans"]),
+      ),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
     const before = server.calls.length;
 
     await userEvent.selectOptions(
