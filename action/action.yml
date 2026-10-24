@@ -9,7 +9,7 @@ branding:
 
 inputs:
   api-key:
-    description: "A SecureScope API token (Targets > API access). Store it as an encrypted repository secret."
+    description: "A SecureScope API token (Integrations > API tokens for CI). Store it as an encrypted repository secret."
     required: true
   url:
     description: "The address to scan. Its host must be a site you have verified in SecureScope."

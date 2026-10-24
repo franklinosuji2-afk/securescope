@@ -16,6 +16,7 @@ import {
 } from "./pages/AuthPages";
 import LegalPage, { LegalLinks } from "./pages/Legal";
 import Targets from "./pages/Targets";
+import Integrations from "./pages/Integrations";
 import Team from "./pages/Team";
 import Findings from "./pages/Findings";
 import Analytics from "./pages/Analytics";
@@ -39,6 +40,7 @@ import { trackPageView, trackedPageName } from "./tracking";
 const NAV: { page: Page; label: string }[] = [
   { page: "overview", label: "Overview" },
   { page: "targets", label: "Targets" },
+  { page: "integrations", label: "Integrations" },
   { page: "clients", label: "Clients" },
   { page: "findings", label: "Findings" },
   { page: "history", label: "Scan History" },
@@ -296,6 +298,7 @@ export default function App() {
         )}
         {route.page === "not-found" && <NotFound />}
         {route.page === "targets" && <Targets />}
+        {route.page === "integrations" && <Integrations />}
         {route.page === "clients" && agency === true && <Clients />}
         {route.page === "findings" && <Findings route={route} />}
         {route.page === "history" && (

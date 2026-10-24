@@ -30,7 +30,7 @@ Notes
 
 ## API tokens
 
-Targets > API tokens for CI (owners and admins; Professional and Agency plans). A token looks like `ssk_...`, is shown
+Integrations > API tokens for CI (owners and admins; Professional and Agency plans). A token looks like `ssk_...`, is shown
 once, and only its SHA-256 digest and a short prefix are stored. At most 5 per workspace.
 
 A token can only call `POST /api/v1/ci/scans` and `GET /api/v1/ci/scans/{id}` with `Authorization: Bearer <token>`.
@@ -43,7 +43,7 @@ Revoke a token from the same page. Audit events: `api_token.created`, `api_token
 
 ## Score badges
 
-Targets > Score badge (all plans; switching on or off needs the right to manage sites). A badge is off until switched
+Integrations > Score badge (all plans; switching on or off needs the right to manage sites). A badge is off until switched
 on. The address is `/api/v1/badges/<random token>.svg`: a link, not a credential, and public. It shows only the latest
 completed scan's score and grade and the date, never findings or hostnames. "New address" makes the old one stop
 working. Unknown or switched-off addresses answer 404 with a neutral "unavailable" image. Responses are cached for five
@@ -53,7 +53,7 @@ The badge is a heuristic from passive checks, not a certificate of security, and
 
 ## Slack alerts
 
-Targets > Webhook alerts > "Send alerts to: A Slack channel" (Professional and Agency; the same limit of three addresses
+Integrations > Webhook alerts > "Send alerts to: A Slack channel" (Professional and Agency; the same limit of three addresses
 as webhook addresses). In Slack, create an incoming webhook for a channel and paste its address
 (`https://hooks.slack.com/services/T…/B…/…`). No other address is accepted for Slack. SecureScope sends a short text
 message on the same triggers as the alert email: the site's host name, why the alert was raised, the titles of new

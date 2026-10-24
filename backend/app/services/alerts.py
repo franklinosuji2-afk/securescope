@@ -81,7 +81,7 @@ def build_body(decision: AlertDecision, current: ScanDetail, base_url: str) -> s
         f"Open the scan: {link}",
         "",
         "You get this email because you are an owner, admin or security analyst of the workspace. Scheduled "
-        "scans and alerts can be changed on the Targets page. SecureScope sends an alert only when "
+        "scans and alerts can be changed on the Targets and Integrations pages. SecureScope sends an alert only when "
         "something changed for the worse.",
     ]
     return "\n".join(lines)
