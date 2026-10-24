@@ -93,6 +93,8 @@ class Settings(BaseSettings):
     # an address and browser string alone; if empty a random value is generated at start-up.
     analytics_salt: SecretStr | None = None
     analytics_retention_days: int = Field(90, ge=1, le=730)
+    # How long audit-log entries are kept. Older entries are deleted by the hourly maintenance job.
+    audit_retention_days: int = Field(365, ge=30, le=3650)
     analytics_events_per_client_per_hour: int = Field(60, ge=1)
 
     # Database connection pool (PostgreSQL). Total connections per process = pool size + overflow.

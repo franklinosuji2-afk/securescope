@@ -297,12 +297,16 @@ describe("audit log", () => {
         items: entries,
         total: 2,
         event_types: ["scan.cancelled", "something.new"],
+        retention_days: 365,
       },
     }));
     window.location.hash = "#/audit";
     renderApp();
     expect(
       await screen.findByRole("heading", { name: "Audit log" }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(/older than 365 days are deleted automatically/),
     ).toBeInTheDocument();
     const table = await screen.findByRole("table");
     expect(within(table).getByText("Scan cancelled")).toBeInTheDocument();

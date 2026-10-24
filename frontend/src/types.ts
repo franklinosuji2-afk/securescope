@@ -222,6 +222,7 @@ export interface AuditList {
   items: AuditEntry[];
   total: number;
   event_types: string[];
+  retention_days?: number;
 }
 
 export function canTriageFindings(role: Role): boolean {

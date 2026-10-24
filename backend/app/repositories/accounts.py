@@ -478,9 +478,9 @@ class AccountRepository:
                 if membership.role != Role.OWNER.value:
                     continue
                 members = session.scalar(
-                    select(func.count()).select_from(MemberRow).where(
-                        MemberRow.organization_id == membership.organization_id
-                    )
+                    select(func.count())
+                    .select_from(MemberRow)
+                    .where(MemberRow.organization_id == membership.organization_id)
                 )
                 if (members or 0) > 1 and self._owner_count(session, membership.organization_id) <= 1:
                     org = session.get(OrganizationRow, membership.organization_id)
@@ -566,7 +566,6 @@ class AccountRepository:
             )
             return row.user_id if claimed.rowcount == 1 else None  # type: ignore[attr-defined]
 
-
     # --- sign in with an outside provider ---------------------------------------------
 
     def find_identity_user_id(self, provider: str, subject: str) -> str | None:
@@ -581,7 +580,12 @@ class AccountRepository:
         with self._session.begin() as session:
             session.add(
                 OAuthIdentityRow(
-                    id=_id(), user_id=user_id, provider=provider, subject=subject, email=email, created_at=_now()
+                    id=_id(),
+                    user_id=user_id,
+                    provider=provider,
+                    subject=subject,
+                    email=email,
+                    created_at=_now(),
                 )
             )
 
@@ -813,6 +817,13 @@ class AuditRepository:
                     timestamp=_now(),
                 )
             )
+
+    def delete_older_than(self, days: int) -> int:
+        """Removes entries older than the retention period, including entries whose workspace is already gone."""
+        cutoff = _now() - timedelta(days=days)
+        with self._session.begin() as session:
+            result = session.execute(delete(AuditEventRow).where(AuditEventRow.timestamp < cutoff))
+            return int(result.rowcount or 0)  # type: ignore[attr-defined]
 
     def list_events(self, organization_id: str, limit: int = 100) -> list[AuditEventRow]:
         with self._session() as session:

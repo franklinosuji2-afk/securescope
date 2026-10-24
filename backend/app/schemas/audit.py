@@ -23,3 +23,5 @@ class AuditList(BaseModel):
     total: int
     # Every event type this organization has recorded, for the filter control.
     event_types: list[str]
+    # Entries older than this many days are deleted automatically.
+    retention_days: int = 365

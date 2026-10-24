@@ -27,4 +27,9 @@ async def list_audit_events(
         state.audit.query_events, ctx.organization_id, limit=limit, offset=offset, event_type=event_type
     )
     event_types = await asyncio.to_thread(state.audit.event_types, ctx.organization_id)
-    return AuditList(items=items, total=total, event_types=event_types)
+    return AuditList(
+        items=items,
+        total=total,
+        event_types=event_types,
+        retention_days=state.settings.audit_retention_days,
+    )

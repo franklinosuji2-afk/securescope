@@ -164,9 +164,10 @@ function Privacy() {
         <li>
           <strong>Audit log:</strong> a record of actions in your workspace:
           what happened, when, and which account did it (for example sign-in,
-          scans started, members invited). It contains no IP addresses and is
-          kept until the workspace is deleted. Our legitimate interest in
-          keeping the service secure and accountable (Art. 6(1)(f) GDPR).
+          scans started, members invited). It contains no IP addresses. Entries
+          are deleted automatically after 12 months, or earlier when the
+          workspace is deleted. Our legitimate interest in keeping the service
+          secure and accountable (Art. 6(1)(f) GDPR).
         </li>
         <li>
           <strong>Feedback (optional):</strong> if you choose to rate
