@@ -16,6 +16,7 @@ from app.models import feedback as _feedback  # noqa: F401
 from app.models import scan as _scan  # noqa: F401
 from app.models import schedule as _schedule  # noqa: F401
 from app.models import target as _target  # noqa: F401
+from app.models import webhook as _webhook  # noqa: F401
 
 config = context.config
 target_metadata = Base.metadata

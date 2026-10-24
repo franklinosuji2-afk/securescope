@@ -11,6 +11,7 @@ vi.mock("../api", () => ({
   renewWebhookSecret: vi.fn(),
   setWebhookEnabled: vi.fn(),
   deleteWebhook: vi.fn(),
+  listWebhookDeliveries: vi.fn(),
 }));
 import * as api from "../api";
 
@@ -141,5 +142,25 @@ describe("webhook alerts", () => {
     expect(await screen.findByText("https://hooks.example.com/…")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Remove" })).toBeNull();
     expect(screen.queryByLabelText("Webhook address")).toBeNull();
+  });
+
+  it("lists the recent deliveries of an address when opened", async () => {
+    vi.mocked(api.listWebhooks).mockResolvedValue(list({ items: [hook()] }));
+    vi.mocked(api.listWebhookDeliveries).mockResolvedValue([
+      {
+        delivery_id: "d1",
+        event: "scan.alert",
+        ok: false,
+        status: "Failed (HTTP 500).",
+        attempts: 2,
+        created_at: "2026-10-24T10:00:00Z",
+      },
+    ]);
+    render(<WebhookAlerts manage />);
+    await userEvent.click(await screen.findByText("Recent deliveries"));
+    expect(await screen.findByText(/Failed \(HTTP 500\)\./)).toBeTruthy();
+    expect(screen.getByText(/Scan alert/)).toBeTruthy();
+    expect(screen.getByText(/2 attempts/)).toBeTruthy();
+    expect(api.listWebhookDeliveries).toHaveBeenCalledWith("w1");
   });
 });

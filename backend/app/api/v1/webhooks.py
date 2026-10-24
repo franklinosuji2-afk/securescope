@@ -12,6 +12,7 @@ from app.repositories.webhooks import MAX_PER_ORGANIZATION
 from app.schemas.webhook import (
     WebhookCreate,
     WebhookCreated,
+    WebhookDeliveryOut,
     WebhookList,
     WebhookOut,
     WebhookTestResult,
@@ -58,6 +59,16 @@ async def list_webhooks(state: StateDep, ctx: CanRead) -> WebhookList:
         limit=MAX_PER_ORGANIZATION,
         items=items,
     )
+
+
+@router.get("/{webhook_id}/deliveries", response_model=list[WebhookDeliveryOut])
+async def list_deliveries(webhook_id: str, state: StateDep, ctx: CanRead) -> list[WebhookDeliveryOut]:
+    """The last deliveries to one address: when, which event and the outcome. No message content."""
+    _check_id(webhook_id)
+    items = await asyncio.to_thread(state.webhook_repo.deliveries, ctx.organization_id, webhook_id)
+    if items is None:
+        raise HTTPException(status_code=404, detail=NOT_FOUND)
+    return items
 
 
 @router.post("", response_model=WebhookCreated, status_code=201)

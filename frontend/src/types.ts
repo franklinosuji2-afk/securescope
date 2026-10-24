@@ -511,6 +511,15 @@ export interface WebhookList {
   items: Webhook[];
 }
 
+export interface WebhookDelivery {
+  delivery_id: string;
+  event: string;
+  ok: boolean;
+  status: string;
+  attempts: number;
+  created_at: string;
+}
+
 export interface WebhookTestResult {
   ok: boolean;
   status: string;

@@ -26,6 +26,7 @@ import type {
   BadgeList,
   Webhook,
   WebhookCreated,
+  WebhookDelivery,
   WebhookList,
   WebhookTestResult,
   Role,
@@ -531,6 +532,9 @@ export const setWebhookEnabled = (id: string, enabled: boolean) =>
     method: "PUT",
     body: JSON.stringify({ enabled }),
   });
+
+export const listWebhookDeliveries = (id: string) =>
+  request<WebhookDelivery[]>(`/webhooks/${encodeURIComponent(id)}/deliveries`);
 
 export const deleteWebhook = (id: string) =>
   request<void>(`/webhooks/${encodeURIComponent(id)}`, { method: "DELETE" });

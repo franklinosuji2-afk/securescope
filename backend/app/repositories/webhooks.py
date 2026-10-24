@@ -7,14 +7,16 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from urllib.parse import urlsplit
 
-from sqlalchemy import Engine, func, select
+from sqlalchemy import Engine, delete, func, select
 
 from app.database.session import make_session_factory
-from app.models.webhook import WebhookEndpointRow
-from app.schemas.webhook import WebhookOut
+from app.models.webhook import WebhookDeliveryRow, WebhookEndpointRow
+from app.schemas.webhook import WebhookDeliveryOut, WebhookOut
 
 MAX_PER_ORGANIZATION = 3
 AUTO_DISABLE_AFTER = 10
+# Recent deliveries kept per endpoint.
+KEEP_DELIVERIES = 20
 
 
 def _now() -> datetime:
@@ -153,11 +155,44 @@ class WebhookRepository:
             session.delete(row)
             return True
 
-    def record_attempt(self, webhook_id: str, ok: bool, status: str) -> None:
+    def record_attempt(
+        self,
+        webhook_id: str,
+        ok: bool,
+        status: str,
+        *,
+        event: str = "unknown",
+        delivery_id: str = "",
+        attempts: int = 1,
+    ) -> None:
         with self._session.begin() as session:
             row = session.get(WebhookEndpointRow, webhook_id)
             if row is None:
                 return
+            session.add(
+                WebhookDeliveryRow(
+                    id=uuid.uuid4().hex,
+                    webhook_id=webhook_id,
+                    delivery_id=delivery_id[:32],
+                    event=event[:32],
+                    ok=ok,
+                    status=status[:120],
+                    attempts=attempts,
+                    created_at=_now(),
+                )
+            )
+            session.flush()
+            keep = session.scalars(
+                select(WebhookDeliveryRow.id)
+                .where(WebhookDeliveryRow.webhook_id == webhook_id)
+                .order_by(WebhookDeliveryRow.created_at.desc(), WebhookDeliveryRow.id)
+                .limit(KEEP_DELIVERIES)
+            ).all()
+            session.execute(
+                delete(WebhookDeliveryRow).where(
+                    WebhookDeliveryRow.webhook_id == webhook_id, WebhookDeliveryRow.id.not_in(keep)
+                )
+            )
             row.last_attempt_at = _now()
             row.last_status = status[:120]
             if ok:
@@ -168,9 +203,44 @@ class WebhookRepository:
                     row.enabled = False
             session.flush()
 
+    def deliveries(self, organization_id: str, webhook_id: str) -> list[WebhookDeliveryOut] | None:
+        """Recent deliveries, newest first, or None when the endpoint is not this workspace's."""
+        with self._session() as session:
+            owned = session.scalar(
+                select(WebhookEndpointRow.id).where(
+                    WebhookEndpointRow.id == webhook_id, WebhookEndpointRow.organization_id == organization_id
+                )
+            )
+            if owned is None:
+                return None
+            rows = session.scalars(
+                select(WebhookDeliveryRow)
+                .where(WebhookDeliveryRow.webhook_id == webhook_id)
+                .order_by(WebhookDeliveryRow.created_at.desc(), WebhookDeliveryRow.id)
+                .limit(KEEP_DELIVERIES)
+            )
+            return [
+                WebhookDeliveryOut(
+                    delivery_id=r.delivery_id,
+                    event=r.event,
+                    ok=r.ok,
+                    status=r.status,
+                    attempts=r.attempts,
+                    created_at=_aware(r.created_at),
+                )
+                for r in rows
+            ]
+
     def count_all(self) -> int:
         with self._session() as session:
             return int(session.scalar(select(func.count()).select_from(WebhookEndpointRow)) or 0)
 
 
-__all__ = ["AUTO_DISABLE_AFTER", "MAX_PER_ORGANIZATION", "Endpoint", "WebhookRepository", "address_of"]
+__all__ = [
+    "AUTO_DISABLE_AFTER",
+    "KEEP_DELIVERIES",
+    "MAX_PER_ORGANIZATION",
+    "Endpoint",
+    "WebhookRepository",
+    "address_of",
+]
