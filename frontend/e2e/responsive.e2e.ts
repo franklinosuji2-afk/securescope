@@ -175,6 +175,7 @@ async function stub(page: Page) {
 const ROUTES = [
   ["overview", "/#/"],
   ["targets", "/#/targets"],
+  ["integrations", "/#/integrations"],
   ["findings", "/#/findings?scan=s1"],
   ["finding", "/#/findings?scan=s1&finding=SS-HDR-HSTS-001"],
   ["history", "/#/history"],

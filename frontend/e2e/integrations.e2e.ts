@@ -90,7 +90,7 @@ for (const scheme of ["dark", "light"] as const) {
   }) => {
     await page.emulateMedia({ colorScheme: scheme });
     const created = await stub(page, true);
-    await page.goto("/#/targets");
+    await page.goto("/#/integrations");
     await expect(
       page.getByRole("heading", { level: 2, name: "API tokens for CI" }),
     ).toBeVisible();
@@ -120,7 +120,7 @@ for (const scheme of ["dark", "light"] as const) {
 
 test("a plan without CI access says so", async ({ page }) => {
   await stub(page, false);
-  await page.goto("/#/targets");
+  await page.goto("/#/integrations");
   await expect(page.getByText(/does not include API tokens/)).toBeVisible();
   await expect(page.getByLabel("Token name")).toHaveCount(0);
 });

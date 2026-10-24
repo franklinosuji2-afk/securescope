@@ -663,6 +663,48 @@ const targetBase: Target = {
   http_file_content: "securescope-verification=" + "a".repeat(32),
 };
 
+describe("Integrations", () => {
+  it("asks for a verified site before offering alerts and badges", async () => {
+    window.location.hash = "#/integrations";
+    mockFetch(() => ({ items: [targetBase] }));
+    renderApp();
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Integrations" }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(/need at least one verified site/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Webhook alerts" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("points to the Integrations page from Targets once a site is verified", async () => {
+    window.location.hash = "#/targets";
+    mockFetch(() => ({ items: [{ ...targetBase, status: "verified" }] }));
+    renderApp();
+    const link = await screen.findByRole("link", {
+      name: "Integrations",
+      hidden: true,
+    });
+    expect(link).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Webhook alerts" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("lists Integrations in the main navigation", async () => {
+    window.location.hash = "#/integrations";
+    mockFetch(() => ({ items: [] }));
+    renderApp();
+    const nav = await screen.findByRole("navigation", {
+      name: "Primary",
+      hidden: true,
+    });
+    expect(nav.querySelector('a[href="#/integrations"]')).not.toBeNull();
+  });
+});
+
 describe("Targets", () => {
   it("shows exact DNS and file instructions for an unverified domain", async () => {
     window.location.hash = "#/targets";

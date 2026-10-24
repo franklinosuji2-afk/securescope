@@ -69,7 +69,7 @@ for (const scheme of ["dark", "light"] as const) {
   }) => {
     await page.emulateMedia({ colorScheme: scheme });
     const created = await stub(page, { available: true, configured: true });
-    await page.goto("/#/targets");
+    await page.goto("/#/integrations");
     await expect(
       page.getByRole("heading", { level: 2, name: "Webhook alerts" }),
     ).toBeVisible();
@@ -97,7 +97,7 @@ for (const scheme of ["dark", "light"] as const) {
 
 test("a server without a signing key says so", async ({ page }) => {
   await stub(page, { available: true, configured: false });
-  await page.goto("/#/targets");
+  await page.goto("/#/integrations");
   await expect(
     page.getByText("Webhook alerts are not switched on for this server yet."),
   ).toBeVisible();

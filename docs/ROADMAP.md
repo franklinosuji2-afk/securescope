@@ -6,11 +6,11 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
 
 1. **Paddle.** Paid plans stay "Coming soon" until the seller account is approved. Then: checkout, subscription state,
    idempotent payment webhooks, billing page. Nothing is sold or shown as active before that.
-2. **Try the GitHub Action** once on a real workflow run with a new API token (Targets > API tokens for CI). The `v1` tag exists (24 October). If the repository stays private, other repositories need access (Settings > Actions > General).
+2. **Try the GitHub Action** once on a real workflow run with a new API token (Integrations > API tokens for CI). The `v1` tag exists (24 October). If the repository stays private, other repositories need access (Settings > Actions > General).
 3. **DNS hardening for getsecurescope.com** (the scan's own informational notes): add a CAA record, turn on DNSSEC in
    Cloudflare and add the DS record at the registrar, and move DMARC from `p=none` to `p=quarantine` once the
    reports show only your own senders.
-4. **Check the first real alert email and a webhook** against a receiver you control (Targets > Webhook alerts > Send
+4. **Check the first real alert email and a webhook** against a receiver you control (Integrations > Webhook alerts > Send
    test message). The first scheduled-scan alert email has not fired yet because nothing new has appeared.
 5. **Check the sign-in icons** (Google and GitHub) in a private window.
 6. **Local cleanup** (see the end of this page). Two files in Downloads hold secrets and should not stay there.
@@ -25,7 +25,7 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
 
 ## Product
 
-- **Slack alerts** are built (Targets > Webhook alerts > "A Slack channel"): same triggers as the email and webhook alerts, incoming-webhook style, no evidence in the message. Not built: Microsoft Teams, interactive Slack features (buttons, a Slack app with sign-in).
+- **Slack alerts** are built (Integrations > Webhook alerts > "A Slack channel"): same triggers as the email and webhook alerts, incoming-webhook style, no evidence in the message. Not built: Microsoft Teams, interactive Slack features (buttons, a Slack app with sign-in).
 - **Verification workflow.** Separate "no longer detected" from "confirmed resolved" (needs a later scan that examined
   the same resource), and add a "Verify fix" action that re-checks one finding.
 - **Premium PDF cover and layout** from the product brief: a cover page with reference, dates, scope and an executive
@@ -46,7 +46,6 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
 
 ## Engineering
 
-- The **Targets page is long** (domains, schedules, webhooks, badges, tokens). Move integrations to their own page.
 - **Webhook delivery** is best effort (two attempts, no queue; the last 20 outcomes per address are listed on the Webhooks page). A small retry queue would help receivers that are down.
 - **Free hosting cold starts.** A paused backend needs up to a minute; the Action waits, the web app shows a loading
   state. A keep-warm ping or a paid instance removes it.

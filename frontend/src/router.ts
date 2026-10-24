@@ -4,6 +4,7 @@ export type Page =
   | "overview"
   | "not-found"
   | "targets"
+  | "integrations"
   | "findings"
   | "history"
   | "team"
@@ -28,6 +29,7 @@ export type Page =
 
 const PAGES: readonly Page[] = [
   "targets",
+  "integrations",
   "findings",
   "history",
   "team",

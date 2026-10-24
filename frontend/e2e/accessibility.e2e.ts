@@ -39,6 +39,7 @@ for (const scheme of ["dark", "light"] as const) {
     for (const route of [
       "#/",
       "#/targets",
+      "#/integrations",
       "#/findings",
       "#/history",
       "#/team",
