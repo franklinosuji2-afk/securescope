@@ -103,8 +103,8 @@ function Impressum() {
         </li>
       </ul>
       <p>
-        Operated by an individual freelancer. No VAT identification number has
-        been issued.
+        SecureScope is operated by an individual. It is not a registered
+        company.
       </p>
       <h2>Responsible for content (§ 18 Abs. 2 MStV)</h2>
       <p>{OPERATOR}, address as above.</p>
@@ -349,12 +349,12 @@ function Terms() {
         availability, or is used to scan sites without authorization; where
         possible we will tell you why first.
       </p>
-      <h2>4. Early access and no guarantees</h2>
+      <h2>4. Development stage and no guarantees</h2>
       <p>
-        The service is provided as is, during an early access phase, without
-        guarantee of availability or completeness of findings. Checks can miss
-        issues or report false positives. Decisions based on the results are
-        yours.
+        SecureScope is still in development. The service is provided as is,
+        without guarantee of availability or completeness of findings. Checks
+        can miss issues or report false positives. Decisions based on the
+        results are yours.
       </p>
       <h2>5. Liability</h2>
       <p>

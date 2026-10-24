@@ -46,3 +46,33 @@ describe("legal text matches what the app does", () => {
     expect(text("terms")).toContain("technical control only");
   });
 });
+
+describe("pre-launch: no unconfirmed business, tax or hosting claims", () => {
+  it("the Impressum invents no register, VAT or company data", () => {
+    const t = text("impressum");
+    expect(t).toContain("not a registered company");
+    for (const word of [
+      "Handelsregister",
+      "HRB",
+      "USt-IdNr",
+      "Kleinunternehmer",
+      "GmbH",
+    ])
+      expect(t).not.toContain(word);
+    expect(t).not.toContain("No VAT identification number");
+  });
+
+  it("the privacy notice does not promise that everything is hosted in the EU", () => {
+    const t = text("privacy");
+    expect(t).not.toMatch(
+      /all (your )?data (is|are) (stored|hosted|processed) in the (EU|European)/i,
+    );
+    expect(t).not.toMatch(/Render[^.]*(Frankfurt|Germany|EU)/);
+  });
+
+  it("the terms say the service is in development and promise no payment terms", () => {
+    const t = text("terms");
+    expect(t).toContain("still in development");
+    expect(t).not.toContain("early access");
+  });
+});
