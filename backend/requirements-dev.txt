@@ -10,5 +10,5 @@ Pygments==2.21.0
 pytest==9.1.1
 pytest-timeout==2.4.0
 ruff==0.17.1
-httpx2==2.13.1
-pypdf==6.21.1
+httpx2==2.16.0
+pypdf==6.21.2

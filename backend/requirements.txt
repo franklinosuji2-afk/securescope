@@ -13,7 +13,7 @@ click==8.5.0
 cssselect2==0.10.1
 dnspython==2.9.0
 email-validator==2.3.0
-fastapi==0.144.0
+fastapi==0.158.2
 fonttools==4.67.0
 greenlet==3.5.6
 h11==0.16.0
@@ -28,14 +28,14 @@ pillow==13.0.0
 psycopg-binary==3.3.6
 psycopg==3.3.6
 pycparser==3.11
-pydantic-settings==2.16.0
+pydantic-settings==2.16.1
 pydantic==2.14.1
 pydantic_core==2.50.1
 pydyf==0.13.0
 pyphen==0.18.1
 python-dotenv==1.2.4
-SQLAlchemy==2.0.55
-starlette==1.8.0
+SQLAlchemy==2.1.6
+starlette==1.9.0
 tinycss2==1.5.1
 tinyhtml5==2.1.0
 typing-inspection==0.4.4
