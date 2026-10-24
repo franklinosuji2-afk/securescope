@@ -27,8 +27,16 @@ export default {
       );
     }
     const incoming = new URL(request.url);
-    // Internal endpoints are for the cron trigger only, which calls the backend directly.
-    if (incoming.pathname.startsWith("/api/v1/internal")) {
+    // Internal endpoints are for the cron trigger only, which calls the backend directly. The path is decoded
+    // first, so "/api/v1/%69nternal" cannot slip past the check and still reach the same route; a path that
+    // cannot be decoded is refused.
+    let decodedPath;
+    try {
+      decodedPath = decodeURIComponent(incoming.pathname).toLowerCase();
+    } catch {
+      decodedPath = null;
+    }
+    if (decodedPath === null || decodedPath.startsWith("/api/v1/internal")) {
       return new Response(JSON.stringify({ detail: "Not found." }), {
         status: 404,
         headers: {
@@ -46,6 +54,8 @@ export default {
     headers.delete("x-proxy-secret");
     headers.delete("x-real-client-ip");
     headers.delete("x-forwarded-for");
+    // Only the cron trigger may present this; a visitor never gets to try a guess through the proxy.
+    headers.delete("x-cron-secret");
     headers.set("x-proxy-secret", env.PROXY_SECRET);
     const visitor = request.headers.get("cf-connecting-ip");
     if (visitor) headers.set("x-real-client-ip", visitor);

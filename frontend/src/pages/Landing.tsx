@@ -575,6 +575,9 @@ export default function Landing() {
                 loading="lazy"
                 alt="First page of the sample website security report for example.com: title, scan details and an overall risk rating of Medium"
               />
+              <span className="landing-pdf-hint" aria-hidden="true">
+                Open the PDF
+              </span>
             </a>
           </section>
 

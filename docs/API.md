@@ -1,6 +1,6 @@
 # API (v0.11)
 
-Base path `/api/v1`. Interactive schema at `/api/docs` when the backend is reached directly. Cookie-authenticated; unsafe methods need `X-CSRF-Token`; multi-organization users select one with `X-Organization-Id`.
+Base path `/api/v1`. Interactive schema at `/api/docs` only when `SECURESCOPE_API_DOCS_ENABLED=true` (local development; off in production, because the page loads scripts from a public CDN). Cookie-authenticated; unsafe methods need `X-CSRF-Token`; multi-organization users select one with `X-Organization-Id`.
 
 | Method         | Path                                            | Auth                             | Notes                                                                                                                                                                                                                                                                                                                     |
 | -------------- | ----------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -113,4 +113,33 @@ describe("internal endpoints and the cron trigger", () => {
     await worker.scheduled({}, env, { waitUntil: () => {} });
     expect(calls).toHaveLength(0);
   });
+
+  it("refuses the internal routes however the path is written", async () => {
+    const calls = stubBackend();
+    for (const path of [
+      "/api/v1/internal/run-due",
+      "/api/v1/%69nternal/run-due",
+      "/api/v1/%49NTERNAL/run-due",
+      "/api/v1/internal%2Frun-due",
+      "/api/v1/%zz",
+    ]) {
+      const response = await worker.fetch(
+        new Request(`https://app.example.org${path}`, { method: "POST" }),
+        env,
+      );
+      expect(response.status).toBe(404);
+    }
+    expect(calls).toHaveLength(0);
+  });
+
+  it("does not pass a visitor's cron secret on to the backend", async () => {
+    const calls = stubBackend();
+    await worker.fetch(
+      new Request("https://app.example.org/api/v1/ready", {
+        headers: { "x-cron-secret": "guess" },
+      }),
+      env,
+    );
+    expect(calls[0].headers.get("x-cron-secret")).toBeNull();
+  });
 });

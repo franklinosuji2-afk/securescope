@@ -23,7 +23,6 @@ from app.security.tokens import constant_time_equal
 from app.services.mailer import ApiMailer
 
 router = APIRouter(tags=["platform"])
-VERSION_PLACEHOLDER = "unknown"
 
 
 def _db_check(state: AppState) -> tuple[bool, int | None]:

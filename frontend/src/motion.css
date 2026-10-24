@@ -206,6 +206,46 @@ textarea:focus-visible {
     border-color: var(--sev-low);
   }
 }
+/* Sample PDF cover: floats on its own, tilts toward the pointer, and offers to open the file. */
+.landing-pdf-cover {
+  transition:
+    transform var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out);
+}
+.landing-pdf-cover img {
+  transition: transform 400ms var(--ease-out);
+}
+.landing-pdf-hint {
+  transition:
+    opacity var(--dur) var(--ease-out),
+    translate var(--dur) var(--ease-out);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .landing-pdf-cover {
+    animation: float-soft 8s ease-in-out infinite;
+  }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .landing-pdf-cover:hover,
+  .landing-pdf-cover:focus-visible {
+    animation-play-state: paused;
+    transform: translateY(-8px) rotate(-1.2deg) scale(1.02);
+    border-color: color-mix(in srgb, var(--accent-soft) 55%, var(--border));
+    box-shadow:
+      var(--lift-shadow),
+      0 0 0 1px color-mix(in srgb, var(--accent-soft) 25%, transparent);
+  }
+  .landing-pdf-cover:hover img,
+  .landing-pdf-cover:focus-visible img {
+    transform: scale(1.04);
+  }
+  .landing-pdf-cover:hover .landing-pdf-hint,
+  .landing-pdf-cover:focus-visible .landing-pdf-hint {
+    opacity: 1;
+    translate: -50% 0;
+  }
+}
 .landing-sample {
   transition:
     transform var(--dur) var(--ease-out),

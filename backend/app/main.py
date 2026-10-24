@@ -93,8 +93,8 @@ def create_app(settings: Settings | None = None, mailer: Mailer | None = None) -
         title="SecureScope API",
         version=VERSION,
         lifespan=lifespan,
-        docs_url="/api/docs",
-        openapi_url="/api/openapi.json",
+        docs_url="/api/docs" if settings.api_docs_enabled else None,
+        openapi_url="/api/openapi.json" if settings.api_docs_enabled else None,
         redoc_url=None,
     )
     app.add_middleware(

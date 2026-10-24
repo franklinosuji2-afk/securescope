@@ -907,6 +907,7 @@
   max-width: 56ch;
 }
 .landing-pdf-cover {
+  position: relative;
   justify-self: center;
   display: block;
   width: 100%;
@@ -921,6 +922,21 @@
   display: block;
   width: 100%;
   height: auto;
+}
+.landing-pdf-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  translate: -50% 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
 }
 @media (max-width: 760px) {
   .landing-pdf {

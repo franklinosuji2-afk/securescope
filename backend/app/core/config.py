@@ -95,6 +95,10 @@ class Settings(BaseSettings):
     analytics_retention_days: int = Field(90, ge=1, le=730)
     analytics_events_per_client_per_hour: int = Field(60, ge=1)
 
+    # Interactive API documentation (/api/docs, /api/openapi.json). Off by default: the page loads scripts from a
+    # public CDN and the site and API share one origin, so production must not serve it. Local development only.
+    api_docs_enabled: bool = False
+
     # Bearer token for GET /metrics (Prometheus format). Without it the endpoint does not exist (404).
     metrics_token: SecretStr | None = None
 
