@@ -71,7 +71,7 @@ Sources for the evidence column are in `docs/legal-audit.md`.
 | Item | What to verify | Why | Blocks launch | Owner | Status |
 | --- | --- | --- | --- | --- | --- |
 | Render region | Region of the web service in the Render dashboard | Not stated in `render.yaml`; EU hosting must not be assumed | Yes | Operator | Open. Pages make no claim about it |
-| Neon region | Dashboard shows the project region | Notice says Frankfurt | Yes | Operator | Open; the notice claim rests on a `eu-central-1` host name, confirm in the dashboard |
+| Neon region | Dashboard shows the project region | Notice says Frankfurt | Yes | Operator | Done: Neon dashboard screenshot (24 Oct 2026) shows project `securescope`, region AWS Europe Central 1 (Frankfurt), Free plan, restore history 6 hours, no IP restrictions, Postgres 18 |
 | Cloudflare | Edge network, logs, processing locations | Notice mentions routing only | No | Operator | Open |
 
 ## 8. Data-processing agreements and transfers
