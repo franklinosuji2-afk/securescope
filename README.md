@@ -18,6 +18,8 @@ docker compose up --build
 
 Requires Docker with Compose v2. No cloud account, no paid API. Data lives in PostgreSQL in a Docker volume; migrations run automatically on backend start.
 
+The database is PostgreSQL 18, the same major version as production (Neon). If you started the stack earlier with PostgreSQL 16, the old `pgdata` volume is not reused: export anything you want to keep with `pg_dump` first, then run `docker compose down -v` and start again to get a fresh database.
+
 ## Screenshots
 
 Captured from the running app against a real scan history of my own portfolio site (`cfo-dev.pages.dev`): it started at 80/B with four findings, and three were fixed and later marked **Resolved** by SecureScope when a newer scan no longer reported them. Account details are replaced with placeholders.
