@@ -56,13 +56,16 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
 - **Coverage audit** (`docs/ENGINEERING_COVERAGE_AUDIT.md`) should be re-counted after these additions.
 - **Passive checks** to consider later, each with tests first: HTTP to HTTPS redirect chain details, `Set-Cookie`
   prefixes, `Cross-Origin-*` isolation headers. Nothing active or intrusive.
+- **Scheduled backup** is still manual (`OPERATIONS.md` section 2). A GitHub Action would store dumps containing user
+  e-mail addresses on GitHub; a Windows scheduled task on your PC keeps them with you. Decide, then build.
+- **Edge rate limit** for the sign-in routes in Cloudflare (your dashboard action), then p99, concurrency and EXPLAIN checks.
 - **Badge** could show the scan date in its image and offer a flat-square style.
 
 ## Done recently (for reference)
 
 Passive page and DNS checks, scheduled scans, webhook alerts, GitHub Action, API tokens, score badges, plan tables on
 every tier, new logo, score method in every report, severity policy with tests, DNS findings naming records instead of
-a page.
+a page; bounded database pool, log-leak tests, secret-rotation procedure and Dependabot (24 October).
 
 ## Local cleanup (run in PowerShell, check the list first)
 

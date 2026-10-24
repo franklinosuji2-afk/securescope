@@ -79,6 +79,32 @@ Take a backup before any release that adds a migration.
 
 If a secret was pasted somewhere public, treat it as leaked and rotate it immediately.
 
+### Rotation procedure (any secret)
+
+Do this in order so the service never runs with mismatched values. Never type a secret into chat, an issue or a commit.
+
+1. **Create the new value** in the provider (Neon, Brevo, Google or GitHub OAuth) or generate a random one locally
+   (`python -c "import secrets; print(secrets.token_urlsafe(48))"`). Keep the old value working.
+2. **Set the new value** in the place listed in the table (Render dashboard, Cloudflare Worker settings). For a pair
+   (`CRON_SECRET`, `PROXY_SECRET`) change the Cloudflare side first and the Render side last, then wait for the Render
+   redeploy.
+3. **Check**: `https://getsecurescope.com/api/v1/ready` returns 200; sign in; for mail, trigger a password reset to
+   yourself; for OAuth, sign in with that provider; for the cron secret, the next scheduled run completes.
+4. **Revoke the old value** in the provider. Do this last.
+5. **Record** the date and secret name (never the value) in the verification log below.
+
+Extra secrets not in the table: `SECURESCOPE_DOWNLOAD_SIGNING_KEY` (download links live only a few minutes, so a change
+only invalidates links that are already open), `SECURESCOPE_OAUTH_GOOGLE_CLIENT_SECRET` and
+`SECURESCOPE_OAUTH_GITHUB_CLIENT_SECRET` (rotate in the provider console, then update Render).
+
+**If a secret leaked**: rotate it at once (steps 1 to 4), then look for use between the leak and the rotation: Neon and
+Render logs, unexpected scans or audit-log events. For a leaked database string also rotate the Neon role password and
+treat stored e-mail addresses as exposed and ask a lawyer whether a GDPR breach notification (Art. 33/34) applies.
+If the secret is in git history, rotating is the fix; rewriting history does not undo the exposure.
+
+Dependabot (`.github/dependabot.yml`) opens weekly update pull requests for Python, npm, GitHub Actions and the two
+Dockerfiles. Review and merge them yourself; CI must be green first.
+
 ## 6. Incidents
 
 1. **Confirm:** is `https://getsecurescope.com/api/v1/ready` green? Does the site load?
