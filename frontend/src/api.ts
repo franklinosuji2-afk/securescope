@@ -191,6 +191,30 @@ export const changePassword = (
     method: "PATCH",
     body: JSON.stringify({ current_password, new_password }),
   });
+export interface AccountInfo {
+  email: string;
+  email_verified: boolean;
+  status: string;
+  created_at: string;
+  has_password: boolean;
+}
+export interface DeviceSession {
+  id: string;
+  created_at: string;
+  expires_at: string;
+  current: boolean;
+}
+export const getAccount = () => request<AccountInfo>("/account");
+export const listSessions = () => request<DeviceSession[]>("/account/sessions");
+export const revokeSession = (id: string) =>
+  request<void>(`/account/sessions/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+export const revokeOtherSessions = () =>
+  request<void>("/account/sessions/revoke-others", { method: "POST" });
+/** Where the browser downloads the person's own data file from (a plain GET, sent with the session cookie). */
+export const ACCOUNT_EXPORT_URL = `${BASE}/account/export`;
+
 /** Deletes the signed-in person's account for good. `confirm` must be the word DELETE. */
 export const deleteAccount = (password: string, confirm: string) =>
   request<void>("/account", {

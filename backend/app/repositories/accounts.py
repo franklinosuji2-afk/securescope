@@ -114,6 +114,21 @@ class SessionRecord:
     expires_at: datetime
 
 
+@dataclass(frozen=True)
+class SessionInfo:
+    """What the person may see about one of their own sign-ins. Never the token or its digest."""
+
+    id: str
+    created_at: datetime
+    expires_at: datetime
+
+
+@dataclass(frozen=True)
+class AccountDetails:
+    created_at: datetime
+    status: str
+
+
 def _user(row: UserRow) -> UserRecord:
     return UserRecord(
         id=row.id,
@@ -354,6 +369,99 @@ class AccountRepository:
                 .values(revoked_at=_now())
             )
             return int(result.rowcount or 0)  # type: ignore[attr-defined]
+
+    def list_sessions(self, user_id: str) -> list[SessionInfo]:
+        """The person's sign-ins that are still usable, newest first."""
+        now = _now()
+        with self._session() as session:
+            rows = session.scalars(
+                select(SessionRow)
+                .where(SessionRow.user_id == user_id, SessionRow.revoked_at.is_(None))
+                .order_by(SessionRow.created_at.desc())
+            ).all()
+            return [
+                SessionInfo(r.id, _aware(r.created_at), _aware(r.expires_at))
+                for r in rows
+                if _aware(r.expires_at) > now
+            ]
+
+    def revoke_user_session(self, user_id: str, session_id: str) -> bool:
+        """Signs out one device. Only a session that belongs to `user_id` can be revoked."""
+        with self._session.begin() as session:
+            result = session.execute(
+                update(SessionRow)
+                .where(
+                    SessionRow.id == session_id,
+                    SessionRow.user_id == user_id,
+                    SessionRow.revoked_at.is_(None),
+                )
+                .values(revoked_at=_now())
+            )
+            return bool(result.rowcount)  # type: ignore[attr-defined]
+
+    def account_details(self, user_id: str) -> AccountDetails | None:
+        with self._session() as session:
+            row = session.get(UserRow, user_id)
+            if row is None:
+                return None
+            return AccountDetails(_aware(row.created_at), row.account_status)
+
+    def export_personal_data(self, user_id: str) -> dict[str, object]:
+        """Everything about this person, for them to keep. It holds no password hash, no token or digest, and
+        nothing that belongs to another customer. Other members and the workspace's websites are not listed, because
+        a client viewer must not learn what other clients of an agency scan."""
+        with self._session() as session:
+            user = session.get(UserRow, user_id)
+            if user is None:
+                return {}
+            memberships = session.execute(
+                select(OrganizationRow, MemberRow.role, MemberRow.created_at)
+                .join(MemberRow, MemberRow.organization_id == OrganizationRow.id)
+                .where(MemberRow.user_id == user_id)
+                .order_by(MemberRow.created_at)
+            ).all()
+            identities = session.scalars(
+                select(OAuthIdentityRow).where(OAuthIdentityRow.user_id == user_id)
+            ).all()
+            events = session.scalars(
+                select(AuditEventRow)
+                .where(AuditEventRow.actor_user_id == user_id)
+                .order_by(AuditEventRow.timestamp)
+                .limit(5000)
+            ).all()
+            workspaces: list[dict[str, object]] = []
+            for org, role, joined in memberships:
+                workspaces.append(
+                    {
+                        "name": org.name,
+                        "your_role": role,
+                        "joined": _aware(joined).isoformat(),
+                    }
+                )
+            return {
+                "exported_at": _now().isoformat(),
+                "account": {
+                    "email": user.email,
+                    "email_verified": user.email_verified_at is not None,
+                    "status": user.account_status,
+                    "created": _aware(user.created_at).isoformat(),
+                    "has_password": user.password_hash != UNUSABLE_PASSWORD,
+                },
+                "sign_in_providers": [
+                    {"provider": i.provider, "email": i.email, "linked": _aware(i.created_at).isoformat()}
+                    for i in identities
+                ],
+                "workspaces": workspaces,
+                "actions_recorded_in_the_audit_log": [
+                    {
+                        "time": _aware(e.timestamp).isoformat(),
+                        "event": e.event_type,
+                        "resource_type": e.resource_type,
+                    }
+                    for e in events
+                ],
+                "note": "Websites, scan results and reports belong to the workspace and are exported from its pages in the app.",
+            }
 
     # --- deleting an account ----------------------------------------------------------
 
