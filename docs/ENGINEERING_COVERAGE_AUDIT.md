@@ -56,7 +56,7 @@
 | 25 | Database Indexing | Partially implemented | Medium | Indexes in `models/*.py` and migrations (e.g. `ix_scans_organization_id_created_at`, `ix_audit_events_organization_id_timestamp`) | Indexes exist for the main access paths. No query-plan check (`EXPLAIN`) has been run on production-sized data. |
 | 26 | Query Optimization | Partially implemented | Low | List endpoints paginate (`limit`/`offset`); analytics summary computed in Python with a row cap | No profiling or slow-query review has been done. |
 | 27 | N+1 Queries | Partially implemented | Low | None specific | Not audited. Flagged as a follow-up for list endpoints that load findings. |
-| 28 | Connection Pooling | Partially implemented | Medium | `database/session.py` (SQLAlchemy default pool, `pool_pre_ping=True`) | Default pool settings are used and have not been tuned for Neon connection limits. |
+| 28 | Connection Pooling | Implemented | Medium | `database/session.py` (bounded pool: size 5, overflow 5, 10 s checkout timeout, 30 min recycle, 10 s connect timeout, `pool_pre_ping`; settings `SECURESCOPE_DB_*`), `tests/test_db_pool.py` | Limits are sensible defaults; tune against the real Neon plan's connection limit if load grows. |
 | 29 | Read Replicas | Not applicable | None | None | Not needed at current load. |
 | 30 | Sharding | Not applicable | None | None | Not needed. |
 | 31 | Partitioning | Not applicable | None | None | Retention deletes old rows instead (`DATA_RETENTION.md`). |

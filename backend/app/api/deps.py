@@ -53,7 +53,14 @@ class AppState:
 
     def __init__(self, settings: Settings, mailer: Mailer | None = None) -> None:
         self.settings = settings
-        self.engine = make_engine(settings.database_url)
+        self.engine = make_engine(
+            settings.database_url,
+            pool_size=settings.db_pool_size,
+            max_overflow=settings.db_max_overflow,
+            pool_timeout=settings.db_pool_timeout_seconds,
+            pool_recycle=settings.db_pool_recycle_seconds,
+            connect_timeout=settings.db_connect_timeout_seconds,
+        )
         self.repo = ScanRepository(self.engine)
         self.plans = PlanRepository(self.engine)
         self.entitlements = Entitlements(self.plans, settings.default_plan)

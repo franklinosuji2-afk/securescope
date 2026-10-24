@@ -95,6 +95,13 @@ class Settings(BaseSettings):
     analytics_retention_days: int = Field(90, ge=1, le=730)
     analytics_events_per_client_per_hour: int = Field(60, ge=1)
 
+    # Database connection pool (PostgreSQL). Total connections per process = pool size + overflow.
+    db_pool_size: int = Field(5, ge=1, le=20)
+    db_max_overflow: int = Field(5, ge=0, le=20)
+    db_pool_timeout_seconds: float = Field(10.0, gt=0, le=60)
+    db_pool_recycle_seconds: int = Field(1800, ge=30)
+    db_connect_timeout_seconds: int = Field(10, ge=1, le=60)
+
     # Interactive API documentation (/api/docs, /api/openapi.json). Off by default: the page loads scripts from a
     # public CDN and the site and API share one origin, so production must not serve it. Local development only.
     api_docs_enabled: bool = False
