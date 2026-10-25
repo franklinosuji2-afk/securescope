@@ -4,6 +4,7 @@ import PlanComparison from "../components/PlanComparison";
 import { useEffect, useRef, useState } from "react";
 import sample from "../sample/sampleReport.json";
 import { buildHash } from "../router";
+import { CONTACT, mailto } from "../contact";
 import "../landing.css";
 
 const ICONS: Record<string, string> = {
@@ -71,7 +72,7 @@ const PROBLEMS = [
 const NUMBERS = [
   { value: "0", label: "attack payloads sent. Ever." },
   { value: "9", label: "areas checked on every scan" },
-  { value: "4", label: "steps from sign-up to first result" },
+  { value: "4", label: "steps from sign-up to your first scan" },
   { value: "3", label: "free scans every month" },
 ];
 
@@ -204,12 +205,20 @@ const FEATURES = [
 
 const FAQ = [
   {
+    q: "Who is SecureScope for?",
+    a: "People who look after websites they own or are responsible for: freelancers, small teams and agencies that want a clear, repeatable check of the basics, with something to show a client. It does not replace a penetration test or a security team.",
+  },
+  {
     q: "Is it safe to run on my site?",
-    a: "Yes. SecureScope only reads: a few normal page requests and one TLS connection. It sends no exploit payloads, no brute force and no port scans, and it never stores page contents.",
+    a: "Yes. SecureScope only reads: a few normal page requests, requests for a few well-known paths such as /.env to see whether they are publicly readable, and one TLS connection. It sends no exploit payloads, no brute force and no port scans, and it never stores page contents.",
   },
   {
     q: "Can I scan a site that isn't mine?",
-    a: "No. Every site has to be verified with a DNS record or a file first, so SecureScope can't be pointed at someone else's website.",
+    a: "No. Every site has to be verified with a DNS record or a file first, so SecureScope is not a tool for testing other people's websites. Verification proves technical control of the domain; if it is not your own site you also need the owner's permission.",
+  },
+  {
+    q: "What does scheduled monitoring do?",
+    a: "On the Professional and Agency plans (not on sale yet) SecureScope scans a verified site daily or weekly and emails you only when something new appears or the score drops by 5 points or more, so a change that opens a gap does not go unnoticed for months.",
   },
   {
     q: "Is this a penetration test?",
@@ -727,8 +736,10 @@ export default function Landing() {
             <a href={login}>Sign in</a>
             <a href={register}>Create free account</a>
           </nav>
-          <nav aria-label="Legal" className="landing-foot-col">
-            <h2>Legal</h2>
+          <nav aria-label="Help and legal" className="landing-foot-col">
+            <h2>Help and legal</h2>
+            <a href={mailto("support")}>Support: {CONTACT.support}</a>
+            <a href="/.well-known/security.txt">Report a security issue</a>
             <a href="#/impressum">Impressum</a>
             <a href="#/privacy">Privacy</a>
             <a href="#/terms">Terms</a>
