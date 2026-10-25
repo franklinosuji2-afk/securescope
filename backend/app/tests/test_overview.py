@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from typing import Any
 
 from fastapi.testclient import TestClient
 
@@ -176,3 +177,40 @@ def test_api_requires_sign_in_and_is_open_to_every_role(
 
     viewer = member_client(local_client, org, "viewer@example.com", "VIEWER")
     assert viewer.get(f"{API}/overview").json() == body
+
+
+def test_the_scan_list_costs_the_same_number_of_queries_for_a_big_page_as_for_a_small_one(
+    make_settings: Any,
+    mailer: Any,
+    mock_server: str,
+) -> None:
+    """A page of scans is loaded with a fixed number of queries; it must not grow with the number of scans."""
+    from fastapi.testclient import TestClient
+    from sqlalchemy import event
+
+    from app.main import create_app
+    from app.tests.conftest import signup, trust_host
+    from app.tests.test_tenancy import finished_scan
+
+    settings = make_settings(
+        allow_private_targets=True,
+        request_timeout_seconds=1.0,
+        scans_per_target_per_hour=100,
+        scans_per_client_per_hour=100,
+    )
+    with TestClient(create_app(settings, mailer)) as client:
+        signup(client, "alice@example.com", "Alice Org")
+        trust_host(client, "127.0.0.1")
+        for _ in range(7):
+            finished_scan(client, mock_server)
+        counted: list[int] = []
+        event.listen(
+            client.app.state.s.engine,  # type: ignore[attr-defined]
+            "before_cursor_execute",
+            lambda *a, **k: counted.append(1),
+        )
+        client.get("/api/v1/scans?limit=1")
+        small = len(counted)
+        counted.clear()
+        client.get("/api/v1/scans?limit=25")
+        assert len(counted) == small
