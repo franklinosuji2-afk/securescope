@@ -170,20 +170,25 @@ class AgencyRepository:
         """Newest completed scan id per host, for this organization only."""
         if not hosts:
             return {}
+        # One row per host, picked by the database: the answer no longer grows with the scan history.
+        ranked = (
+            select(
+                ScanRow.host.label("host"),
+                ScanRow.id.label("id"),
+                func.row_number()
+                .over(partition_by=ScanRow.host, order_by=(ScanRow.created_at.desc(), ScanRow.id.desc()))
+                .label("rank"),
+            )
+            .where(
+                ScanRow.organization_id == organization_id,
+                ScanRow.status == ScanStatus.COMPLETED.value,
+                ScanRow.host.in_(hosts),
+            )
+            .subquery()
+        )
         with self._session() as session:
-            rows = session.execute(
-                select(ScanRow.host, ScanRow.id)
-                .where(
-                    ScanRow.organization_id == organization_id,
-                    ScanRow.status == ScanStatus.COMPLETED.value,
-                    ScanRow.host.in_(hosts),
-                )
-                .order_by(ScanRow.created_at.desc(), ScanRow.id.desc())
-            ).all()
-        latest: dict[str, str] = {}
-        for host, scan_id in rows:
-            latest.setdefault(host, scan_id)
-        return latest
+            rows = session.execute(select(ranked.c.host, ranked.c.id).where(ranked.c.rank == 1)).all()
+        return {host: scan_id for host, scan_id in rows}
 
     # --- branding --------------------------------------------------------------------------------
 

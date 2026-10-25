@@ -1,5 +1,6 @@
 import BrandMark from "./components/BrandMark";
 import { useEffect, useRef, useState } from "react";
+import { PageLoader, lazyPage } from "./lazyPage";
 import { useAuth } from "./auth";
 import { useTheme } from "./theme";
 import { Loading } from "./components/ui";
@@ -15,23 +16,23 @@ import {
   VerifyEmailPage,
 } from "./pages/AuthPages";
 import LegalPage, { LegalLinks } from "./pages/Legal";
-import Targets from "./pages/Targets";
-import Integrations from "./pages/Integrations";
-import Team from "./pages/Team";
-import Findings from "./pages/Findings";
-import Analytics from "./pages/Analytics";
-import Health from "./pages/Health";
-import Audit from "./pages/Audit";
-import History from "./pages/History";
+const Targets = lazyPage(() => import("./pages/Targets"));
+const Integrations = lazyPage(() => import("./pages/Integrations"));
+const Team = lazyPage(() => import("./pages/Team"));
+const Findings = lazyPage(() => import("./pages/Findings"));
+const Analytics = lazyPage(() => import("./pages/Analytics"));
+const Health = lazyPage(() => import("./pages/Health"));
+const Audit = lazyPage(() => import("./pages/Audit"));
+const History = lazyPage(() => import("./pages/History"));
 import NotFound from "./pages/NotFound";
-import Account from "./pages/Account";
+const Account = lazyPage(() => import("./pages/Account"));
 import Overview from "./pages/Overview";
 import Landing from "./pages/Landing";
-import AgencyFeatures from "./pages/AgencyFeatures";
-import Compare from "./pages/Compare";
-import Clients from "./pages/Clients";
-import SampleReport from "./pages/SampleReport";
-import SharedReport from "./pages/SharedReport";
+const AgencyFeatures = lazyPage(() => import("./pages/AgencyFeatures"));
+const Compare = lazyPage(() => import("./pages/Compare"));
+const Clients = lazyPage(() => import("./pages/Clients"));
+const SampleReport = lazyPage(() => import("./pages/SampleReport"));
+const SharedReport = lazyPage(() => import("./pages/SharedReport"));
 import { useAgencyAvailable } from "./agency";
 import { forgetInvite, pendingInvite } from "./pendingInvite";
 import { canReadAudit, canReadClients } from "./types";
@@ -118,9 +119,26 @@ export default function App() {
     trackPageView(name);
   }, [loading, user, route.page]);
 
-  if (route.page === "sample-report") return <SampleReport />;
-  if (route.page === "agency-features") return <AgencyFeatures />;
-  if (route.page === "shared") return <SharedReport token={route.token} />;
+  // Pages for signed-in work and the long public pages are loaded when first opened, so the home and
+  // sign-in pages do not download them.
+  if (route.page === "sample-report")
+    return (
+      <PageLoader>
+        <SampleReport />
+      </PageLoader>
+    );
+  if (route.page === "agency-features")
+    return (
+      <PageLoader>
+        <AgencyFeatures />
+      </PageLoader>
+    );
+  if (route.page === "shared")
+    return (
+      <PageLoader>
+        <SharedReport token={route.token} />
+      </PageLoader>
+    );
 
   if (LEGAL_PAGES.includes(route.page)) {
     return (
@@ -297,19 +315,23 @@ export default function App() {
           />
         )}
         {route.page === "not-found" && <NotFound />}
-        {route.page === "targets" && <Targets />}
-        {route.page === "integrations" && <Integrations />}
-        {route.page === "clients" && agency === true && <Clients />}
-        {route.page === "findings" && <Findings route={route} />}
-        {route.page === "history" && (
-          <History onOpen={(id) => navigate("findings", id)} />
-        )}
-        {route.page === "compare" && <Compare route={route} />}
-        {route.page === "team" && <Team />}
-        {route.page === "account" && <Account />}
-        {route.page === "audit" && <Audit />}
-        {route.page === "analytics" && user.is_admin === true && <Analytics />}
-        {route.page === "health" && user.is_admin === true && <Health />}
+        <PageLoader>
+          {route.page === "targets" && <Targets />}
+          {route.page === "integrations" && <Integrations />}
+          {route.page === "clients" && agency === true && <Clients />}
+          {route.page === "findings" && <Findings route={route} />}
+          {route.page === "history" && (
+            <History onOpen={(id) => navigate("findings", id)} />
+          )}
+          {route.page === "compare" && <Compare route={route} />}
+          {route.page === "team" && <Team />}
+          {route.page === "account" && <Account />}
+          {route.page === "audit" && <Audit />}
+          {route.page === "analytics" && user.is_admin === true && (
+            <Analytics />
+          )}
+          {route.page === "health" && user.is_admin === true && <Health />}
+        </PageLoader>
       </main>
     </div>
   );
