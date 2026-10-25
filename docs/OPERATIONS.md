@@ -39,7 +39,7 @@ A task runs `scripts\backup-scheduled.ps1` once a week (default Sunday 21:00) wh
 
 **One-time setup**
 
-1. In the Neon SQL editor (not in the console's Roles page, which creates a role that can read *and write* everything), create the read-only role. Generate the password in a password manager and type it only into this editor. Replace `<database>` with your database name (shown in the connection string, often `neondb`):
+1. **Easiest:** run `.\scripts\create-backup-role.ps1`. It asks once for the normal connection string (hidden), generates the password itself, runs the SQL below, shows the role's flags and copies the new read-only connection string to the clipboard without showing the password. Running it again resets the password. Or do it by hand: in the Neon SQL editor (not in the console's Roles page, which creates a role that can read *and write* everything), create the read-only role. Generate the password in a password manager and type it only into this editor. Replace `<database>` with your database name (shown in the connection string, often `neondb`):
 
 ```
 CREATE ROLE backup_reader WITH LOGIN PASSWORD '<generated password>';
@@ -52,7 +52,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON SEQUENCES TO backup_re
 ```
 
    The two `ALTER DEFAULT PRIVILEGES` lines make tables created by later migrations readable too; they apply to objects created by the role that runs them (the same role the migrations use).
-2. Build the connection string for that role: the same host and database as the main one, but user `backup_reader` and the new password, and the **direct** host (no `-pooler` in the name).
+2. By hand only: build the connection string for that role: the same host and database as the main one, but user `backup_reader` and the new password, and the **direct** host (no `-pooler` in the name). The script in step 1 does this for you.
 3. In PowerShell: `.\scripts\setup-backup-schedule.ps1`. Paste the string when asked (hidden). The script asks the database whether the role can write anything and refuses it if so, stores the string encrypted for your Windows user on this PC only (`%LOCALAPPDATA%\SecureScope\backup-url.txt`) and creates the task "SecureScope weekly backup".
 4. Run it once now: `Start-ScheduledTask -TaskName 'SecureScope weekly backup'`, wait a minute, then read `backups\backup-log.txt`.
 5. Restore-test the first dump as below.

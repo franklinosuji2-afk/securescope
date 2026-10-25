@@ -14,9 +14,21 @@ import pytest
 ROOT = Path(__file__).resolve().parents[3]
 SCHEDULED = ROOT / "scripts" / "backup-scheduled.ps1"
 SETUP = ROOT / "scripts" / "setup-backup-schedule.ps1"
+CREATE_ROLE = ROOT / "scripts" / "create-backup-role.ps1"
 pytestmark = pytest.mark.skipif(not SCHEDULED.exists(), reason="needs the repository's scripts folder")
 
-SECRET_NAMES = ("$url", "$plain", "$secure", "$env:SECURESCOPE_BACKUP_URL", "$env:PGURL")
+SECRET_NAMES = (
+    "$url",
+    "$plain",
+    "$secure",
+    "$env:SECURESCOPE_BACKUP_URL",
+    "$env:PGURL",
+    "$owner",
+    "$ownerUrl",
+    "$ownerPassword",
+    "$pw",
+    "$sql",
+)
 OUTPUT_COMMANDS = (
     "Write-Host",
     "Write-Output",
@@ -32,7 +44,7 @@ def code_lines(path: Path) -> list[str]:
     return [ln for ln in path.read_text(encoding="utf-8").splitlines() if not ln.strip().startswith("#")]
 
 
-@pytest.mark.parametrize("path", [SCHEDULED, SETUP])
+@pytest.mark.parametrize("path", [SCHEDULED, SETUP, CREATE_ROLE])
 def test_the_connection_string_is_never_printed_or_logged(path: Path) -> None:
     for line in code_lines(path):
         starts = [line.index(cmd) for cmd in OUTPUT_COMMANDS if cmd in line]
@@ -62,3 +74,15 @@ def test_the_job_never_keeps_fewer_than_three_and_always_clears_the_variable() -
     )
     # Old dumps are removed only after a new, non-empty one exists.
     assert text.index("No new backup file was written") < text.index("Remove-Item $file.FullName")
+
+
+def test_the_role_script_hides_both_passwords_and_grants_only_reading() -> None:
+    text = CREATE_ROLE.read_text(encoding="utf-8")
+    assert '.Replace($pw, "<hidden>").Replace($ownerPassword, "<hidden>")' in text
+    assert text.index('.Replace($pw, "<hidden>")') < text.index("Write-Host $text")
+    assert "Set-Clipboard" in text
+    grants = [ln for ln in text.splitlines() if re.match(r"\s*(GRANT|ALTER DEFAULT PRIVILEGES)", ln)]
+    assert grants and not any(
+        w in ln.upper() for ln in grants for w in ("INSERT", "UPDATE", "DELETE", "ALL PRIVILEGES")
+    )
+    assert "SUPERUSER" not in text.upper().replace("SUPERUSER: ", "").replace("ROLSUPER", "")
