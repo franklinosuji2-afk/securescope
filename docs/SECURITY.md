@@ -100,3 +100,7 @@ Run on every push by `.github/workflows/ci.yml`, and locally with the same comma
 - **Scanner network limits:** `test_target.py`, `test_ssrf_matrix.py` and `test_fetcher.py` cover private, loopback,
   link-local, NAT64, 6to4, IPv4-mapped and reserved addresses, numeric host forms, URL tricks, off-origin and
   downgrade redirects, DNS rebinding between hops and the pinned connection.
+
+## Latest audit
+
+A 68-point audit was done on 25 Oct 2026: see [security-audit-summary.md](security-audit-summary.md), with the checklist, findings, remediation plan and test evidence next to it.

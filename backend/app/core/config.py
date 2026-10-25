@@ -127,6 +127,12 @@ class Settings(BaseSettings):
             raise ValueError("SECURESCOPE_CRON_SECRET must be at least 32 characters")
         if self.webhook_signing_key is not None and len(self.webhook_signing_key.get_secret_value()) < 32:
             raise ValueError("SECURESCOPE_WEBHOOK_SIGNING_KEY must be at least 32 characters")
+        # Cookies are sent with cross-origin requests from the listed sites, so "*" would let any site read
+        # a signed-in visitor's data. Origins must be listed one by one.
+        if any(origin.strip() in ("*", "null", "") or "*" in origin for origin in self.cors_origins):
+            raise ValueError(
+                "SECURESCOPE_CORS_ORIGINS must list exact origins; wildcards and 'null' are not allowed"
+            )
         if self.allow_private_targets and (
             self.cookie_secure or self.public_base_url.lower().startswith("https://")
         ):
@@ -134,6 +140,12 @@ class Settings(BaseSettings):
                 "SECURESCOPE_ALLOW_PRIVATE_TARGETS lets the scanner reach internal addresses and is for local "
                 "tests only. It cannot be combined with secure cookies or an https public address."
             )
+        if (
+            self.public_base_url.lower().startswith("https://")
+            and "change-me" in self.database_url
+            and not self.database_url.startswith("sqlite")
+        ):
+            raise ValueError("SECURESCOPE_DATABASE_URL still contains the placeholder password 'change-me'")
         return self
 
 
