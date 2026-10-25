@@ -79,6 +79,7 @@ def attacks(w: dict[str, Any]) -> list[tuple[str, str, dict[str, Any] | None]]:
         ("GET", f"/targets/{t}", None),
         ("DELETE", f"/targets/{t}", None),
         ("POST", f"/targets/{t}/challenge", None),
+        ("DELETE", f"/targets/{t}/challenge", None),
         ("POST", f"/targets/{t}/verify", {"method": "dns_txt"}),
         ("PUT", f"/schedules/{t}", {"frequency": "daily", "enabled": True}),
         ("PUT", f"/badges/{t}", {"enabled": True, "renew": False}),

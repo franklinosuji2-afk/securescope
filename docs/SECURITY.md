@@ -43,7 +43,7 @@ Admins cannot grant OWNER or ADMIN, cannot change or remove admins or owners, an
 
 A scan may only run against a host that the active organization has registered **and verified**. A target is a canonical, lower-case, punycode host name (no port, path or credentials). IP literals, single-label names and internal suffixes are rejected at registration because ownership of those cannot be proven with DNS.
 
-Each target has a random 128-bit challenge that expires after 7 days (expired challenges cannot be used; a new one can be issued, which invalidates the old value). Two methods:
+Each target has a random 128-bit challenge that expires after 7 days (expired challenges cannot be used; a new one can be issued, which invalidates the old value; the value is erased once the domain is verified, when it is removed, and after it expires; a check that finishes after the challenge was replaced or removed cannot verify the domain). Two methods:
 
 - **DNS TXT** at `_securescope-challenge.<host>` with value `securescope-verification=<token>` (exact match; other labels and the apex do not count).
 - **HTTP file** at `/.well-known/securescope-verification.txt` containing the same value. Fetched with the SSRF-hardened scanner fetcher (public addresses only, DNS pinning, same-site redirects). The response must be HTTP 200, at most 512 bytes, and served from exactly the registered host (a redirect to `www.` does not count).

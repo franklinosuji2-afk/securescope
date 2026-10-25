@@ -88,10 +88,24 @@ async def regenerate_challenge(
     target_id: str, request: Request, state: StateDep, ctx: CanManage
 ) -> TargetOut:
     _valid_id(target_id)
+    key = f"{ctx.organization_id}:{target_id}:new"
+    if not state.verify_limiter.check(key):
+        raise HTTPException(status_code=429, detail="Too many new challenges. Try again later.")
+    state.verify_limiter.record(key)
     target = await asyncio.to_thread(state.targets.regenerate_challenge, target_id, ctx.organization_id)
     if target is None:
         raise HTTPException(status_code=404, detail="Target not found.")
     await _audit(state, request, ctx, "target.challenge_regenerated", target.id)
+    return target
+
+
+@router.delete("/{target_id}/challenge", response_model=TargetOut)
+async def remove_challenge(target_id: str, request: Request, state: StateDep, ctx: CanManage) -> TargetOut:
+    _valid_id(target_id)
+    target = await asyncio.to_thread(state.targets.clear_challenge, target_id, ctx.organization_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail="Target not found.")
+    await _audit(state, request, ctx, "target.challenge_removed", target.id)
     return target
 
 
@@ -110,6 +124,11 @@ async def verify_target(
         # A lapsed proof needs a challenge issued after it lapsed, so an old token left on a domain that
         # has since changed hands cannot renew the authorisation.
         lapsed_at = target.verification_expires_at
+        if target.challenge_expires_at is None:
+            raise HTTPException(
+                status_code=409,
+                detail="There is no active challenge. Press New challenge, publish the new value, then verify.",
+            )
         issued_at = target.challenge_expires_at - CHALLENGE_TTL
         if lapsed_at is not None and issued_at < lapsed_at:
             raise HTTPException(
@@ -144,6 +163,7 @@ async def verify_target(
         ctx.organization_id,
         method=body.method,
         error=error,
+        checked_token=target.challenge_token,
     )
     if updated is None:  # deleted while the check ran
         raise HTTPException(status_code=404, detail="Target not found.")

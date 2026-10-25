@@ -182,7 +182,7 @@ export interface Target {
   hostname: string;
   status: TargetStatus;
   challenge_token: string;
-  challenge_expires_at: string;
+  challenge_expires_at: string | null;
   verified_at: string | null;
   verification_expires_at?: string | null;
   verification_method: VerificationMethod | null;

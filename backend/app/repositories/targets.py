@@ -43,29 +43,30 @@ def verification_expiry(row: TargetRow, valid_days: int) -> datetime | None:
 
 def to_out(row: TargetRow, valid_days: int = 0) -> TargetOut:
     expires = _aware(row.challenge_expires_at)
-    if expires is None:
-        raise ValueError("target row without challenge expiry")
+    # A challenge is usable only with a token and a future expiry; otherwise nothing is shown.
+    active = bool(row.challenge_token) and expires is not None and expires > _now()
+    token = (row.challenge_token or "") if active else ""
     lapses = verification_expiry(row, valid_days)
     if row.verified_at:
         status = "reverify" if lapses is not None and lapses <= _now() else "verified"
     else:
-        status = "expired" if expires <= _now() else "pending"
+        status = "pending" if active else "expired"
     return TargetOut(
         id=row.id,
         hostname=row.hostname,
         status=status,
         verification_expires_at=lapses,
-        challenge_token=row.challenge_token,
-        challenge_expires_at=expires,
+        challenge_token=token,
+        challenge_expires_at=expires if active else None,
         verified_at=_aware(row.verified_at),
         verification_method=row.verification_method,
         last_check_at=_aware(row.last_check_at),
         last_check_error=row.last_check_error,
         created_at=_aware(row.created_at),
         dns_record_name=dns_record_name(row.hostname),
-        dns_record_value=challenge_value(row.challenge_token),
+        dns_record_value=challenge_value(token) if token else "",
         http_file_url=http_file_url(row.hostname),
-        http_file_content=challenge_value(row.challenge_token),
+        http_file_content=challenge_value(token) if token else "",
     )
 
 
@@ -168,6 +169,29 @@ class TargetRepository:
             session.flush()
             return to_out(row, self._valid_days)
 
+    def clear_challenge(self, target_id: str, organization_id: str) -> TargetOut | None:
+        """Remove the active challenge. The target and any existing verification are kept."""
+        with self._session.begin() as session:
+            row = session.get(TargetRow, target_id, with_for_update=True)
+            if row is None or row.organization_id != organization_id:
+                return None
+            row.challenge_token = None
+            row.challenge_expires_at = None
+            if row.verified_at is None:
+                row.last_check_error = None
+            session.flush()
+            return to_out(row, self._valid_days)
+
+    def purge_expired_challenges(self) -> int:
+        """Erase tokens whose expiry has passed, so a dead value is not kept longer than needed."""
+        with self._session.begin() as session:
+            result = session.execute(
+                update(TargetRow)
+                .where(TargetRow.challenge_token.is_not(None), TargetRow.challenge_expires_at <= _now())
+                .values(challenge_token=None, challenge_expires_at=None)
+            )
+            return int(result.rowcount or 0)  # type: ignore[attr-defined]
+
     def record_check(
         self,
         target_id: str,
@@ -175,16 +199,23 @@ class TargetRepository:
         *,
         method: str,
         error: str | None,
+        checked_token: str,
     ) -> TargetOut | None:
+        """Store the outcome. A success counts only if the checked token is still the active one."""
         now = _now()
-        values: dict[str, object] = {"last_check_at": now, "last_check_error": error}
-        if error is None:
-            values.update(verified_at=now, verification_method=method)
         with self._session.begin() as session:
-            session.execute(
-                update(TargetRow)
-                .where(TargetRow.id == target_id, TargetRow.organization_id == organization_id)
-                .values(**values)
-            )
-            row = session.get(TargetRow, target_id)
-            return to_out(row, self._valid_days) if row and row.organization_id == organization_id else None
+            row = session.get(TargetRow, target_id, with_for_update=True)
+            if row is None or row.organization_id != organization_id:
+                return None
+            if error is None and (not checked_token or row.challenge_token != checked_token):
+                error = "The challenge was replaced or removed while the check ran. Try again with the current value."
+            row.last_check_at = now
+            row.last_check_error = error
+            if error is None:
+                row.verified_at = now
+                row.verification_method = method
+                # The proof is done: the token has no further use, so it is not kept.
+                row.challenge_token = None
+                row.challenge_expires_at = None
+            session.flush()
+            return to_out(row, self._valid_days)

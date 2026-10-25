@@ -55,6 +55,7 @@ async def _maintenance_loop(state: AppState) -> None:
         removed = await _maintenance_step("history retention", state.repo.delete_expired_history)
         if removed:
             log_event(logger, "retention cleanup", removed=removed)
+        await _maintenance_step("expired challenges", state.targets.purge_expired_challenges)
         await _maintenance_step("expired sessions", state.accounts.purge_expired_sessions)
         await _maintenance_step("expired sign-in states", state.accounts.purge_expired_oauth_states)
         await _maintenance_step("old invitations", state.accounts.purge_old_invitations)

@@ -769,6 +769,73 @@ describe("Targets", () => {
     );
   });
 
+  it("explains what the verification is used for, on the verification screen", async () => {
+    window.location.hash = "#/targets";
+    mockFetch(() => ({ items: [targetBase] }));
+    renderApp();
+    const note = await screen.findByTestId("verification-reassurance");
+    expect(note).toHaveTextContent(
+      "We only use this information to verify that you control the domain.",
+    );
+    expect(note).toHaveTextContent(
+      "We do not request server access, passwords, private keys, or payment details.",
+    );
+    expect(note).toHaveTextContent("expires automatically");
+    expect(note).toHaveTextContent("can be removed at any time");
+  });
+
+  it("shows no challenge value once it has expired or been removed", async () => {
+    window.location.hash = "#/targets";
+    mockFetch(() => ({
+      items: [
+        {
+          ...targetBase,
+          status: "expired",
+          challenge_token: "",
+          challenge_expires_at: null,
+          dns_record_value: "",
+          http_file_content: "",
+        },
+      ],
+    }));
+    renderApp();
+    expect(
+      await screen.findByText(/There is no active challenge/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/securescope-verification=/)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "New challenge" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Remove challenge" }),
+    ).toBeNull();
+  });
+
+  it("removes the active challenge on request", async () => {
+    window.location.hash = "#/targets";
+    const mock = mockFetch((url, init) =>
+      init?.method === "DELETE" && url.endsWith("/challenge")
+        ? {
+            ...targetBase,
+            status: "expired",
+            challenge_token: "",
+            challenge_expires_at: null,
+            dns_record_value: "",
+            http_file_content: "",
+          }
+        : { items: [targetBase] },
+    );
+    renderApp();
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: "Remove challenge" }),
+    );
+    const call = mock.calls.find(
+      (c) => c.init?.method === "DELETE" && c.url.endsWith("/t1/challenge"),
+    );
+    expect(call).toBeDefined();
+  });
+
   it("hides management controls from viewers", async () => {
     window.location.hash = "#/targets";
     mockApi(
