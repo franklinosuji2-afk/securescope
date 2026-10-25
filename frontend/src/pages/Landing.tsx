@@ -4,7 +4,6 @@ import PlanComparison from "../components/PlanComparison";
 import { useEffect, useRef, useState } from "react";
 import sample from "../sample/sampleReport.json";
 import { buildHash } from "../router";
-import { CONTACT, mailto } from "../contact";
 import "../landing.css";
 
 const ICONS: Record<string, string> = {
@@ -738,7 +737,6 @@ export default function Landing() {
           </nav>
           <nav aria-label="Help and legal" className="landing-foot-col">
             <h2>Help and legal</h2>
-            <a href={mailto("support")}>Support: {CONTACT.support}</a>
             <a href="/.well-known/security.txt">Report a security issue</a>
             <a href="#/impressum">Impressum</a>
             <a href="#/privacy">Privacy</a>
