@@ -9,10 +9,12 @@ function page(): { text: string; container: HTMLElement } {
 }
 
 describe("public home page", () => {
-  it("links to support and to security reporting from the footer", () => {
+  it("links to security reporting from the footer and shows the support address only once, on the Impressum", () => {
     const { container } = page();
     const mail = container.querySelector(`a[href="mailto:${CONTACT.support}"]`);
-    expect(mail).not.toBeNull();
+    expect(mail).toBeNull();
+    expect(container.textContent).not.toContain(CONTACT.support);
+    expect(container.querySelector('a[href="#/impressum"]')).not.toBeNull();
     expect(
       container.querySelector('a[href="/.well-known/security.txt"]'),
     ).not.toBeNull();

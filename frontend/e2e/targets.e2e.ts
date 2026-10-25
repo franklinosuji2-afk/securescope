@@ -51,7 +51,7 @@ test.describe("targets and scan gating (real backend)", () => {
     await expect(card.getByText("Verified", { exact: true })).toHaveCount(0);
 
     // Removal needs an explicit confirmation.
-    await card.getByRole("button", { name: "Remove" }).click();
+    await card.getByRole("button", { name: "Remove", exact: true }).click();
     await card
       .getByRole("button", { name: /Confirm removal of example.com/ })
       .click();

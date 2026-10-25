@@ -15,7 +15,7 @@ Date: 25 Oct 2026. Phase 10 of the product-quality brief. The live home page was
 | What do plans include? | Pricing table, Free "Available now", paid "Coming soon" | Unchanged |
 | How do I get started? | "Create free account" | Unchanged. The "4 steps" tile was next to a five-step list; it now reads "steps from sign-up to your first scan" |
 | Where is the documentation? | **No public link** | Still no public documentation page (see gaps) |
-| How do I contact support? | **Addresses only inside Impressum, privacy and terms** | Footer "Help and legal" column with the support address |
+| How do I contact support? | **Addresses only inside Impressum, privacy and terms** | Footer "Help and legal" column with the security-report link and the legal pages (the support address is shown once, on the Impressum, from 25 Oct) |
 | How do I report a security issue? | **Only reachable through `security.txt` if you knew the URL** | Footer link "Report a security issue" to `/.well-known/security.txt` (contact `security@getsecurescope.com`) |
 
 ## Claims review
