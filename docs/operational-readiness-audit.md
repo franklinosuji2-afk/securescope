@@ -11,7 +11,7 @@ Date: 25 Oct 2026. Phase 9 of the product-quality brief. This builds on the [sec
 | Data retention | Verified | Matches the privacy notice, and now follows the plan that applies (see the subscription audit) |
 | Migrations | Verified, 2 tests added | One head, every revision has a downgrade, a 3-step rollback and re-upgrade worked on PostgreSQL |
 | Restore | Rehearsed locally | Dump, restore, start the app, sign in with the restored password hash: all worked |
-| Backup schedule | **Open, needs an owner decision** | Backups are taken by hand |
+| Backup schedule | **Set up and tested on 25 Oct, with limits** | Weekly task on the owner's PC with a read-only role; see "Backups" |
 | Keep-warm | Verified | Cron every 15 minutes and monitors every 5 minutes; process uptime 10.6 hours when checked |
 | Email and webhook delivery | Partly ready | Failures are counted and shown; there is no retry queue and no alert |
 
@@ -66,7 +66,7 @@ Nothing in the security audit's FAIL column; its six PARTIAL and two NOT VERIFIE
 
 On 25 Oct the same procedure also passed on the production database copy on the owner's PC (28 tables, schema 0018; see `OPERATIONS.md`).
 
-## Backups: open decision
+## Backups: weekly schedule (set up 25 Oct)
 
 Backups are taken by hand with `scripts/backup-db.ps1`. For a controlled pilot with a few users that is acceptable if it is done weekly and before every migration. A schedule needs a credential that can read production, so the choices are:
 
@@ -74,7 +74,9 @@ Backups are taken by hand with `scripts/backup-db.ps1`. For a controlled pilot w
 2. **A scheduled GitHub Actions job.** Works while the PC is off, but puts a production database credential into GitHub and stores dumps as artifacts. Not recommended for a database holding password hashes.
 3. **Neon's paid plan** with longer point-in-time restore: no scripts, costs money.
 
-Recommendation: option 1 once the pilot has real users. I did not write a scheduling script, because it handles a production credential and cannot be tested here (it needs Windows, Docker and the real database). It should be written and tested together with the owner.
+**Done on 25 Oct (option 1):** `scripts/create-backup-role.ps1` created a read-only role, `scripts/setup-backup-schedule.ps1` stored its connection string encrypted for the owner's Windows user and created the task "SecureScope weekly backup" (Sundays 21:00, runs at the next start if the PC was off), and `scripts/backup-scheduled.ps1` keeps the newest 8 dumps and logs each run to `backups\backup-log.txt` (a failure also shows a message box). Verified: the database confirms the role cannot write; two runs started by hand were OK (259,723 bytes); the newest dump restored with schema 0018. The scripts could not be run in the review environment (no Windows or Docker), so the first real run was the test.
+
+**Limits that remain:** the PC must be on and signed in with Docker Desktop running; the first run by the schedule itself (1 Nov) has not happened yet; all dumps are on that one PC, so a stolen or failed disk takes the backups with it (a second, encrypted copy elsewhere is an owner decision); the dumps contain email addresses and password hashes and are protected only by the disk's own protection; nothing alerts you if the task stops, only the log and the message box.
 
 ## Keep-warm
 
@@ -96,7 +98,7 @@ The full runbook is `OPERATIONS.md`. In short: bad code, revert and push; bad mi
 
 ## Unresolved risks
 
-1. No scheduled backup (owner decision above). Data loss window is the age of the latest dump plus Neon's short history.
+1. Backups are weekly, on one PC, with no alert if they stop. Data loss window is up to a week plus Neon's short history.
 2. One API instance, one database, one maintainer. Recovery by hand takes hours and has not been rehearsed on production, only on copies.
 3. Rate-limit counters are in memory and reset on restart (security checklist items 34 and 53).
 4. No retry for failed webhooks, no alert for failed email.
@@ -106,5 +108,5 @@ The full runbook is `OPERATIONS.md`. In short: bad code, revert and push; bad mi
 
 - Local development: READY.
 - Owned or authorised sites: READY WITH CONDITIONS.
-- Controlled external pilot (free plans): READY WITH CONDITIONS: weekly manual backup, one API instance, and the owner checking Platform Health after each release.
-- Public commercial launch: NOT READY (backup schedule, shared rate limits, separate database roles, webhook retry, billing).
+- Controlled external pilot (free plans): READY WITH CONDITIONS: the weekly backup keeps running (check `backups\backup-log.txt`), one API instance, and the owner checking Platform Health after each release.
+- Public commercial launch: NOT READY (a second backup copy and failure alerts, shared rate limits, separate database roles, webhook retry, billing).

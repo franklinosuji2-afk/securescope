@@ -36,7 +36,7 @@ SecureScope is a passive website security checker with accounts, ownership verif
 
 **Also done:** the public home page gained support and security-reporting links, an audience statement, a monitoring explanation and a softer ownership claim, with a test that blocks overclaiming phrases (`marketing-and-documentation-audit.md`); an operator-only activation funnel counts existing records without any new tracking (`analytics-and-feedback-audit.md`).
 
-**Operations (Owner-reported and checked where noted):** a backup and restore of the production database passed on 25 Oct (schema 0018, 28 tables; logged in `OPERATIONS.md`). Cloudflare's leaked-credential check is on; a GitHub ruleset blocks force pushes and deletion on `main` (Owner-reported, the API refused the check). The database password is not the placeholder (Owner-reported; the startup guard also refuses it).
+**Operations (Owner-reported and checked where noted):** a backup and restore of the production database passed on 25 Oct (schema 0018, 28 tables; logged in `OPERATIONS.md`). A fresh sign-up on the live site (confirmation email, site verification by DNS, first scan, PDF report, account deletion) passed the same evening (owner-reported timings: home page and DNS verification under 20 seconds, first scan under 30, the confirmation email arrived in the inbox without a noticeable wait). A weekly scheduled backup with a read-only role was set up, run twice by hand and restore-tested. Cloudflare's leaked-credential check is on; a GitHub ruleset blocks force pushes and deletion on `main` (Owner-reported, the API refused the check). The database password is not the placeholder (Owner-reported; the startup guard also refuses it).
 
 **Not tested anywhere:** behaviour under load; the live first-run journey with a real new account; a real alert email, webhook and Slack message on the live site; the GitHub Action from a real workflow with a real token; the agency screens on a paid plan; the PDF by eye (it is checked by extracted text); accuracy of the scanner against real third-party sites (no accuracy percentage is claimed anywhere).
 
@@ -45,7 +45,7 @@ SecureScope is a passive website security checker with accounts, ownership verif
 | # | Improvement | Priority | Effort | Evidence |
 |---|---|---|---|---|
 | 1 | **Observe the real first-run journey and live mail delivery** (new account, confirmation email, add and verify a site, first scan) and fix what it shows | P1 | Small (owner time) plus unknown fixes | Onboarding audit risks 2, 3 and 5; release-readiness P1-4. Nobody has seen it. |
-| 2 | **Scheduled backups** with a read-only database role | P1 for the pilot | Small | Operational audit: backups are by hand, the free restore window is short; security item 60 PARTIAL. |
+| 2 | **Scheduled backups** with a read-only database role: **set up 25 Oct**. Still open: a second copy away from the PC, an alert when it stops, and the first unattended run (1 Nov) | P1 for the pilot (mostly done) | Small | Operational audit; security item 60 stays PARTIAL until those three are closed. |
 | 3 | **Verify fix** and "confirmed resolved" separated from "no longer detected" | P1 | Medium | Product audit section 3; reporting audit. Today a fix cannot be confirmed without a full new scan. |
 | 4 | **Overdue-schedule warning and failed-mail alert** | P1 for the pilot | Small | Monitoring audit risks 1, 2 and 5: if the cron stops, scans stop silently; failed mail alerts nobody. |
 | 5 | **Billing foundation before Paddle**: signed webhook receiver, record-and-apply in one transaction, ordering of late events, trial and paused mapping, cancel at the provider before account deletion | P1 before any payment | Large | Subscription audit "Before Paddle", seven items; security checklist item 12. |
@@ -73,8 +73,8 @@ SecureScope is a passive website security checker with accounts, ownership verif
 
 ## 5. Recommended order
 
-1. **Owner actions that need no code** (this week): sign up as a fresh user on the live site and record what happens (item 1); decide the backup approach (item 2); confirm the Cloudflare choice; check one real alert email and webhook.
-2. **Small safety nets for a pilot** (one patch each): overdue-schedule warning and failed-mail indicator (4); backup script written and tested with you (2).
+1. **Owner actions that need no code:** the fresh sign-up check (item 1) and the backup setup (item 2) were done on 25 Oct; still open: confirm the Cloudflare choice, check one real alert email and webhook, and look at `backups\backup-log.txt` after 1 Nov.
+2. **Small safety nets for a pilot** (one patch each): overdue-schedule warning and failed-mail indicator (4); a second backup copy and a stale-backup warning (2).
 3. **Verify fix** with the resolved-state wording (3), because it is the main user-visible gap in the core promise.
 4. **Portfolio usability** (8): small, frontend only, helps every user with more than a few sites.
 5. **Load test and shared limits** (6), once there is a decision on whether a paid edge plan is acceptable.
@@ -106,7 +106,7 @@ Every patch: targeted tests first, then the full backend suite on PostgreSQL, ru
 
 **Controlled external pilot (free plans)** can start when all of these hold:
 1. A fresh sign-up, email confirmation, site verification and first scan have been done on the live site by someone other than a developer, and the problems found are fixed or written down.
-2. A backup is taken weekly and before every migration (by hand is acceptable for a few users), and the latest one has been restored at least once (done on 25 Oct).
+2. A backup is taken weekly (the scheduled task, check its log) and before every migration (by hand), and the latest one has been restored at least once (done on 25 Oct).
 3. The owner looks at Platform Health after each release (mail failures and server errors are shown there but nothing alerts).
 4. Pilot users are told that this is a pilot, that paid plans do not exist yet, and how to reach support and report a security issue (the home page now shows both).
 5. The owner accepts, knowingly, that the lawyer review and the VAT answer are still open for a free pilot.
@@ -119,7 +119,7 @@ Small: one patch, under a day of work. Medium: a few patches, a few days. Large:
 
 ## 11. Decisions that need the owner
 
-1. **Backup approach:** Windows Task Scheduler with a read-only Neon role (recommended once there are real users), a GitHub Action (not recommended: production data on GitHub), or Neon's paid plan.
+1. **Backup copies:** the weekly task on your PC is set up (decided and done 25 Oct). Open: where a second, encrypted copy should live (a private cloud folder or an external drive), and whether the PC's disk is encrypted (BitLocker).
 2. **Cloudflare:** keep the leaked-credential check and skip an edge rate limit (the default taken so far, option A), or switch the one free rule slot to a sign-in rate limit (option B).
 3. **Paid edge or shared store** for rate limits, or accept in-memory limits for the pilot only.
 4. **Kleinunternehmer status and VAT ID**; business-registration details; when to commission the lawyer's review.

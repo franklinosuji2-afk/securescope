@@ -23,7 +23,7 @@ Authentication, sessions and cookies, authorisation and roles, tenant isolation 
 2. Payment event ordering and duplicates are not handled yet (before paid launch).
 3. Migrations run under the runtime database role.
 4. Rate-limit counters are in memory and reset on restart.
-5. Backups are taken by hand only (restore proven on 25 Oct); no schedule.
+5. Backups run weekly from the owner's PC with a read-only role (set up and restore-proven on 25 Oct); one copy on one PC, no alert if it stops.
 6. Branch protection and secret-scanning settings are unconfirmed.
 
 ## Readiness, with evidence
