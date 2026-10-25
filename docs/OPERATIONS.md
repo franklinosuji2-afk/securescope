@@ -66,6 +66,8 @@ Code and database are separate, so decide which one broke.
 
 Take a backup before any release that adds a migration.
 
+A local rehearsal on a scratch database (25 Oct 2026) rolled the schema back three revisions and forward again, and restored a dump into an empty database and started the app on it. That shows the mechanics work; on production data still prefer the backup-restore path above. Details: [operational-readiness-audit.md](operational-readiness-audit.md).
+
 ## 5. Secrets and rotation
 
 | Secret                                                                   | Set in                            | Rotate when                                                                                                                                                                                               |
@@ -190,5 +192,6 @@ Dated proof that the procedures above were actually carried out. Add a line each
 | 2026-10-25 | Cloudflare edge rate limit for sign-in routes | Not added. The free plan has one rate-limiting rule and it is used by Cloudflare's leaked-credential check, which was kept. A first attempt created a custom block rule that would have blocked every sign-in; it was removed within minutes (0 events) and sign-in was not affected. The application's own limiters remain the protection. |
 | 2026-10-25 | GitHub repository settings | Owner reports a branch ruleset blocking deletion and force pushes on `main`, and secret scanning with push protection on. Reported by the owner, not read by Claude (the API returned 403). |
 | 2026-10-25 | Local secret files | A downloaded Google sign-in client file in Downloads was deleted (not rotated: owner states it was never pasted or shared). An old `.env` of an unrelated project in a to-delete folder was deleted. The portfolio repository's git history has no `.env`, key or secret-named file. |
+| 2026-10-25 | Local restore and migration rehearsal (scratch databases only) | Passed: dump, restore, app start and sign-in on the restored copy; three-revision downgrade and re-upgrade. The hourly retention loop was found to stop after one failed step and was fixed. |
 
-Still not done: a regular (scheduled) backup, a rehearsed rollback, and an edge rate-limit rule for the sign-in routes (needs a paid Cloudflare plan or removing the leaked-credential check).
+Still not done: a regular (scheduled) backup, a rollback rehearsed on production (only local copies so far), and an edge rate-limit rule for the sign-in routes (needs a paid Cloudflare plan or removing the leaked-credential check).
