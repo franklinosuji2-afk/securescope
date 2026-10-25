@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from app.api.deps import StateDep, client_key
 from app.api.v1.scans import Actor, start_scan
 from app.schemas.integration import CiFinding, CiScanCreate, CiScanOut
-from app.schemas.scan import SEVERITY_ORDER, ScanDetail
+from app.schemas.scan import SEVERITY_ORDER, FindingStatus, ScanDetail, ScanStatus
 from app.security.permissions import Permission, can
 
 router = APIRouter(prefix="/ci", tags=["ci"])
@@ -69,14 +69,17 @@ CiDep = Annotated[CiActor, Depends(ci_actor)]
 
 def _out(detail: ScanDetail, base_url: str) -> CiScanOut:
     order = {s.value: i for i, s in enumerate(SEVERITY_ORDER)}
-    findings = sorted(detail.findings, key=lambda f: (order[f.severity.value], f.id))
+    # Findings the team decided about (false positive, accepted risk) must not fail a pipeline.
+    open_findings = [f for f in detail.findings if f.status is FindingStatus.OPEN]
+    findings = sorted(open_findings, key=lambda f: (order[f.severity.value], f.id))
+    counts = {s.value: sum(1 for f in open_findings if f.severity is s) for s in SEVERITY_ORDER}
     return CiScanOut(
         id=detail.id,
         host=detail.host,
         status=detail.status.value,
         score=detail.score,
         grade=detail.grade,
-        counts=detail.counts,
+        counts=counts if detail.status is ScanStatus.COMPLETED else detail.counts,
         findings=[
             CiFinding(id=f.id, severity=f.severity.value, title=f.title) for f in findings[:MAX_FINDINGS]
         ],

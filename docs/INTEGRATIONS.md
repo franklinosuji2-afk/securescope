@@ -24,6 +24,7 @@ Notes
   private, other repositories can only use the Action after access is granted under Settings > Actions > General.
 - Cold starts: on the free hosting tier the backend sleeps and needs up to a minute to wake. The script retries
   connection errors and 502, 503 and 504 for about two minutes. Raise `timeout-minutes` for slow sites.
+- Findings your team marked as a false positive or accepted risk are not listed and do not count toward `fail-on`. The score is worked out when the scan runs and is not changed by those decisions, so `min-score` still sees the original score.
 - The host of `url` must be a site your workspace has verified. A scan counts toward the monthly allowance.
 - Text that comes from the scanned site (finding titles) is cleaned before it reaches the job log or summary, so it
   cannot start a workflow command or inject Markdown.
