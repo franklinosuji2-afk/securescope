@@ -18,6 +18,8 @@ class ScheduleOut(BaseModel):
     last_run_at: datetime | None = None
     last_scan_id: str | None = None
     last_outcome: str | None = None
+    # "off", "ok", "overdue" (the next run is more than an hour late) or "problem" (the last run failed or was skipped)
+    health: Literal["off", "ok", "overdue", "problem"] = "off"
 
 
 class ScheduleList(BaseModel):

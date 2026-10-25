@@ -102,7 +102,7 @@ Every finding in a scan response carries `fingerprint` (a stable id for that che
 
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
-| GET | `/schedules` | scan:read | `available` (the plan includes scheduled scans) and one entry per verified site: `frequency` (`off`, `daily`, `weekly`), `url`, `notify`, `next_run_at`, `last_run_at`, `last_scan_id` |
+| GET | `/schedules` | scan:read | `available` (the plan includes scheduled scans) and one entry per verified site: `frequency` (`off`, `daily`, `weekly`), `url`, `notify`, `next_run_at`, `last_run_at`, `last_scan_id`, `last_outcome` and `health` (`off`, `ok`, `overdue` when the next run is more than an hour late, `problem` when the last run errored, was skipped or failed) |
 | PUT | `/schedules/{target_id}` | target:manage | `{frequency, notify?, url?}`. The address defaults to `https://<site>/` and its host must be the verified site (400 otherwise). Turning a schedule on needs a plan with scheduled scans (403); 404 for an unknown or unverified site. Audited as `schedule.updated` |
 | POST | `/internal/run-due` | cron secret | Called by the scheduler, never by a browser. Does not exist unless a cron secret is configured. Each due scan goes through the same ownership, address and allowance checks as a manual scan |
 

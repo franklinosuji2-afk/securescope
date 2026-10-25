@@ -500,6 +500,7 @@ export interface Schedule {
   last_run_at: string | null;
   last_scan_id: string | null;
   last_outcome: string | null;
+  health?: "off" | "ok" | "overdue" | "problem";
 }
 
 export interface ScheduleList {

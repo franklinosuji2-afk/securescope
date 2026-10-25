@@ -71,6 +71,21 @@ Suggested rhythm: before every release that includes a migration, and at least w
 
 Status: the dump/restore commands were tested against a real PostgreSQL 16 in the development environment (identical row counts and schema version after restore). The PowerShell wrappers were run on the owner's PC against the production Neon database on 2026-10-23 and again on 2026-10-25 (see the log below).
 
+#### Warning when a backup is missed
+
+The weekly task cannot tell you that it did not run (PC off, Docker closed). A second task checks every day:
+
+```powershell
+.\scripts\setup-backup-check.ps1          # once; no password or secret is involved
+.\scripts\backup-check.ps1                # run it by hand any time
+```
+
+It runs five minutes after you sign in to Windows and daily at 12:00. It shows a message box and writes a `WARNING` line to `backups\backup-log.txt` if no dump of at least 1 KB exists, the newest one is older than 9 days (`-MaxAgeDays`), or the last real run in the log says `FAILED`. It only looks at files; it deletes nothing and reads no connection string. Remove it with `Unregister-ScheduledTask -TaskName "SecureScope backup check" -Confirm:$false`. Limit: it runs on the same PC, so it says nothing while the PC is off.
+
+### Overdue scheduled scans
+
+The Targets page (Scheduled scans) and the Overview show a notice when a schedule's next run is more than an hour late (the service was down or asleep; the run starts when it is back) or when its last run errored, was skipped or failed. Nothing is emailed for this; the notice appears when someone opens the page.
+
 ## 3. Restoring
 
 | Situation                                               | What to do                                                                                                                                                                                                                                         |

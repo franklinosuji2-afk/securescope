@@ -98,7 +98,7 @@ The full runbook is `OPERATIONS.md`. In short: bad code, revert and push; bad mi
 
 ## Unresolved risks
 
-1. Backups are weekly, on one PC, with no alert if they stop. Data loss window is up to a week plus Neon's short history.
+1. Backups are weekly, on one PC. A check task warns at sign-in and daily if the newest dump is older than 9 days or the last run failed (it cannot warn while the PC is off or from outside the PC). Data loss window is up to a week plus Neon's short history.
 2. One API instance, one database, one maintainer. Recovery by hand takes hours and has not been rehearsed on production, only on copies.
 3. Rate-limit counters are in memory and reset on restart (security checklist items 34 and 53).
 4. No retry for failed webhooks, no alert for failed email.

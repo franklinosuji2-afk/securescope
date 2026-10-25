@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 
 from sqlalchemy import Engine, delete, select, update
 
@@ -16,6 +17,23 @@ from app.schemas.scan import ScanStatus
 from app.schemas.schedule import ScheduleOut
 
 INTERVALS = {"daily": timedelta(days=1), "weekly": timedelta(days=7)}
+# The scheduler looks every 15 minutes; a run this far past its time means the service was down or asleep.
+OVERDUE_AFTER = timedelta(hours=1)
+PROBLEM_PREFIXES = ("error", "skipped", "failed")
+
+
+def schedule_health(
+    frequency: str, next_run_at: datetime | None, last_outcome: str | None, now: datetime
+) -> Literal["off", "ok", "overdue", "problem"]:
+    """off, ok, overdue or problem. A late run is reported before a failed one: the late run is the newer fact."""
+    if frequency == "off":
+        return "off"
+    due = _aware(next_run_at)
+    if due is not None and now - due > OVERDUE_AFTER:
+        return "overdue"
+    if last_outcome and last_outcome.lower().startswith(PROBLEM_PREFIXES):
+        return "problem"
+    return "ok"
 
 
 def _now() -> datetime:
@@ -46,6 +64,7 @@ class ScheduleRepository:
 
     def list_for_organization(self, organization_id: str) -> list[ScheduleOut]:
         """Every verified site of the workspace, with its schedule if it has one."""
+        now = datetime.now(UTC)
         with self._session() as session:
             rows = session.execute(
                 select(TargetRow, ScanScheduleRow)
@@ -64,6 +83,11 @@ class ScheduleRepository:
                     last_run_at=_aware(s.last_run_at) if s else None,
                     last_scan_id=s.last_scan_id if s else None,
                     last_outcome=s.last_outcome if s else None,
+                    health=schedule_health(
+                        s.frequency, s.next_run_at, s.last_outcome, now
+                    )
+                    if s
+                    else "off",
                 )
                 for t, s in rows
             ]

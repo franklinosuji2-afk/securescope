@@ -3,6 +3,7 @@ import BentoGrid from "../components/bento/BentoGrid";
 import Posture from "../components/Posture";
 import ScanForm from "../components/ScanForm";
 import ScanView from "../components/ScanView";
+import ScheduleWarning from "../components/ScheduleWarning";
 import SetupGuide from "../components/SetupGuide";
 import SummaryCards from "../components/SummaryCards";
 import { ErrorNotice, Loading } from "../components/ui";
@@ -51,6 +52,7 @@ export default function Overview({
           </p>
         )}
       </header>
+      {role && role !== "VIEWER" && <ScheduleWarning />}
       {data.loading && <Loading label="Loading your sites…" />}
       {data.error && <ErrorNotice message={data.error} />}
       {showGuide && (

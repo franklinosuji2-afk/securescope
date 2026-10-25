@@ -53,7 +53,7 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
 - **Coverage audit** (`docs/ENGINEERING_COVERAGE_AUDIT.md`) should be re-counted after these additions.
 - **Passive checks** to consider later, each with tests first: HTTP to HTTPS redirect chain details, `Set-Cookie`
   prefixes, `Cross-Origin-*` isolation headers. Nothing active or intrusive.
-- **Scheduled backup** runs weekly from your PC (set up 25 Oct, `OPERATIONS.md` section 2). Still to do: a second encrypted copy away from the PC and a warning when a run is missed.
+- **Scheduled backup** runs weekly from your PC (set up 25 Oct, `OPERATIONS.md` section 2). Still to do: a second encrypted copy away from the PC (the missed-run warning exists: `scripts/setup-backup-check.ps1`).
 - **Edge rate limit** for the sign-in routes in Cloudflare (your dashboard action), then p99, concurrency and EXPLAIN checks.
 - **Badge** could show the scan date in its image and offer a flat-square style.
 

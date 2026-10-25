@@ -86,3 +86,32 @@ def test_the_role_script_hides_both_passwords_and_grants_only_reading() -> None:
         w in ln.upper() for ln in grants for w in ("INSERT", "UPDATE", "DELETE", "ALL PRIVILEGES")
     )
     assert "SUPERUSER" not in text.upper().replace("SUPERUSER: ", "").replace("ROLSUPER", "")
+
+
+CHECK = ROOT / "scripts" / "backup-check.ps1"
+SETUP_CHECK = ROOT / "scripts" / "setup-backup-check.ps1"
+
+
+def test_the_backup_check_touches_no_secret_and_no_database() -> None:
+    for path in (CHECK, SETUP_CHECK):
+        text = path.read_text(encoding="utf-8")
+        for forbidden in (
+            "SECURESCOPE_BACKUP_URL",
+            "backup-url.txt",
+            "ConvertTo-SecureString",
+            "psql",
+            "pg_dump",
+            "docker",
+        ):
+            assert forbidden not in text, f"{path.name} must not use {forbidden}"
+        register = [ln for ln in text.splitlines() if "Register-ScheduledTask" in ln]
+        assert all("-Password" not in ln for ln in register)
+
+
+def test_the_backup_check_warns_on_age_failure_and_missing_files_and_never_deletes() -> None:
+    text = CHECK.read_text(encoding="utf-8")
+    assert "$MaxAgeDays" in text and "No backup file was found" in text and "FAILED" in text
+    assert "exit 1" in text
+    assert "Remove-Item" not in text  # it only looks; it never deletes a backup
+    assert re.search(r"Length -ge 1024", text)  # an empty file does not count as a backup
+    assert "if ($MaxAgeDays -lt 1)" in text
