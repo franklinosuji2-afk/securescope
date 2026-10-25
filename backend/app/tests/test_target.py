@@ -135,3 +135,15 @@ async def test_public_resolution_is_accepted(monkeypatch: pytest.MonkeyPatch) ->
 async def test_unresolvable_host_gives_clear_error() -> None:
     with pytest.raises(TargetError, match="could not be resolved"):
         await validate_target("http://definitely-not-real.invalid/", SETTINGS)
+
+
+def test_the_private_target_test_switch_cannot_be_turned_on_in_a_deployed_setup() -> None:
+    from app.core.config import Settings
+
+    with pytest.raises(ValueError, match="local tests only"):
+        Settings(allow_private_targets=True)  # secure cookies are the default
+    with pytest.raises(ValueError, match="local tests only"):
+        Settings(
+            allow_private_targets=True, cookie_secure=False, public_base_url="https://getsecurescope.com"
+        )
+    Settings(allow_private_targets=True, cookie_secure=False)  # the local test setup still works
