@@ -16,9 +16,10 @@ class TargetRow(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"))
     hostname: Mapped[str] = mapped_column(String(253))
-    # The challenge value is public by design (it is published in DNS or on the website).
-    challenge_token: Mapped[str] = mapped_column(String(64))
-    challenge_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # The challenge value is public by design (it is published in DNS or on the website). It is kept only while
+    # it is usable: cleared on success, on removal and once expired (None means "no active challenge").
+    challenge_token: Mapped[str | None] = mapped_column(String(64))
+    challenge_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     verification_method: Mapped[str | None] = mapped_column(String(16))
     last_check_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

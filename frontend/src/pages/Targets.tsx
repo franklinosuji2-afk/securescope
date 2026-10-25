@@ -21,6 +21,7 @@ function TargetCard({
   busy,
   onVerify,
   onRegenerate,
+  onRemoveChallenge,
   onDelete,
 }: {
   target: Target;
@@ -28,6 +29,7 @@ function TargetCard({
   busy: boolean;
   onVerify: (method: VerificationMethod) => void;
   onRegenerate: () => void;
+  onRemoveChallenge: () => void;
   onDelete: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
@@ -47,7 +49,8 @@ function TargetCard({
             ? "DNS TXT record"
             : "HTTP file"}
           . Scans of exactly <code>{target.hostname}</code> are allowed.
-          Subdomains and <code>www.</code> variants need their own entry.
+          Subdomains and <code>www.</code> variants need their own entry. The
+          challenge value is removed once a domain is verified.
           {target.verification_expires_at
             ? ` This proof is valid until ${formatDate(target.verification_expires_at)}, after which you will be asked to verify again.`
             : ""}
@@ -61,35 +64,51 @@ function TargetCard({
           }
         >
           <summary>How to prove you control this domain</summary>
-          <p className="small muted">
-            Publish <em>one</em> of the following, then press the matching
-            verify button. The challenge expires on{" "}
-            {formatDate(target.challenge_expires_at)}.
+          <p className="small muted" data-testid="verification-reassurance">
+            We only use this information to verify that you control the domain.
+            We do not request server access, passwords, private keys, or payment
+            details. The verification token is unique, works for this check
+            only, expires automatically, and can be removed at any time.
           </p>
-          <h4 className="small">Option A: DNS TXT record</h4>
-          <dl className="small">
-            <dt>Name</dt>
-            <dd>
-              <code>{target.dns_record_name}</code>
-            </dd>
-            <dt>Type</dt>
-            <dd>TXT</dd>
-            <dt>Value</dt>
-            <dd>
-              <code>{target.dns_record_value}</code>
-            </dd>
-          </dl>
-          <h4 className="small">Option B: file on your website</h4>
-          <dl className="small">
-            <dt>URL</dt>
-            <dd>
-              <code>{target.http_file_url}</code>
-            </dd>
-            <dt>Content</dt>
-            <dd>
-              <code>{target.http_file_content}</code>
-            </dd>
-          </dl>
+          {target.challenge_token && target.challenge_expires_at ? (
+            <>
+              <p className="small muted">
+                Publish <em>one</em> of the following, then press the matching
+                verify button. The challenge expires on{" "}
+                {formatDate(target.challenge_expires_at)}.
+              </p>
+              <h4 className="small">Option A: DNS TXT record</h4>
+              <dl className="small">
+                <dt>Name</dt>
+                <dd>
+                  <code>{target.dns_record_name}</code>
+                </dd>
+                <dt>Type</dt>
+                <dd>TXT</dd>
+                <dt>Value</dt>
+                <dd>
+                  <code>{target.dns_record_value}</code>
+                </dd>
+              </dl>
+              <h4 className="small">Option B: file on your website</h4>
+              <dl className="small">
+                <dt>URL</dt>
+                <dd>
+                  <code>{target.http_file_url}</code>
+                </dd>
+                <dt>Content</dt>
+                <dd>
+                  <code>{target.http_file_content}</code>
+                </dd>
+              </dl>
+            </>
+          ) : (
+            <p className="small">
+              There is no active challenge. It expired or was removed, and the
+              old value was erased. Press <strong>New challenge</strong> to get
+              a fresh one.
+            </p>
+          )}
         </details>
       )}
       {target.status === "reverify" && (
@@ -133,6 +152,16 @@ function TargetCard({
           >
             New challenge
           </button>
+          {target.challenge_token && (
+            <button
+              className="btn-ghost"
+              type="button"
+              disabled={busy}
+              onClick={onRemoveChallenge}
+            >
+              Remove challenge
+            </button>
+          )}
           {confirming ? (
             <>
               <button
@@ -332,6 +361,13 @@ export default function Targets() {
                   t.id,
                   () => api.regenerateChallenge(t.id),
                   (r) => `New challenge issued for ${r.hostname}.`,
+                )
+              }
+              onRemoveChallenge={() =>
+                void act(
+                  t.id,
+                  () => api.removeChallenge(t.id),
+                  (r) => `The challenge for ${r.hostname} was removed.`,
                 )
               }
               onDelete={() => void act(t.id, () => api.deleteTarget(t.id))}

@@ -40,6 +40,7 @@ def fake_state(history: Recorder, audit: Recorder, sessions: Recorder) -> Any:
             purge_old_invitations=Recorder(),
         ),
         analytics=SimpleNamespace(delete_older_than=Recorder()),
+        targets=SimpleNamespace(purge_expired_challenges=Recorder()),
         audit=SimpleNamespace(delete_older_than=audit),
     )
 

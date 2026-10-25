@@ -20,8 +20,8 @@ class TargetOut(BaseModel):
     id: str
     hostname: str
     status: Literal["pending", "verified", "expired", "reverify"]
-    challenge_token: str
-    challenge_expires_at: datetime
+    challenge_token: str = ""
+    challenge_expires_at: datetime | None = None
     verified_at: datetime | None = None
     verification_expires_at: datetime | None = None
     verification_method: VerificationMethod | None = None

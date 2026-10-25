@@ -409,6 +409,10 @@ export const regenerateChallenge = (id: string) =>
   request<Target>(`/targets/${encodeURIComponent(id)}/challenge`, {
     method: "POST",
   });
+export const removeChallenge = (id: string) =>
+  request<Target>(`/targets/${encodeURIComponent(id)}/challenge`, {
+    method: "DELETE",
+  });
 export const verifyTarget = (id: string, method: VerificationMethod) =>
   request<Target>(`/targets/${encodeURIComponent(id)}/verify`, {
     method: "POST",

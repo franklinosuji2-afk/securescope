@@ -167,7 +167,13 @@ def trust_host(client: TestClient, host: str, organization_id: str | None = None
     assert created.status_code == 201, created.text
     target_id: str = created.json()["id"]
     state = client.app.state.s  # type: ignore[attr-defined]
-    state.targets.record_check(target_id, organization_id, method="dns_txt", error=None)
+    state.targets.record_check(
+        target_id,
+        organization_id,
+        method="dns_txt",
+        error=None,
+        checked_token=created.json()["challenge_token"],
+    )
     return target_id
 
 
