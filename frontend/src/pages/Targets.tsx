@@ -159,7 +159,7 @@ function TargetCard({
               disabled={busy}
               onClick={onRemoveChallenge}
             >
-              Remove challenge
+              {verified ? "Erase challenge value" : "Remove challenge"}
             </button>
           )}
           {confirming ? (
