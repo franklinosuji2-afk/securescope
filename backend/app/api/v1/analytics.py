@@ -10,7 +10,8 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, Header, Query, Request, Response
 
 from app.api.deps import AdminDep, StateDep, client_key
-from app.schemas.analytics import AnalyticsSummary, CollectRequest
+from app.repositories.activation import SMALL_COHORT
+from app.schemas.analytics import ActivationFunnel, AnalyticsSummary, CollectRequest
 from app.services.analytics import (
     View,
     device_class,
@@ -77,4 +78,28 @@ async def summary(
         tracking_enabled=state.settings.analytics_enabled,
         last_event_at=last,
         **data,
+    )
+
+
+@router.get("/activation", response_model=ActivationFunnel)
+async def activation(
+    _admin: AdminDep,
+    state: StateDep,
+    days: Annotated[int, Query(ge=1, le=365)] = 30,
+) -> ActivationFunnel:
+    """How far the workspaces created in the period got. Counted from existing rows; operator only."""
+    since = datetime.now(UTC) - timedelta(days=days)
+    result = await asyncio.to_thread(state.activation.funnel, since)
+    return ActivationFunnel(
+        range_days=days,
+        small_cohort=result.created < SMALL_COHORT,
+        created=result.created,
+        website_added=result.website_added,
+        website_verified=result.website_verified,
+        first_scan_completed=result.first_scan_completed,
+        second_scan_completed=result.second_scan_completed,
+        monitoring_enabled=result.monitoring_enabled,
+        report_downloaded=result.report_downloaded,
+        api_token_created=result.api_token_created,
+        median_seconds_to_first_scan=result.median_seconds_to_first_scan,
     )

@@ -94,6 +94,7 @@ Every finding in a scan response carries `fingerprint` (a stable id for that che
 | DELETE | `/organizations/{id}/invitations/{invitation_id}` | OWNER, ADMIN | Revokes a pending invitation |
 | POST | `/analytics/collect` | none | Counts one page view of a public page. Always 204; ignores bots and requests with Do Not Track or Global Privacy Control; rate limited. See `ANALYTICS.md` |
 | GET | `/analytics/summary?days=&tz=` | administrator | Cookieless page-view summary (`days` 1 to 90) |
+| GET | `/analytics/activation?days=` | administrator | How far workspaces created in the period got (website added and verified, scans, schedule, report download, API token) and the median time to a first completed scan; `days` 1 to 365. Counts only, no identifiers. See `ANALYTICS.md` |
 | GET | `/platform/health` | administrator | Operator view of uptime, request counts and configuration flags (no secrets) |
 
 ## Schedules

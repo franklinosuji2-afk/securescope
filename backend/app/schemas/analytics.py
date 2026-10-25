@@ -68,3 +68,19 @@ class AnalyticsSummary(BaseModel):
     landing_pages: list[NamedCount]
     sources: list[NamedCount]
     devices: list[NamedCount]
+
+
+class ActivationFunnel(BaseModel):
+    """Counts of workspaces created in the period that reached each step. No ids, no names."""
+
+    range_days: int
+    created: int
+    website_added: int
+    website_verified: int
+    first_scan_completed: int
+    second_scan_completed: int
+    monitoring_enabled: int
+    report_downloaded: int
+    api_token_created: int
+    median_seconds_to_first_scan: int | None
+    small_cohort: bool
