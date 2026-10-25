@@ -1,5 +1,7 @@
 # Product improvement audit (Phase 0)
 
+> Superseded for planning by [product-improvement-plan.md](product-improvement-plan.md) (25 Oct 2026), which also lists the defects fixed since this baseline.
+
 Date: 25 October 2026. Code at `7033eef` (CI green: security, frontend, backend on PostgreSQL 18, e2e, docker).
 Labels: **Verified** (seen in the code or a test that was run), **Risk** (needs checking), **Recommendation**, **Not tested**.
 Several audits already exist and are kept up to date rather than duplicated: `PROJECT_AUDIT.md` (v0.1 baseline),
