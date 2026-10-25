@@ -18,6 +18,7 @@ from app.database.session import make_engine
 from app.middleware.ratelimit import SlidingWindowLimiter
 from app.observability.metrics import RequestMetrics
 from app.repositories.accounts import AccountRepository, AuditRepository, SessionRecord, UserRecord
+from app.repositories.activation import ActivationRepository
 from app.repositories.agency import AgencyRepository
 from app.repositories.analytics import AnalyticsRepository
 from app.repositories.billing import BillingRepository
@@ -70,6 +71,7 @@ class AppState:
         self.targets = TargetRepository(self.engine, settings.target_verification_valid_days)
         self.accounts = AccountRepository(self.engine)
         self.analytics = AnalyticsRepository(self.engine)
+        self.activation = ActivationRepository(self.engine)
         salt = (
             settings.analytics_salt.get_secret_value() if settings.analytics_salt else secrets.token_hex(32)
         )

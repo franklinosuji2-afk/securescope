@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
-import { ApiError, fetchAnalytics } from "../api";
+import { ApiError, fetchActivation, fetchAnalytics } from "../api";
 import { DailyHistogram, Kpi, Panel, trendOf } from "../components/charts";
 import { EmptyState, ErrorNotice, Loading } from "../components/ui";
 import { formatDate } from "../format";
-import type { AnalyticsCount, AnalyticsSummary } from "../types";
+import type {
+  ActivationFunnel,
+  AnalyticsCount,
+  AnalyticsSummary,
+} from "../types";
 
 const RANGES = [7, 30, 90] as const;
 
@@ -26,6 +30,102 @@ export function change(current: number, previous: number): string {
   const pct = Math.round(((current - previous) / previous) * 100);
   if (pct === 0) return "no change";
   return `${pct > 0 ? "+" : ""}${pct}% vs previous period`;
+}
+
+export function duration(seconds: number | null): string {
+  if (seconds === null) return "no completed scan yet";
+  if (seconds < 90) return "under 2 minutes";
+  if (seconds < 5400) return `${Math.round(seconds / 60)} minutes`;
+  if (seconds < 172800) return `${Math.round(seconds / 3600)} hours`;
+  return `${Math.round(seconds / 86400)} days`;
+}
+
+const FUNNEL_STEPS: { key: keyof ActivationFunnel; label: string }[] = [
+  { key: "created", label: "Workspace created" },
+  { key: "website_added", label: "Website added" },
+  { key: "website_verified", label: "Website verified" },
+  { key: "first_scan_completed", label: "First scan completed" },
+  { key: "second_scan_completed", label: "Second scan completed" },
+  { key: "monitoring_enabled", label: "Monitoring enabled" },
+  { key: "report_downloaded", label: "Report downloaded" },
+  { key: "api_token_created", label: "API token created" },
+];
+
+function Activation({ days }: { days: number }) {
+  const [data, setData] = useState<ActivationFunnel | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchActivation(days)
+      .then((result) => {
+        if (!cancelled) setData(result);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [days]);
+  return (
+    <Panel title={`Activation, workspaces created in the last ${days} days`}>
+      {failed && (
+        <p className="muted small" role="status">
+          The activation counts could not be loaded.
+        </p>
+      )}
+      {!failed && data === null && <Loading label="Loading activation…" />}
+      {data && (
+        <>
+          <p className="muted small">
+            Counted from records that already exist; nothing extra is tracked
+            and no person or site is shown. Scheduled and CI scans count as
+            completed scans.
+            {data.small_cohort &&
+              " Fewer than five workspaces: treat these as examples, not a trend."}
+          </p>
+          <div className="table-wrap">
+            <table className="data-table">
+              <caption className="visually-hidden">
+                Workspaces that reached each step
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Step</th>
+                  <th scope="col" className="num">
+                    Workspaces
+                  </th>
+                  <th scope="col" className="num">
+                    Share of created
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {FUNNEL_STEPS.map(({ key, label }) => {
+                  const value = Number(data[key]);
+                  return (
+                    <tr key={key}>
+                      <td>{label}</td>
+                      <td className="num">{value}</td>
+                      <td className="num">
+                        {data.created > 0
+                          ? `${Math.round((value / data.created) * 100)}%`
+                          : "–"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="small">
+            Median time from sign-up to first completed scan:{" "}
+            <strong>{duration(data.median_seconds_to_first_scan)}</strong>
+          </p>
+        </>
+      )}
+    </Panel>
+  );
 }
 
 function Bars({
@@ -220,6 +320,7 @@ export default function Analytics() {
             />
           </ul>
           <DailyChart data={data} />
+          <Activation key={days} days={days} />
           <div className="dash-cols dash-cols-2">
             <Bars
               title="Top pages"

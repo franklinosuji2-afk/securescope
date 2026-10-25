@@ -37,6 +37,13 @@ explicit empty state; it never shows sample numbers.
 2. Make sure that account's email address is confirmed.
 3. Open a public page in a private window, then check **Analytics**.
 
+## Activation funnel (operator only)
+`GET /api/v1/analytics/activation?days=1..365` (default 30), same admin rule as the summary. It counts how many
+workspaces created in the period reached each step (website added, verified, first and second completed scan,
+schedule, report downloaded, API token) and the median time from sign-up to first completed scan, from rows that
+already exist. It collects nothing new, stores nothing, and returns no ids or names. Shown on the Analytics page.
+Limits and definitions: `docs/analytics-and-feedback-audit.md`.
+
 ## Retention
 Rows older than `SECURESCOPE_ANALYTICS_RETENTION_DAYS` (default 90) are deleted by the hourly maintenance
 task. The privacy notice states 90 days; change both together.

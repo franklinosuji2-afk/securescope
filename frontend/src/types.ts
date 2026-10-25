@@ -300,6 +300,20 @@ export interface AnalyticsSummary {
   devices: AnalyticsCount[];
 }
 
+export interface ActivationFunnel {
+  range_days: number;
+  created: number;
+  website_added: number;
+  website_verified: number;
+  first_scan_completed: number;
+  second_scan_completed: number;
+  monitoring_enabled: number;
+  report_downloaded: number;
+  api_token_created: number;
+  median_seconds_to_first_scan: number | null;
+  small_cohort: boolean;
+}
+
 export interface PlatformHealth {
   version: string;
   started_at: string;

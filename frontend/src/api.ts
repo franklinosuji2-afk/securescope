@@ -1,5 +1,6 @@
 import type {
   AgencyDashboard,
+  ActivationFunnel,
   AnalyticsSummary,
   Client,
   CreatedShare,
@@ -431,6 +432,9 @@ export const fetchAnalytics = (days: number, timezone: string) =>
   request<AnalyticsSummary>(
     `/analytics/summary?days=${days}&tz=${encodeURIComponent(timezone)}`,
   );
+
+export const fetchActivation = (days: number) =>
+  request<ActivationFunnel>(`/analytics/activation?days=${days}`);
 
 export const fetchPlatformHealth = () =>
   request<PlatformHealth>("/platform/health");

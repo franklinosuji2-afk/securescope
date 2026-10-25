@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import { AuthProvider } from "../auth";
-import { change } from "../pages/Analytics";
-import type { AnalyticsSummary, User } from "../types";
+import { change, duration } from "../pages/Analytics";
+import type { ActivationFunnel, AnalyticsSummary, User } from "../types";
 
 const base: User = {
   id: "u1",
@@ -39,6 +39,20 @@ const summary = (over: Partial<AnalyticsSummary> = {}): AnalyticsSummary => ({
   ...over,
 });
 
+const funnel: ActivationFunnel = {
+  range_days: 7,
+  created: 4,
+  website_added: 3,
+  website_verified: 2,
+  first_scan_completed: 2,
+  second_scan_completed: 1,
+  monitoring_enabled: 0,
+  report_downloaded: 1,
+  api_token_created: 0,
+  median_seconds_to_first_scan: 600,
+  small_cohort: true,
+};
+
 function mockApi(me: User | null, analytics: AnalyticsSummary = summary()) {
   const fetchMock = vi.fn(
     async (...args: [url: string, init?: RequestInit]) => {
@@ -47,6 +61,9 @@ function mockApi(me: User | null, analytics: AnalyticsSummary = summary()) {
         return me
           ? { ok: true, status: 200, json: async () => me }
           : { ok: false, status: 401, json: async () => ({ detail: "no" }) };
+      }
+      if (url.includes("/analytics/activation")) {
+        return { ok: true, status: 200, json: async () => funnel };
       }
       if (url.includes("/analytics/summary")) {
         return { ok: true, status: 200, json: async () => analytics };
@@ -137,6 +154,19 @@ describe("analytics page", () => {
     expect(screen.queryByText("No visits recorded yet")).toBeNull();
   });
 
+  it("shows the activation funnel with its small-cohort warning", async () => {
+    mockApi({ ...base, is_admin: true });
+    window.location.hash = "#/analytics";
+    renderApp();
+    expect(
+      await screen.findByText(/workspaces created in the last 7 days/i),
+    ).toBeInTheDocument();
+    expect(await screen.findByText("First scan completed")).toBeInTheDocument();
+    expect(screen.getAllByText("50%")).toHaveLength(2); // verified and first scan: 2 of 4
+    expect(screen.getByText(/fewer than five workspaces/i)).toBeInTheDocument();
+    expect(screen.getByText("10 minutes")).toBeInTheDocument();
+  });
+
   it("explains an empty period instead of showing sample data", async () => {
     mockApi(
       { ...base, is_admin: true },
@@ -173,6 +203,16 @@ describe("analytics page", () => {
         true,
       ),
     );
+  });
+});
+
+describe("duration text", () => {
+  it("is plain and never invents a time", () => {
+    expect(duration(null)).toBe("no completed scan yet");
+    expect(duration(40)).toBe("under 2 minutes");
+    expect(duration(600)).toBe("10 minutes");
+    expect(duration(7200)).toBe("2 hours");
+    expect(duration(3 * 86400)).toBe("3 days");
   });
 });
 
