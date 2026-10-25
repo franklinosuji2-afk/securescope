@@ -127,6 +127,13 @@ class Settings(BaseSettings):
             raise ValueError("SECURESCOPE_CRON_SECRET must be at least 32 characters")
         if self.webhook_signing_key is not None and len(self.webhook_signing_key.get_secret_value()) < 32:
             raise ValueError("SECURESCOPE_WEBHOOK_SIGNING_KEY must be at least 32 characters")
+        if self.allow_private_targets and (
+            self.cookie_secure or self.public_base_url.lower().startswith("https://")
+        ):
+            raise ValueError(
+                "SECURESCOPE_ALLOW_PRIVATE_TARGETS lets the scanner reach internal addresses and is for local "
+                "tests only. It cannot be combined with secure cookies or an https public address."
+            )
         return self
 
 
