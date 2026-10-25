@@ -41,6 +41,7 @@ def fake_state(history: Recorder, audit: Recorder, sessions: Recorder) -> Any:
         ),
         analytics=SimpleNamespace(delete_older_than=Recorder()),
         targets=SimpleNamespace(purge_expired_challenges=Recorder()),
+        webhook_repo=SimpleNamespace(purge_old_retries=Recorder()),
         audit=SimpleNamespace(delete_older_than=audit),
     )
 
