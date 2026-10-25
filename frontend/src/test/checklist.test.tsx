@@ -72,3 +72,32 @@ describe("the checklist", () => {
     expect(screen.getAllByText("✓ Passed")).toHaveLength(1);
   });
 });
+
+describe("the HTTPS and certificate checks", () => {
+  it("count a certificate problem once, against the certificate check, as the exported report does", () => {
+    render(
+      <Checklist
+        scan={scan(
+          ["https", "tls-certificate"],
+          [finding("SS-TLS-CERT-002", "medium")],
+        )}
+      />,
+    );
+    expect(screen.getAllByText("✓ Passed")).toHaveLength(1);
+    expect(screen.getAllByText("✕ Needs attention")).toHaveLength(1);
+    expect(screen.getByText(/1 of 2 checks passed/)).toBeTruthy();
+  });
+
+  it("fail the HTTPS check when the page was not served over HTTPS", () => {
+    render(
+      <Checklist
+        scan={scan(
+          ["https", "tls-certificate"],
+          [finding("SS-TLS-001", "high")],
+        )}
+      />,
+    );
+    expect(screen.getAllByText("✕ Needs attention")).toHaveLength(1);
+    expect(screen.getAllByText("✓ Passed")).toHaveLength(1);
+  });
+});

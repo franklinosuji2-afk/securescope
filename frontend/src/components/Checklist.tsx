@@ -1,7 +1,8 @@
 import { buildHash } from "../router";
 import type { ScanDetail } from "../types";
 
-// Mirrors the checks the scanner runs (backend/app/scanner/checks.py, CHECK_LABELS).
+// Mirrors the checks the scanner runs (backend/app/scanner/checks.py, CHECK_LABELS), including the prefixes:
+// "SS-TLS-0" keeps certificate findings (SS-TLS-CERT-) out of the HTTPS check. A backend test compares both lists.
 const CHECKS: Record<
   string,
   { label: string; why: string; prefixes: string[] }
@@ -9,7 +10,7 @@ const CHECKS: Record<
   https: {
     label: "HTTPS",
     why: "Traffic is encrypted, so visitors cannot be spied on or altered in transit.",
-    prefixes: ["SS-TLS-"],
+    prefixes: ["SS-TLS-0"],
   },
   hsts: {
     label: "Strict-Transport-Security (HSTS)",
