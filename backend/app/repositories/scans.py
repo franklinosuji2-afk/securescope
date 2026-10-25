@@ -11,10 +11,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.billing.errors import PlanLimitError
-from app.billing.plans import DEFAULT_PLAN_ID, PLANS
+from app.billing.lifecycle import effective_plan_id
+from app.billing.plans import DEFAULT_PLAN_ID, PLANS, get_plan
 from app.database.session import make_session_factory
-from app.models.billing import OrganizationPlanRow
+from app.models.billing import OrganizationPlanRow, SubscriptionRow
 from app.models.scan import FindingRow, FindingStateRow, ReportRow, ScanRow
+from app.repositories.billing import state_from_row
 from app.repositories.plans import lock_organization
 from app.scanner.fingerprint import fingerprint
 from app.scanner.scoring import count_by_severity
@@ -344,26 +346,36 @@ class ScanRepository:
     def delete_expired_history(self) -> int:
         """Deletes scans (with their findings and reports) older than each organization's plan keeps them.
 
-        Organizations without a plan, and any with an unknown plan id, follow the default plan. Scans from before
-        accounts existed (no organization) follow it too."""
-        cutoffs = {plan.id: _now() - timedelta(days=plan.history_days) for plan in PLANS.values()}
+        The plan is the one that applies now: a paid subscription gives its plan's window while the paid period
+        lasts, and the stored base plan applies otherwise. Organizations without a plan, and any with an unknown
+        plan id, follow the default plan. Scans from before accounts existed (no organization) follow it too."""
+        now = _now()
         removed = 0
         with self._session.begin() as session:
-            for plan_id, cutoff in cutoffs.items():
-                if plan_id == DEFAULT_PLAN_ID:
-                    other = [p for p in PLANS if p != DEFAULT_PLAN_ID]
-                    on_other_plans = select(OrganizationPlanRow.organization_id).where(
-                        OrganizationPlanRow.plan_id.in_(other)
-                    )
+            base = {
+                org: plan
+                for org, plan in session.execute(
+                    select(OrganizationPlanRow.organization_id, OrganizationPlanRow.plan_id)
+                )
+            }
+            subs = {
+                row.organization_id: state_from_row(row) for row in session.scalars(select(SubscriptionRow))
+            }
+            by_plan: dict[str, list[str]] = {}
+            for org in base.keys() | subs.keys():
+                plan_id = get_plan(effective_plan_id(base.get(org), subs.get(org), now)).id
+                by_plan.setdefault(plan_id, []).append(org)
+            on_other_plans = [
+                org for plan_id, orgs in by_plan.items() if plan_id != DEFAULT_PLAN_ID for org in orgs
+            ]
+            for plan in PLANS.values():
+                cutoff = now - timedelta(days=plan.history_days)
+                if plan.id == DEFAULT_PLAN_ID:
                     belongs = or_(
                         ScanRow.organization_id.is_(None), ScanRow.organization_id.not_in(on_other_plans)
                     )
                 else:
-                    belongs = ScanRow.organization_id.in_(
-                        select(OrganizationPlanRow.organization_id).where(
-                            OrganizationPlanRow.plan_id == plan_id
-                        )
-                    )
+                    belongs = ScanRow.organization_id.in_(by_plan.get(plan.id, []))
                 old = select(ScanRow.id).where(belongs, ScanRow.created_at < cutoff)
                 # Delete findings and reports explicitly so behaviour does not depend on the DB enforcing FKs.
                 session.execute(delete(FindingRow).where(FindingRow.scan_id.in_(old)))
