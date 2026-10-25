@@ -166,6 +166,8 @@ def build_context(
             for s in SEVERITY_ORDER
         ],
         "findings": findings,
+        # Findings the team marked as false positives are left out of this document; it says so.
+        "excluded_false_positives": len(detail.findings) - len(ordered),
         "plan": plan,
         "passed": [_clean(x) for x in passed_checks(detail)],
         "coverage": [_clean(x) for x in coverage_notes(detail)],

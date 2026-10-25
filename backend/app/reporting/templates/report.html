@@ -91,6 +91,9 @@
   {% else %}
     <p class="toc-note">Most important first. Each finding says what was seen, where, and how to fix it.</p>
   {% endif %}
+  {% if excluded_false_positives %}
+    <p class="toc-note">{{ excluded_false_positives }} finding{{ "s" if excluded_false_positives != 1 else "" }} marked as a false positive by the team {{ "are" if excluded_false_positives != 1 else "is" }} not listed in this report.</p>
+  {% endif %}
   {% for f in findings %}
   <div class="finding has-sev sev-{{ f.severity }}">
     <h3>{{ loop.index }}. {{ f.title }}<span class="badge">{{ f.severity_label }}</span></h3>
