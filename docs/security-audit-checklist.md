@@ -2,7 +2,7 @@
 
 Audit date: 25 Oct 2026. Scope: the SecureScope repository at the commit that contains this file. Every item was checked against the code, configuration and tests, not against the existence of a test alone. Statuses follow the audit brief: PASS, PARTIAL, FAIL, NOT VERIFIED, NOT APPLICABLE.
 
-**Totals:** PASS 52, PARTIAL 6, FAIL 0, NOT VERIFIED 4, NOT APPLICABLE 6 (68 items).
+**Totals (after the closure review of 25 Oct 2026):** PASS 54, PARTIAL 6, FAIL 0, NOT VERIFIED 2, NOT APPLICABLE 6 (68 items). Items 39 and 57 moved from NOT VERIFIED to PASS; items 19 and 41 stay PASS with corrected evidence. See the closure section at the end.
 
 Items 14 and 36 were PARTIAL when first inspected and are PASS after the small fixes made in this audit (see [security-findings.md](security-findings.md)).
 
@@ -28,7 +28,7 @@ Columns: status; evidence (files, routes, tests); risk and remediation, includin
 | 16 | Git history scanned for secrets | **PASS** | `scripts/scan_secrets.py --history` clean; also runs in CI | None | Command in test-evidence | Regex scanner, not an entropy scanner; GitHub push protection also active |
 | 17 | Exposed secrets needing owner-approved rotation | **NOT VERIFIED** | No secret found in the repository or history. Secret files on the owner's PC (Downloads) were noted earlier and are outside the repository | Owner action: delete local copies; rotate anything that was ever pasted into a chat or shared. Not done by Claude | n/a | Cannot inspect the owner's PC or hosting dashboards |
 | 18 | Logs and errors contain no credentials or personal data | **PASS** | `test_log_secrets.py`; JSON logger fields are explicit; webhook secrets never logged | None | `test_log_secrets` | Third-party logs (host, Cloudflare) not reviewed |
-| 19 | Debug off, verbose errors off in production | **PASS** | No reload flag in the container command; API docs off by default; unhandled errors return a generic 500; tracebacks are logged server-side only | None | `test_platform_health` (500 body) | Real production environment not inspected |
+| 19 | Debug off, verbose errors off in production | **PASS** | No reload flag in the container command; API docs off by default; unhandled errors return a generic 500; tracebacks are logged server-side only | None | `test_error_responses` (500 body has no marker, traceback or exception name); `test_platform_health` covers only the status code and metric | Real production environment not inspected |
 | 20 | No secrets in bundles, source maps or public config | **PASS** | No source maps in `dist`; no secret-shaped strings; `frontend/public` holds static files only | None | Command in test-evidence | Pattern based |
 | 21 | Parameterised queries | **PASS** | SQLAlchemy ORM throughout; no raw SQL, `text()` or f-string SQL in `app/` | None | grep | Static review |
 | 22 | Input validation | **PASS** | Pydantic request models with length limits; Query bounds; `validate_target` for URLs; 18 webhook URL tricks rejected (`test_ssrf_matrix`) | None | `test_ssrf_matrix`, `test_target` | No fuzzing performed |
@@ -48,9 +48,9 @@ Columns: status; evidence (files, routes, tests); risk and remediation, includin
 | 36 | CORS restrictive | **PASS** | Allow-list with credentials; unknown origins refused on unsafe methods. New: a wildcard, `null` or empty origin is refused at start-up | Fixed in this audit | `test_config_guards` | Existing tests cover the allow-list behaviour |
 | 37 | Debug and development endpoints disabled | **PASS** | `api_docs_enabled` false by default; `allow_private_targets` cannot combine with secure cookies or an https address | None | `test_target` | Host environment not inspected |
 | 38 | Dependency vulnerabilities | **PASS** | pip-audit: none; npm audit (production): none, on the audit date | None | Commands in test-evidence | Known advisories only; Dependabot opens weekly update PRs |
-| 39 | Unused or exposed endpoints and dependencies | **NOT VERIFIED** | No systematic unused-endpoint review; every route is authenticated or on a short public allow-list | Optional clean-up pass | n/a | Not assessed |
+| 39 | Unused or exposed endpoints and dependencies | **PASS** | 72 of 74 routes are called by the frontend or the GitHub Action. The other two are `/ready` (Docker healthcheck) and `/auth/refresh` (authenticated, tested, not used by the UI). Every route is authenticated or on the public allow-list in `test_authentication_sweep` | None | `test_authentication_sweep` | Reference check by search, not by traffic |
 | 40 | Badges, exports, report links, caches | **PASS** | Badge is opt-in, random address, shows only score and grade, rate-limited; API responses are no-store; service worker never touches `/api` | None | `test_cross_customer` (shares), badge tests | Share links are bearer links; anyone holding one can read that report |
-| 41 | API errors reveal no internals | **PASS** | Generic 500 body; validation errors list fields only | None | `test_platform_health` | Not fuzzed |
+| 41 | API errors reveal no internals | **PASS** | Generic 500 body; validation errors list `loc`, `msg` and `type` only. The closure review found that FastAPI's default 422 echoed the rejected input (including a weak password); a handler in `main.py` now removes it | None | `test_error_responses` | Not fuzzed |
 | 42 | Cross-customer isolation for every resource and route | **PASS** | See 3 | None | `test_cross_customer` | See 3 |
 | 43 | Agency roles and client boundaries | **PASS** | See 2; roles apply to the whole workspace | Per-client permissions are a product decision (Phase 8) | `test_agency_roles` | Not per client |
 | 44 | API tokens cannot bypass plan limits or permissions | **PASS** | See 9; scans via tokens use the same limiter and allowance path | None | `test_token_scope`, `test_plans` | CI routes only |
@@ -62,11 +62,11 @@ Columns: status; evidence (files, routes, tests); risk and remediation, includin
 | 50 | Account deletion removes user data, jobs, tokens, integrations | **PASS** | Schema-driven sweep of every reference to users and organisations; text search for the email, workspace name and webhook secret | None | `test_deletion_sweep` | Backups keep data until they expire (documented) |
 | 51 | Entitlements enforced on the server | **PASS** | Plan resolved server-side; invariants over 7,000+ combinations | Operator-assigned plan vs lower subscription is an owner decision | `test_subscription_invariants`, `test_plans` | No live billing provider |
 | 52 | Reports and job results unavailable to unauthorised users | **PASS** | See 10 | None | `test_cross_customer` | See 10 |
-| 53 | Rate and resource limits against scan abuse | **PARTIAL** | Per-client and per-target limits, a concurrency semaphore, 3 scheduled jobs per cron call, a monthly allowance | In-memory counters (see 34); no global cap on queued scans | `test_scan_control` | Load test not run (queued project) |
+| 53 | Rate and resource limits against scan abuse | **PARTIAL** | Per-client and per-target limits, a concurrency semaphore, 3 scheduled jobs per cron call, a monthly allowance, and a global queue cap (`api/v1/scans.py` answers 429 when pending scans reach 4 times the concurrency limit) | In-memory counters (see 34); the queue cap is per instance | `test_scan_control` | Load test not run (queued project) |
 | 54 | Tracked files scanned for secrets | **PASS** | Secret scan clean; only `.env.example` tracked | None | Command in test-evidence | Pattern based |
 | 55 | Git history scanned | **PASS** | See 16 | None | same | Same |
 | 56 | Dependency manifests and lockfiles | **PASS** | Backend pinned in `requirements.txt`; frontend `package-lock.json`; audits clean | None | Commands in test-evidence | Transitive packages not individually reviewed |
-| 57 | Remove unused packages | **NOT VERIFIED** | Not checked package by package | Optional | n/a | Not assessed |
+| 57 | Remove unused packages | **PASS** | `depcheck` found no unused npm packages. Every Python pin is imported or required by another package, except `charset-normalizer` (left over from the old PDF library), which was removed; the suite passes in a fresh environment without it | None | Full backend suite in a clean venv | Transitive packages are pip's choice |
 | 58 | Production build settings | **PASS** | No source maps; no dev server in the container; docs off | None | `dist` inspection | Host settings not inspected |
 | 59 | Database and storage least privilege | **PARTIAL** | See 27 | See 27 | n/a | See 27 |
 | 60 | Backups and restore testing | **PARTIAL** | `scripts/backup-db.ps1` and `restore-test.ps1` exist; restore was tested against a real PostgreSQL 16 in development; the PowerShell scripts have not been run on the owner's PC with the real database | Owner action: run the backup and restore test once and record the date | `docs/OPERATIONS.md` procedure | Backup access controls on the host not reviewed |
@@ -78,3 +78,50 @@ Columns: status; evidence (files, routes, tests); risk and remediation, includin
 | 66 | Targeted tests for confirmed gaps | **PASS** | `test_config_guards.py` (4 cases) | None | `test_config_guards` | Only two gaps were confirmed |
 | 67 | Tests fail when a control is weakened | **PASS** | Mutation checks: CSRF check removed (2 tests fail), every IP public (72 fail), revocation ignored (3 fail), earlier `CanShare` weakened (fails); clean baseline passes | None | Mutation procedure in test-evidence | Four controls mutated, not all |
 | 68 | Final security review of changes and tests | **PASS** | Diff reviewed: config validators and tests only; no control weakened | None | `git diff` | Reviewed by the author of the change |
+
+## Closure review (25 Oct 2026)
+
+The earlier results were treated as unverified. Evidence found: the full backend suite passes in a clean environment built from `requirements.txt` without the removed pin; ruff, mypy (175 files) and bandit are clean; the frontend passes lint, types, formatting and 222 tests. The CI run for the last pushed commit (`20b0f7b`) shows frontend, backend, security, docker and e2e (Playwright) all successful against that same commit; the batch 9 and batch 10 commits had not been pushed when this was written, so their CI is outstanding.
+
+### Fixes made in the closure review
+
+| Change | Why |
+|---|---|
+| `core/config.py`: each CORS entry must be exactly `scheme://host[:port]`, lower case, no path, no trailing slash, no wildcard; an empty list is allowed; the `change-me` database check is case-insensitive | The first guard accepted a trailing slash, a path, upper case and `Change-Me`. The list must be JSON in the environment; plain or comma strings already fail closed |
+| `main.py`: validation errors return `loc`, `msg` and `type` only | Default 422 echoed the rejected input, including a weak password (P3) |
+| `requirements.txt`: removed unused `charset-normalizer` | Item 57 |
+| Tests: extended `test_config_guards.py`; new `test_error_responses.py` | Cover the above |
+
+Not covered by the guard: the placeholder password with a non-https `public_base_url`, and an installation with nothing configured (development defaults). Both are intended for local use.
+
+### The six PARTIAL items
+
+| # | Gap | Impact | Blocks a controlled pilot? | Smallest safe fix | Test needed |
+|---|---|---|---|---|---|
+| 12 | Deleting an account does not cancel a paid subscription | None while no paid plan is live | No. Blocks paid launch | Block or cancel at deletion once Paddle exists | Deletion with an active subscription |
+| 27 / 59 | Migrations run under the runtime database role | A compromised application could change the schema | No, with a trusted pilot | Separate migration role (hosting change) | None in code |
+| 34 | In-memory rate limiters | Reset on restart; not shared across instances | No on one instance, with the edge rule | Cloudflare rate-limit rule | None in code |
+| 53 | Same limiters; queue cap is per instance | Same as 34 | No | Same as 34 | Load test (queued) |
+| 60 | Backup and restore scripts not run on the owner's PC | Unproven recovery | Yes, as a condition: run once before real customer data | Run both scripts, record the date | None |
+
+None is a confirmed code defect that blocks a pilot, so none was changed.
+
+### NOT VERIFIED
+
+- 17 (secret rotation): the secret files are on the owner's PC and the hosting dashboards are not accessible. Needs the owner.
+- 62 (branch protection): the GitHub API refused the read (403). Needs the owner to confirm required status checks and secret scanning.
+
+### Mutation tests
+
+The CSRF test (`test_auth.py`), the revoked-session test and the SSRF matrix (`test_ssrf_matrix.py`) assert outcomes (403, rejected cookie, address refused), not implementation details. Existing coverage of other high-value controls (tenant isolation, authentication sweep, API token scopes) is outcome-based. No further test was added beyond the two above.
+
+### Pilot readiness
+
+| Scope | Status | Conditions |
+|---|---|---|
+| Local development | READY | None |
+| Owned or authorised sites | READY WITH CONDITIONS | Ownership verification and authorisation confirmation are enforced and tested; scans of third-party sites stay off |
+| Controlled external pilot (free plans) | READY WITH CONDITIONS | Restore test run; Cloudflare rate-limit rule; branch protection confirmed; production CORS and database URL checked against the stricter guards; batch 9 and 10 CI green |
+| Public commercial launch | NOT READY | Subscription cancellation on deletion; payment webhooks; separate database roles; legal and VAT review |
+
+Passing tests are not proof of complete security; no live penetration test, load test or review of the production host was done.

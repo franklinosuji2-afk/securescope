@@ -12,6 +12,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -110,6 +111,12 @@ def create_app(settings: Settings | None = None, mailer: Mailer | None = None) -
         allow_headers=["Content-Type", "X-CSRF-Token", "X-Organization-Id", "Idempotency-Key"],
         max_age=600,
     )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_failed(_request: Request, exc: RequestValidationError) -> JSONResponse:
+        # Name the field and the problem, but never send the submitted value back: it may be a password.
+        problems = [{"loc": e["loc"], "msg": e["msg"], "type": e["type"]} for e in exc.errors()]
+        return JSONResponse({"detail": problems}, status_code=422)
 
     @app.middleware("http")
     async def request_context(

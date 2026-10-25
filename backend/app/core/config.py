@@ -2,11 +2,20 @@
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from typing import Literal
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_ORIGIN = re.compile(
+    r"^https?://(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*|\[[0-9a-f:]+\])(?::[0-9]{1,5})?$"
+)
+
+
+def _is_exact_origin(origin: str) -> bool:
+    return bool(_ORIGIN.fullmatch(origin))
 
 
 class Settings(BaseSettings):
@@ -127,12 +136,15 @@ class Settings(BaseSettings):
             raise ValueError("SECURESCOPE_CRON_SECRET must be at least 32 characters")
         if self.webhook_signing_key is not None and len(self.webhook_signing_key.get_secret_value()) < 32:
             raise ValueError("SECURESCOPE_WEBHOOK_SIGNING_KEY must be at least 32 characters")
-        # Cookies are sent with cross-origin requests from the listed sites, so "*" would let any site read
-        # a signed-in visitor's data. Origins must be listed one by one.
-        if any(origin.strip() in ("*", "null", "") or "*" in origin for origin in self.cors_origins):
-            raise ValueError(
-                "SECURESCOPE_CORS_ORIGINS must list exact origins; wildcards and 'null' are not allowed"
-            )
+        # Cookies are sent with cross-origin requests from the listed sites, so every entry must be one exact
+        # origin: scheme://host[:port], lower case, no path or trailing slash, no wildcard. A browser's Origin
+        # header never matches anything else, so a loose entry would silently break sign-in instead.
+        for origin in self.cors_origins:
+            if not _is_exact_origin(origin):
+                raise ValueError(
+                    "SECURESCOPE_CORS_ORIGINS must list exact origins such as https://example.com "
+                    "(lower case, no path, no trailing slash, no wildcards, not 'null')"
+                )
         if self.allow_private_targets and (
             self.cookie_secure or self.public_base_url.lower().startswith("https://")
         ):
@@ -142,7 +154,7 @@ class Settings(BaseSettings):
             )
         if (
             self.public_base_url.lower().startswith("https://")
-            and "change-me" in self.database_url
+            and "change-me" in self.database_url.lower()
             and not self.database_url.startswith("sqlite")
         ):
             raise ValueError("SECURESCOPE_DATABASE_URL still contains the placeholder password 'change-me'")

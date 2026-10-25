@@ -1,14 +1,14 @@
 # Security test evidence
 
-Commands actually run on 25 Oct 2026 against the code that contains this file, with their results. Local database: PostgreSQL 16; CI uses 18. Playwright (browser) tests were not re-run locally for this change; CI runs them on every push.
+Commands actually run on 25 Oct 2026 against the code that contains this file, with their results. Local database: PostgreSQL 16; CI uses 18. Playwright (browser) tests were not run locally. In CI, the e2e job succeeded on commit `20b0f7b` (the last one pushed) together with frontend, backend, security and docker; later commits are not yet pushed. ruff, mypy and bandit were clean.
 
 ## Test suites
 
 | Command (from `backend/` unless stated) | Result |
 |---|---|
-| `pytest -p no:cacheprovider -q -W ignore` (full suite, Postgres) | 996 tests collected, 0 failed |
+| `pytest -p no:cacheprovider -q -W ignore` (full suite, Postgres) | 1,012 passed, 0 failed (closure review, clean environment without `charset-normalizer`) |
 | `pytest app/tests/test_config_guards.py app/tests/test_target.py` | passed |
-| `npx vitest run` (from `frontend/`) | 25 files, 220 tests passed |
+| `npx vitest run` (from `frontend/`) | 222 tests passed |
 
 ## Static analysis and audits
 
@@ -36,7 +36,7 @@ After each mutation the working tree was confirmed clean.
 
 ## Security-specific test files
 
-`test_cross_customer`, `test_route_coverage`, `test_authentication_sweep`, `test_agency_roles`, `test_token_scope`, `test_schedule_authorisation`, `test_ssrf_matrix`, `test_fetcher`, `test_deletion_sweep`, `test_account_deletion_data`, `test_subscription_invariants`, `test_plans`, `test_log_secrets`, `test_auth`, `test_scan_control`, `test_config_guards` (new).
+`test_cross_customer`, `test_route_coverage`, `test_authentication_sweep`, `test_agency_roles`, `test_token_scope`, `test_schedule_authorisation`, `test_ssrf_matrix`, `test_fetcher`, `test_deletion_sweep`, `test_account_deletion_data`, `test_subscription_invariants`, `test_plans`, `test_log_secrets`, `test_auth`, `test_scan_control`, `test_config_guards`, `test_error_responses` (new).
 
 ## Not run
 

@@ -4,7 +4,7 @@ Date: 25 Oct 2026. Details: [checklist](security-audit-checklist.md), [findings]
 
 ## Result
 
-68 checks: **52 PASS, 6 PARTIAL, 0 FAIL, 4 NOT VERIFIED, 6 NOT APPLICABLE.** No P0 or P1 defect was demonstrated. Two P3 configuration gaps were fixed (CORS wildcard guard; placeholder database password guard). Everything else that is open needs a decision or action from the owner.
+68 checks after the closure review: **54 PASS, 6 PARTIAL, 0 FAIL, 2 NOT VERIFIED, 6 NOT APPLICABLE.** No P0 or P1 defect was demonstrated. Fixed: the CORS guard (now exact origins only) and the placeholder database password guard (now case-insensitive), plus a P3 where validation errors echoed the rejected input. See the closure section in the checklist. Everything else that is open needs a decision or action from the owner.
 
 ## What was reviewed
 
@@ -15,7 +15,6 @@ Authentication, sessions and cookies, authorisation and roles, tenant isolation 
 - The production host, Neon database roles and settings, Cloudflare configuration, GitHub repository settings (branch protection), and mail-provider behaviour.
 - A live penetration test, fuzzing, load testing and real DNS-rebinding against live resolvers.
 - Third-party services' own logs.
-- Whether unused endpoints or packages exist (NOT VERIFIED).
 - Paddle billing and inbound payment webhooks, which do not exist yet.
 
 ## Unresolved risks
@@ -29,7 +28,8 @@ Authentication, sessions and cookies, authorisation and roles, tenant isolation 
 
 ## Readiness, with evidence
 
-- **Further testing and a controlled pilot with free plans: ready.** Isolation, authentication, scanner safety and deletion are covered by tests that were shown to fail when the controls are weakened, and the dependency and secret audits are clean.
-- **Paid launch or open public deployment: not yet.** Items 1 and 2 above, a tested restore, and the edge rate limit should be done first.
+- **Local development: ready. Owned or authorised sites: ready with conditions. Controlled pilot with free plans: ready with conditions** (restore test, edge rate limit, branch protection check, production settings checked against the stricter startup guards).
+- Earlier statement kept for reference: Isolation, authentication, scanner safety and deletion are covered by tests that were shown to fail when the controls are weakened, and the dependency and secret audits are clean.
+- **Public commercial launch: not ready.** Items 1 and 2 above, a tested restore, and the edge rate limit should be done first.
 
 This audit does not show the application is completely secure and it is not a penetration test.

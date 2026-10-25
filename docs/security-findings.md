@@ -31,6 +31,19 @@ None rated FAIL. No cross-customer access, authentication bypass, injection, SSR
 | O7 | P3 | No idle timeout and no `__Host-` prefix on the session cookie; first-party GitHub Actions are pinned to major tags rather than commit hashes. | Hardening only |
 | O8 | Owner | Local secret files in the owner's Downloads folder (noted earlier) should be deleted and anything ever shared in a chat rotated. | Outside the repository; rotation needs approval |
 
+### F3 (P3, hardening): the CORS and placeholder guards were too loose (closure review)
+- **Evidence:** probing the first guard showed it accepted a trailing slash, a path, upper-case entries and `Change-Me`.
+- **Fix:** every origin must be exactly `scheme://host[:port]` in lower case; the placeholder check ignores case. Tests: `test_config_guards.py`.
+- **Owner check:** the host's `SECURESCOPE_CORS_ORIGINS` must be a JSON list of exact origins or the service will not start.
+
+### F4 (P3): validation errors echoed the rejected input (closure review)
+- **Evidence:** a new test showed FastAPI's default 422 body contained the submitted value, including a weak password.
+- **Fix:** a handler in `main.py` returns `loc`, `msg` and `type` only. Tests: `test_error_responses.py`.
+
+### Corrections to the first audit
+- Item 53 said there was no global cap on queued scans; there is one (`api/v1/scans.py`, 429 at 4 times the concurrency limit).
+- Items 19 and 41 cited `test_platform_health` as proof of a generic 500 body; that test checks only the status and metric. `test_error_responses` now proves it.
+
 ## Things that held up
 
 - Cross-customer isolation, agency roles, API-token limits, scheduled-scan authorisation and account deletion, each tested end to end (route-coverage test fails when a new id-taking route is not covered).

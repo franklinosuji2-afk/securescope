@@ -5,7 +5,10 @@
 | Item | Change | Tests |
 |---|---|---|
 | F1 | Start-up refuses CORS wildcards, `null` and empty origins | `test_config_guards.py` |
-| F2 | Start-up refuses the placeholder database password on an https deployment | `test_config_guards.py` |
+| F2 | Start-up refuses the placeholder database password on an https deployment (case-insensitive) | `test_config_guards.py` |
+| F3 | CORS origins must be exact (no path, trailing slash, upper case) | `test_config_guards.py` |
+| F4 | Validation errors no longer echo the rejected input | `test_error_responses.py` |
+| F5 | Removed unused `charset-normalizer` pin | Full suite in a clean environment |
 
 Both are small configuration guards. No authentication, authorisation, ownership, SSRF or subscription control was changed or relaxed, and no test was deleted.
 
@@ -14,7 +17,6 @@ Both are small configuration guards. No authentication, authorisation, ownership
 | Priority | Work |
 |---|---|
 | P3 | Idle timeout for sessions; `__Host-` cookie prefix; pin GitHub Actions to commit hashes (Dependabot can then update them) |
-| P3 | Optional: list unused endpoints and packages and remove them one at a time |
 
 ## Needs explicit owner approval or action
 
@@ -25,7 +27,7 @@ Both are small configuration guards. No authentication, authorisation, ownership
 | P2 | Cloudflare edge rate-limit rule | Cloudflare dashboard |
 | P2 | Run `scripts/backup-db.ps1` and `scripts/restore-test.ps1` once and record the date in `docs/OPERATIONS.md` | Owner's PC |
 | P2 | Confirm GitHub branch protection, required status checks and secret scanning with push protection | GitHub settings |
-| Owner | Check `SECURESCOPE_CORS_ORIGINS` has no wildcard before deploying this change | Hosting dashboard |
+| Owner | Before deploying: `SECURESCOPE_CORS_ORIGINS` must be a JSON list of exact origins (no trailing slash, no upper case, no wildcard) and `SECURESCOPE_DATABASE_URL` must not contain `change-me`, or the service refuses to start | Hosting dashboard |
 | Owner | Delete local secret files; rotate anything ever pasted into a chat | Owner |
 
 Nothing was deployed, committed to the remote, rotated or migrated by this audit.
