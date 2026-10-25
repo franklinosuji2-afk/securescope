@@ -10,9 +10,13 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select, update
 
+from app.billing.errors import PlanLimitError
 from app.billing.lifecycle import SubscriptionState, effective_plan_id
+from app.billing.plans import current_period
 from app.main import create_app
+from app.models.scan import ScanRow
 from app.tests.conftest import signup
 
 API = "/api/v1"
@@ -226,3 +230,77 @@ def test_nobody_previews_another_workspaces_downgrade(alice: TestClient, app) ->
         assert preview(bob, "free").status_code == 200
     with TestClient(app) as anonymous:
         assert preview(anonymous, "free", alice_org).status_code == 401
+
+
+# History clean-up follows the plan the customer is on now -------------------------------------------------
+
+
+def aged_scan(client: TestClient, days: int) -> str:
+    state = state_of(client)
+    user = client.get(f"{API}/auth/me").json()["id"]
+    scan_id = state.repo.create_scan(org_of(client), user, "https://a.example.com/", "a.example.com", None)
+    with state.engine.begin() as conn:
+        conn.execute(
+            update(ScanRow)
+            .where(ScanRow.id == scan_id)
+            .values(created_at=datetime.now(UTC) - timedelta(days=days))
+        )
+    return str(scan_id)
+
+
+def scan_exists(client: TestClient, scan_id: str) -> bool:
+    with state_of(client).engine.connect() as conn:
+        return conn.execute(select(ScanRow.id).where(ScanRow.id == scan_id)).first() is not None
+
+
+def test_a_paying_customers_history_is_kept_for_the_paid_plans_window(alice: TestClient) -> None:
+    """The clean-up used the stored base plan only, so a customer whose plan came from a subscription was
+    cleared after the Free window. A paid plan's history must be kept as long as that plan promises."""
+    state = state_of(alice)
+    org = org_of(alice)
+    state.billing.save_subscription(org, "sub_1", sub("professional"))
+    inside = aged_scan(alice, 60)  # beyond Free (30 days), inside Professional (90)
+    outside = aged_scan(alice, 100)  # beyond Professional
+    state.repo.delete_expired_history()
+    assert scan_exists(alice, inside) is True
+    assert scan_exists(alice, outside) is False
+
+
+def test_history_follows_the_agency_window_for_an_agency_subscription(alice: TestClient) -> None:
+    state = state_of(alice)
+    state.billing.save_subscription(org_of(alice), "sub_1", sub("agency"))
+    inside = aged_scan(alice, 300)
+    state.repo.delete_expired_history()
+    assert scan_exists(alice, inside) is True
+
+
+def test_history_returns_to_the_free_window_when_the_paid_period_has_ended(alice: TestClient) -> None:
+    state = state_of(alice)
+    state.billing.save_subscription(org_of(alice), "sub_1", sub("professional", "canceled", end=EARLIER))
+    old = aged_scan(alice, 60)
+    state.repo.delete_expired_history()
+    assert scan_exists(alice, old) is False
+
+
+# One answer to "how much has been used" --------------------------------------------------------------------
+
+
+def test_the_dashboard_the_preview_and_the_limit_check_agree_on_scans_used(alice: TestClient) -> None:
+    """Three places count the month's scans: the plan page, the downgrade preview and the check that refuses a
+    scan. They must never drift apart, or the page would promise scans the server then refuses."""
+    state = state_of(alice)
+    org = org_of(alice)
+    user = alice.get(f"{API}/auth/me").json()["id"]
+    start, _ = current_period(datetime.now(UTC))
+    for _ in range(2):
+        state.repo.create_scan(org, user, "https://a.example.com/", "a.example.com", None)
+    assert state.repo.fail_interrupted() == 2  # failed scans do not count
+    for _ in range(2):
+        state.repo.create_scan(org, user, "https://a.example.com/", "a.example.com", None)
+
+    on_the_plan_page = plan_of(alice)["usage"]["scans_this_period"]
+    in_the_preview = state.billing.usage(org, start, 30).scans_this_month
+    assert on_the_plan_page == in_the_preview == 2
+    with pytest.raises(PlanLimitError):
+        state.repo.create_scan(org, user, "https://a.example.com/", "a.example.com", None, 2, start)
+    state.repo.create_scan(org, user, "https://a.example.com/", "a.example.com", None, 3, start)

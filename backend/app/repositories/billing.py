@@ -39,7 +39,7 @@ class PlanUsage:
     pending_invitations: int
 
 
-def _state(row: SubscriptionRow) -> SubscriptionState:
+def state_from_row(row: SubscriptionRow) -> SubscriptionState:
     return SubscriptionState(
         provider=row.provider,
         plan_id=row.plan_id,
@@ -57,7 +57,7 @@ class BillingRepository:
     def subscription(self, organization_id: str) -> SubscriptionState | None:
         with self._session() as session:
             row = session.get(SubscriptionRow, organization_id)
-            return _state(row) if row else None
+            return state_from_row(row) if row else None
 
     def save_subscription(
         self, organization_id: str, provider_subscription_id: str, state: SubscriptionState

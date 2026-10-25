@@ -52,3 +52,5 @@ Payment (Paddle sandbox first, then live after approval), the webhook receiver t
 ## Load and storage notes
 
 Scans still run inside the API process (at most 3 at once, a few requests each), so the 150-scan Agency allowance is the ceiling to watch. PDF reports are stored in the database; at tens of kilobytes each, 365 days of Agency history is small, but Neon's free storage should be monitored.
+
+A read-only audit of limits, states and billing readiness is in [subscription-readiness-audit.md](subscription-readiness-audit.md).
