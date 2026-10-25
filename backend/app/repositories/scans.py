@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import Engine, delete, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.billing.errors import PlanLimitError
 from app.billing.plans import DEFAULT_PLAN_ID, PLANS
@@ -462,6 +462,7 @@ class ScanRepository:
                 .order_by(ScanRow.created_at.desc(), ScanRow.id.desc())
                 .limit(limit)
                 .offset(offset)
+                .options(selectinload(ScanRow.findings))  # one query for the page, not one per scan
             ).all()
             items = [ScanSummary(**self._summary(r, self._findings(r))) for r in rows]
         return items, total
