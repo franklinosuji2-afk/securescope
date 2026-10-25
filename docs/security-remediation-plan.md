@@ -24,8 +24,8 @@ Both are small configuration guards. No authentication, authorisation, ownership
 |---|---|---|
 | Before paid launch | Cancel or block account deletion while a paid subscription is live; build and test payment webhook verification, ordering and duplicate handling | Owner decision, then development |
 | P2 | Separate migration and runtime database roles | Hosting change |
-| P2 | Cloudflare edge rate-limit rule | Cloudflare dashboard |
-| P2 | Run `scripts/backup-db.ps1` and `scripts/restore-test.ps1` once and record the date in `docs/OPERATIONS.md` | Owner's PC |
+| P2 | Cloudflare edge rate-limit rule (blocked on the free plan: its one slot is the leaked-credential check) | Cloudflare plan decision |
+| P2 | Backups run and a restore passed on 23 and 25 Oct. Remaining: a regular schedule | Owner |
 | P2 | Confirm GitHub branch protection, required status checks and secret scanning with push protection | GitHub settings |
 | Owner | Before deploying: `SECURESCOPE_CORS_ORIGINS` must be a JSON list of exact origins (no trailing slash, no upper case, no wildcard) and `SECURESCOPE_DATABASE_URL` must not contain `change-me`, or the service refuses to start | Hosting dashboard |
 | Owner | Delete local secret files; rotate anything ever pasted into a chat | Owner |
