@@ -305,3 +305,50 @@ def test_the_limits_in_reports_describe_the_checks_that_really_run() -> None:
     assert "Five fixed paths" in text and len(PROBE_PATHS) == 5
     assert all(path in text for path in PROBE_PATHS)
     assert "DNS" in text
+
+
+# --- edge cases found by probing the checks with unusual markup -----------------------------------------
+
+
+def test_http_images_listed_only_in_srcset_are_found_and_https_candidates_are_not() -> None:
+    found = check_mixed_content(
+        html(
+            '<img src="https://example.com/a.png" srcset="https://example.com/a2.png 2x, http://x.example/a3.png 3x">'
+        )
+    )
+    assert ids(found) == ["SS-MIX-002"] and "x.example" in (found[0].evidence or "")
+    assert (
+        check_mixed_content(html('<img srcset="https://example.com/a.png 1x, https://example.com/b.png 2x">'))
+        == []
+    )
+    assert check_mixed_content(html('<img srcset="data:image/png;base64,AAAA 1x">')) == []
+
+
+def test_mixed_content_parsing_handles_case_quotes_whitespace_and_comments() -> None:
+    for markup in (
+        '<script src="HTTP://x.example/a.js"></script>',
+        '<script src="  http://x.example/a.js "></script>',
+        "<script src='http://x.example/a.js'></script>",
+        "<script src=http://x.example/a.js></script>",
+        '<iframe src="http://x.example/"></iframe>',
+    ):
+        assert ids(check_mixed_content(html(markup))) == ["SS-MIX-001"], markup
+    assert check_mixed_content(html('<!-- <script src="http://x.example/a.js"></script> -->')) == []
+
+
+def test_integrity_is_only_asked_of_other_hosts_and_not_of_data_relative_or_icon_links() -> None:
+    def sri(markup: str) -> list[str]:
+        result = html(markup)
+        result.host = "example.com"
+        return ids(check_subresource_integrity(result))
+
+    assert sri('<script src="https://www.example.com/a.js"></script>') == []  # www is the same site
+    assert sri('<script src="/a.js"></script>') == []
+    assert sri('<script src="data:text/javascript,1"></script>') == []
+    assert sri('<link rel="icon" href="https://cdn.other.net/f.ico">') == []
+    assert sri('<script src="//cdn.other.net/a.js"></script>') == ["SS-SRI-001"]  # protocol-relative counts
+    assert sri('<script type="module" src="https://cdn.other.net/a.js"></script>') == ["SS-SRI-001"]
+    assert (
+        sri('<script src="https://cdn.other.net/a.js" integrity="sha384-x" crossorigin="anonymous"></script>')
+        == []
+    )
