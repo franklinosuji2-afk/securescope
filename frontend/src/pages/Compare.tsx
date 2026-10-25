@@ -193,6 +193,21 @@ function CompareFor({
             empty="Nothing carried over."
             items={data.unchanged_findings}
           />
+          {(data.not_comparable_findings?.length ?? 0) > 0 && (
+            <>
+              <Group
+                title="Cannot be compared"
+                empty=""
+                items={data.not_comparable_findings ?? []}
+              />
+              <p className="muted small">
+                These findings appear in only one scan because a check did not
+                run in the other, so they are not counted as new or resolved.
+                Checks that did not run:{" "}
+                {data.not_comparable_checks?.join("; ")}.
+              </p>
+            </>
+          )}
           <p className="muted small">{data.note}</p>
         </>
       )}
