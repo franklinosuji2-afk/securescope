@@ -58,8 +58,14 @@ class _PageResources(HTMLParser):
             rel = a.get("rel", "").lower()
             if "stylesheet" in rel or "preload" in rel or "modulepreload" in rel:
                 self.resources.append(_Resource("link", a["href"].strip(), "integrity" in a, rel))
-        elif tag in ("img", "audio", "video", "source", "track") and a.get("src"):
-            self.resources.append(_Resource(tag, a["src"].strip()))
+        elif tag in ("img", "audio", "video", "source", "track") and (a.get("src") or a.get("srcset")):
+            if a.get("src"):
+                self.resources.append(_Resource(tag, a["src"].strip()))
+            # srcset lists several candidates: "image-1x.png 1x, image-2x.png 2x". Any of them can be fetched.
+            for candidate in a.get("srcset", "").split(","):
+                parts = candidate.split()
+                if parts and not parts[0].lower().startswith("data:"):
+                    self.resources.append(_Resource(tag, parts[0]))
         elif tag in ("iframe", "embed", "frame") and a.get("src"):
             self.resources.append(_Resource(tag, a["src"].strip()))
         elif tag == "object" and a.get("data"):
