@@ -116,4 +116,8 @@ async def run_due(state: AppState, max_jobs: int = MAX_JOBS_PER_RUN) -> RunSumma
         started += int(ran)
         alerts += sent
         skipped += int(not ran)
+    try:
+        await state.webhooks.process_retries()  # alerts that failed earlier and are due again
+    except Exception:  # noqa: BLE001
+        logger.exception("webhook retries failed")
     return RunSummary(due=len(due), scans_started=started, alerts_sent=alerts, skipped=skipped)

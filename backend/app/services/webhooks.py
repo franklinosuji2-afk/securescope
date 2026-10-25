@@ -8,6 +8,10 @@ Safety rules, in the order they matter:
   derived from the server's key, so no secret is stored in the database; the receiver sees it once.
 - A failure never stops a scan or an email: it is recorded on the endpoint and, after ten failures in a row,
   the endpoint is switched off until a person switches it on again.
+- An alert that failed for a reason that may pass (a server error, a timeout, no connection, "too many
+  requests") is queued and tried again after 5 minutes, 30 minutes, 2 hours and 6 hours, with the same delivery
+  id so the receiver can ignore a duplicate. It is dropped after a day, when the endpoint is switched off or
+  deleted, or when the address no longer passes the safety check. Test messages are never queued.
 """
 
 from __future__ import annotations
@@ -28,7 +32,7 @@ from typing import Any
 import httpx
 
 from app.core.config import Settings
-from app.repositories.webhooks import Endpoint, WebhookRepository
+from app.repositories.webhooks import RETRY_DELAYS, RETRY_MAX_AGE, Endpoint, PendingRetry, WebhookRepository
 from app.schemas.scan import ScanDetail
 from app.security.target import TargetError, validate_target
 from app.services.alerts import AlertDecision
@@ -164,8 +168,8 @@ class WebhookService:
         note = " Redirects are not followed." if 300 <= code < 400 else ""
         return False, retry, f"Failed (HTTP {code}).{note}"
 
-    async def deliver(self, endpoint: Endpoint, event: str, data: dict[str, Any]) -> tuple[bool, str]:
-        delivery_id = uuid.uuid4().hex
+    @staticmethod
+    def _body(endpoint: Endpoint, event: str, delivery_id: str, data: dict[str, Any]) -> bytes:
         payload = {
             "event": event,
             "delivery_id": delivery_id,
@@ -173,8 +177,14 @@ class WebhookService:
             **data,
         }
         shown = {"text": slack_text(event, payload)} if endpoint.kind == "slack" else payload
-        body = json.dumps(shown, separators=(",", ":"), ensure_ascii=False).encode()
-        ok, status = False, "Not sent"
+        return json.dumps(shown, separators=(",", ":"), ensure_ascii=False).encode()
+
+    async def deliver(
+        self, endpoint: Endpoint, event: str, data: dict[str, Any], *, queue_on_failure: bool = False
+    ) -> tuple[bool, str]:
+        delivery_id = uuid.uuid4().hex
+        body = self._body(endpoint, event, delivery_id, data)
+        ok, status, retry = False, "Not sent", False
         attempts = 0
         for attempt in range(MAX_ATTEMPTS):
             attempts += 1
@@ -182,6 +192,16 @@ class WebhookService:
             if ok or not retry or attempt == MAX_ATTEMPTS - 1:
                 break
             await asyncio.sleep(self.retry_delay)
+        if not ok and retry and queue_on_failure:
+            queued = await asyncio.to_thread(
+                self._repo.enqueue_retry,
+                endpoint.id,
+                delivery_id,
+                event,
+                json.dumps(data, separators=(",", ":"), ensure_ascii=False),
+            )
+            if queued:
+                status = f"{status} Will try again."
         await asyncio.to_thread(
             functools.partial(
                 self._repo.record_attempt,
@@ -194,6 +214,47 @@ class WebhookService:
             )
         )
         return ok, status
+
+    async def process_retries(self, limit: int = 20) -> int:
+        """Sends the alerts that are due for another try. Returns how many were delivered."""
+        if not self.configured:
+            return 0
+        await asyncio.to_thread(self._repo.purge_old_retries)
+        due = await asyncio.to_thread(self._repo.claim_due_retries, datetime.now(UTC), limit)
+        delivered = 0
+        for item in due:
+            try:
+                delivered += int(await self._retry_one(item))
+            except Exception:  # a retry problem must never stop the scheduler  # noqa: BLE001
+                logger.warning("webhook retry failed unexpectedly")
+        return delivered
+
+    async def _retry_one(self, item: PendingRetry) -> bool:
+        data: dict[str, Any] = json.loads(item.payload)
+        body = self._body(item.endpoint, item.event, item.delivery_id, data)
+        ok, retry, status = await self._post_once(item.endpoint, body, item.event, item.delivery_id)
+        number = item.retries + 1
+        last = number >= len(RETRY_DELAYS) or datetime.now(UTC) - item.created_at >= RETRY_MAX_AGE
+        if ok or not retry or last:
+            await asyncio.to_thread(self._repo.finish_retry, item.id)
+            if not ok:
+                status = f"{status} Giving up."
+        else:
+            next_at = datetime.now(UTC) + RETRY_DELAYS[number]
+            await asyncio.to_thread(self._repo.reschedule_retry, item.id, number, next_at)
+            status = f"{status} Will try again."
+        await asyncio.to_thread(
+            functools.partial(
+                self._repo.record_attempt,
+                item.endpoint.id,
+                ok,
+                f"Retry {number}: {status}"[:120],
+                event=item.event,
+                delivery_id=item.delivery_id,
+                attempts=1,
+            )
+        )
+        return ok
 
     async def send_test(self, endpoint: Endpoint) -> tuple[bool, str]:
         return await self.deliver(
@@ -227,13 +288,16 @@ class WebhookService:
             ],
         }
         results = await asyncio.gather(
-            *(self._safe_deliver(e, "scan.alert", data) for e in endpoints), return_exceptions=False
+            *(self._safe_deliver(e, "scan.alert", data, queue=True) for e in endpoints),
+            return_exceptions=False,
         )
         return sum(1 for ok in results if ok)
 
-    async def _safe_deliver(self, endpoint: Endpoint, event: str, data: dict[str, Any]) -> bool:
+    async def _safe_deliver(
+        self, endpoint: Endpoint, event: str, data: dict[str, Any], *, queue: bool = False
+    ) -> bool:
         try:
-            ok, _ = await self.deliver(endpoint, event, data)
+            ok, _ = await self.deliver(endpoint, event, data, queue_on_failure=queue)
             return ok
         except Exception:  # a webhook problem must never stop the scheduler  # noqa: BLE001
             logger.warning("webhook delivery failed unexpectedly")

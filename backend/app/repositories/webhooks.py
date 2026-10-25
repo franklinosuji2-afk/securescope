@@ -4,19 +4,26 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlsplit
 
-from sqlalchemy import Engine, delete, func, select
+from sqlalchemy import Engine, delete, func, select, update
 
 from app.database.session import make_session_factory
-from app.models.webhook import WebhookDeliveryRow, WebhookEndpointRow
+from app.models.webhook import WebhookDeliveryRow, WebhookEndpointRow, WebhookRetryRow
 from app.schemas.webhook import WebhookDeliveryOut, WebhookOut
 
 MAX_PER_ORGANIZATION = 3
 AUTO_DISABLE_AFTER = 10
 # Recent deliveries kept per endpoint.
 KEEP_DELIVERIES = 20
+# An alert that could not be delivered is tried again after these waits (so up to four more times), and
+# never after it is a day old. At most this many wait for one endpoint, so a dead address cannot pile up.
+RETRY_DELAYS = (timedelta(minutes=5), timedelta(minutes=30), timedelta(hours=2), timedelta(hours=6))
+RETRY_MAX_AGE = timedelta(hours=24)
+RETRY_MAX_PENDING = 20
+# A retry being sent is hidden from other runs for this long, so two overlapping runs never send it twice.
+RETRY_LEASE = timedelta(minutes=10)
 
 
 def _now() -> datetime:
@@ -33,6 +40,17 @@ def address_of(url: str) -> str:
     shown = f"[{host}]" if ":" in host else host
     port = f":{parts.port}" if parts.port not in (None, 443) else ""
     return f"{parts.scheme}://{shown}{port}/…"
+
+
+@dataclass(frozen=True)
+class PendingRetry:
+    id: str
+    delivery_id: str
+    event: str
+    payload: str
+    retries: int
+    created_at: datetime
+    endpoint: Endpoint
 
 
 @dataclass(frozen=True)
@@ -206,6 +224,86 @@ class WebhookRepository:
                     row.enabled = False
             session.flush()
 
+    def enqueue_retry(self, webhook_id: str, delivery_id: str, event: str, payload: str) -> bool:
+        """Queue a failed alert for a later retry. False when this endpoint already has too many waiting."""
+        now = _now()
+        with self._session.begin() as session:
+            waiting = session.scalar(
+                select(func.count()).select_from(WebhookRetryRow).where(WebhookRetryRow.webhook_id == webhook_id)
+            )
+            if int(waiting or 0) >= RETRY_MAX_PENDING:
+                return False
+            session.add(
+                WebhookRetryRow(
+                    id=uuid.uuid4().hex,
+                    webhook_id=webhook_id,
+                    delivery_id=delivery_id[:32],
+                    event=event[:32],
+                    payload=payload,
+                    retries=0,
+                    next_attempt_at=now + RETRY_DELAYS[0],
+                    created_at=now,
+                )
+            )
+            return True
+
+    def claim_due_retries(self, now: datetime, limit: int) -> list[PendingRetry]:
+        """Takes the retries that are due and hides each for a while in the same step.
+
+        Retries of an endpoint that was switched off are dropped. The update is conditional on the time we
+        read, so two overlapping runs cannot both take one retry."""
+        claimed: list[PendingRetry] = []
+        with self._session.begin() as session:
+            rows = session.execute(
+                select(WebhookRetryRow, WebhookEndpointRow)
+                .join(WebhookEndpointRow, WebhookEndpointRow.id == WebhookRetryRow.webhook_id)
+                .where(WebhookRetryRow.next_attempt_at <= now)
+                .order_by(WebhookRetryRow.next_attempt_at)
+                .limit(limit)
+            ).all()
+            for retry, endpoint in rows:
+                if not endpoint.enabled:
+                    session.execute(delete(WebhookRetryRow).where(WebhookRetryRow.id == retry.id))
+                    continue
+                result = session.execute(
+                    update(WebhookRetryRow)
+                    .where(WebhookRetryRow.id == retry.id, WebhookRetryRow.next_attempt_at == retry.next_attempt_at)
+                    .values(next_attempt_at=now + RETRY_LEASE)
+                )
+                if result.rowcount == 1:  # type: ignore[attr-defined]
+                    claimed.append(
+                        PendingRetry(
+                            retry.id,
+                            retry.delivery_id,
+                            retry.event,
+                            retry.payload,
+                            retry.retries,
+                            _aware(retry.created_at),
+                            _endpoint(endpoint),
+                        )
+                    )
+        return claimed
+
+    def finish_retry(self, retry_id: str) -> None:
+        with self._session.begin() as session:
+            session.execute(delete(WebhookRetryRow).where(WebhookRetryRow.id == retry_id))
+
+    def reschedule_retry(self, retry_id: str, retries: int, next_attempt_at: datetime) -> None:
+        with self._session.begin() as session:
+            session.execute(
+                update(WebhookRetryRow)
+                .where(WebhookRetryRow.id == retry_id)
+                .values(retries=retries, next_attempt_at=next_attempt_at)
+            )
+
+    def purge_old_retries(self) -> int:
+        """Remove retries older than a day (for example when the service was down for a long time)."""
+        with self._session.begin() as session:
+            result = session.execute(
+                delete(WebhookRetryRow).where(WebhookRetryRow.created_at < _now() - RETRY_MAX_AGE)
+            )
+            return int(result.rowcount or 0)  # type: ignore[attr-defined]
+
     def deliveries(self, organization_id: str, webhook_id: str) -> list[WebhookDeliveryOut] | None:
         """Recent deliveries, newest first, or None when the endpoint is not this workspace's."""
         with self._session() as session:
@@ -242,6 +340,10 @@ class WebhookRepository:
 __all__ = [
     "AUTO_DISABLE_AFTER",
     "KEEP_DELIVERIES",
+    "RETRY_DELAYS",
+    "RETRY_MAX_AGE",
+    "RETRY_MAX_PENDING",
+    "PendingRetry",
     "MAX_PER_ORGANIZATION",
     "Endpoint",
     "WebhookRepository",

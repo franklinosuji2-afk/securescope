@@ -46,7 +46,7 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
 
 ## Engineering
 
-- **Webhook delivery** is best effort (two attempts, no queue; the last 20 outcomes per address are listed on the Webhooks page). A small retry queue would help receivers that are down.
+- **Webhook delivery** retries failed alerts up to four more times over about 8.5 hours (since 26 Oct; the last 20 outcomes per address are listed on the Webhooks page). Still open: an alert if an address keeps failing.
 - **Free hosting cold starts.** A paused backend needs up to a minute; the Action waits, the web app shows a loading
   state. A keep-warm ping or a paid instance removes it.
 - **Releases.** Version is 0.11.0 in the API and 0.1.0 in package files; there is no changelog or tagged release.

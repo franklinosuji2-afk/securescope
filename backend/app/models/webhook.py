@@ -48,3 +48,27 @@ class WebhookDeliveryRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (Index("ix_webhook_deliveries_webhook_id_created_at", "webhook_id", "created_at"),)
+
+
+class WebhookRetryRow(Base):
+    """An alert that could not be delivered and will be tried again later.
+
+    It holds the alert's facts (host, score, titles of new findings: nothing that is not already in the
+    signed message) until it is delivered, runs out of attempts or is a day old. Never evidence or secrets."""
+
+    __tablename__ = "webhook_retries"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    webhook_id: Mapped[str] = mapped_column(ForeignKey("webhook_endpoints.id", ondelete="CASCADE"))
+    delivery_id: Mapped[str] = mapped_column(String(32))
+    event: Mapped[str] = mapped_column(String(32))
+    payload: Mapped[str] = mapped_column(Text)
+    # How many retries have been made so far (the first delivery is not counted).
+    retries: Mapped[int] = mapped_column(Integer, default=0)
+    next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_webhook_retries_next_attempt_at", "next_attempt_at"),
+        Index("ix_webhook_retries_webhook_id", "webhook_id"),
+    )

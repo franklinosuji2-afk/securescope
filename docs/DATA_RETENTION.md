@@ -12,6 +12,8 @@
 
 **Verification challenges:** the random value a person publishes to prove they control a domain is kept only while it can be used. It is erased as soon as the domain is verified, when the person removes it, and by the periodic background job once its 7 days have passed. After that only the fact that the domain was verified (when, and by which method) remains.
 
+**Webhook retries:** an alert that could not be delivered is kept (host, score, and the titles of new findings, the same facts as the message) until it is delivered, has been tried five times in all, the address is switched off or deleted, or a day has passed. Then it is deleted.
+
 **Deletion on demand:** under **Account** a person can delete their own account (password and the word DELETE required). A workspace nobody else belongs to is erased with everything in it: sites, scans, findings, reports, invitations and its audit log. In a shared workspace only that person's membership goes; what they did there stays but no longer points at them. A person who is the only owner of a workspace other people still use must hand over ownership first. Deletion is immediate and cannot be undone; the audit event `account.deleted` is written without the email address.
 
 **Backups:** a backup taken before a deletion still contains the data until that backup is replaced (see `docs/OPERATIONS.md`).

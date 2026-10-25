@@ -13,7 +13,7 @@ Date: 25 Oct 2026. Phase 9 of the product-quality brief. This builds on the [sec
 | Restore | Rehearsed locally | Dump, restore, start the app, sign in with the restored password hash: all worked |
 | Backup schedule | **Set up and tested on 25 Oct, with limits** | Weekly task on the owner's PC with a read-only role; see "Backups" |
 | Keep-warm | Verified | Cron every 15 minutes and monitors every 5 minutes; process uptime 10.6 hours when checked |
-| Email and webhook delivery | Partly ready | Failures are counted and shown; there is no retry queue and no alert |
+| Email and webhook delivery | Partly ready | Failures are counted and shown; failed alerts are retried up to four more times; there is no alert when an address keeps failing |
 
 ## Defect fixed: one failed step stopped all retention
 
@@ -89,7 +89,7 @@ Backups are taken by hand with `scripts/backup-db.ps1`. For a controlled pilot w
 
 - **Scheduled scans:** due schedules are claimed with a compare-and-set update of `next_run_at`, so two overlapping cron calls cannot start the same scan twice; at most three jobs run per call.
 - **Email:** sent counts, failures and the last failure are shown on Platform Health. Nothing alerts the owner when mail fails; check the page after releases.
-- **Webhooks:** deliveries are recorded; a failed delivery is not retried (the retry queue is a queued feature). Alerts that matter should also arrive by email.
+- **Webhooks:** deliveries are recorded; a failed alert is queued and retried after 5 min, 30 min, 2 h and 6 h. Alerts that matter should also arrive by email.
 - **Scans interrupted by a restart** are marked failed on the next start, never shown as complete.
 
 ## Recovery steps (summary)
@@ -101,7 +101,7 @@ The full runbook is `OPERATIONS.md`. In short: bad code, revert and push; bad mi
 1. Backups are weekly, on one PC. A check task warns at sign-in and daily if the newest dump is older than 9 days or the last run failed (it cannot warn while the PC is off or from outside the PC). Data loss window is up to a week plus Neon's short history.
 2. One API instance, one database, one maintainer. Recovery by hand takes hours and has not been rehearsed on production, only on copies.
 3. Rate-limit counters are in memory and reset on restart (security checklist items 34 and 53).
-4. No retry for failed webhooks, no alert for failed email.
+4. No alert for failed email, or for a webhook address that keeps failing.
 5. Migrations run under the runtime database role (checklist items 27 and 59).
 
 ## Statuses for this phase

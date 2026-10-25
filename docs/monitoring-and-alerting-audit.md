@@ -6,7 +6,7 @@ Phase 3 of the product-quality brief. Labels: **Verified** (code or tests), **Ri
 
 - **Scheduled scans** run only from the cron endpoint, never from a browser. Each due schedule goes through the same checks as a manual scan: the site must still be verified, the address is validated again, and the scan uses the workspace's monthly allowance. At most 3 jobs run per cron call (`MAX_JOBS_PER_RUN`). (Verified: `services/scheduler.py`, `test_schedule_authorisation.py`.)
 - **Alert emails** are sent when something got worse: a new finding that is not informational, a score drop of 5 points or more, or a failed scan. An unchanged result sends nothing. Recipients are owners, admins and security analysts of the workspace only. (Verified: `services/alerts.py`.)
-- **Webhooks** (generic and Slack) retry on HTTP 5xx and 429 with a fixed delay and a bounded number of attempts; other failures are not retried. Deliveries are recorded. (Verified: `services/webhooks.py`.)
+- **Webhooks** (generic and Slack) retry on HTTP 5xx and 429, timeouts and connection failures: twice at once, then from a queue after 5 minutes, 30 minutes, 2 hours and 6 hours (added 26 Oct; same delivery id, dropped after a day or when the address is switched off). Other failures are not retried. Deliveries are recorded. (Verified: `services/webhooks.py`.)
 
 ## Defect found and fixed: comparing scans when a check did not run
 
