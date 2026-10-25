@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 from app.tests.conftest import signup, trust_host
 from app.tests.test_integrations import Runner, bearer, make_token
-from app.tests.test_tenancy import finished_scan, new_user
+from app.tests.test_tenancy import finished_scan, new_user, org_of
 
 API = "/api/v1"
 KEY = "k" * 40
@@ -38,6 +38,15 @@ def world(alice: TestClient, mock_server: str) -> dict[str, Any]:
     hook = alice.post(f"{API}/webhooks", json={"url": "https://127.0.0.1/hooks/alice-secret-token"})
     assert hook.status_code == 201, hook.text
     token = make_token(alice)
+    org = org_of(alice)
+    client_id = alice.post(f"{API}/agency/clients", json={"name": "Alice client"}).json()["id"]
+    share_id = alice.post(f"{API}/agency/scans/{scan_id}/shares", json={"days": 7}).json()["id"]
+    invitation = alice.post(
+        f"{API}/organizations/{org}/invitations", json={"email": "guest@example.com", "role": "VIEWER"}
+    )
+    assert invitation.status_code == 201, invitation.text
+    session_id = alice.get(f"{API}/account/sessions").json()[0]["id"]
+    owner_id = alice.get(f"{API}/auth/me").json()["id"]
     findings = alice.get(f"{API}/scans/{scan_id}/results").json()["findings"]
     fingerprint = next((f["fingerprint"] for f in findings if f.get("fingerprint")), "0" * 16)
     return {
@@ -46,12 +55,26 @@ def world(alice: TestClient, mock_server: str) -> dict[str, Any]:
         "hook": hook.json()["id"],
         "token": token,
         "fingerprint": fingerprint,
+        "org": org,
+        "client": client_id,
+        "share": share_id,
+        "invitation": invitation.json()["id"],
+        "owner": owner_id,
+        "session": session_id,
         "bob": new_user(alice, "bob@example.com"),
     }
 
 
 def attacks(w: dict[str, Any]) -> list[tuple[str, str, dict[str, Any] | None]]:
     t, s, h, k, f = w["target"], w["scan"], w["hook"], w["token"]["id"], w["fingerprint"]
+    o, c, sh, i, u = (
+        w.get("org", "O"),
+        w.get("client", "C"),
+        w.get("share", "SH"),
+        w.get("invitation", "I"),
+        w.get("owner", "U"),
+    )
+    a = w.get("session", "A")
     return [
         ("GET", f"/targets/{t}", None),
         ("DELETE", f"/targets/{t}", None),
@@ -59,7 +82,20 @@ def attacks(w: dict[str, Any]) -> list[tuple[str, str, dict[str, Any] | None]]:
         ("POST", f"/targets/{t}/verify", {"method": "dns_txt"}),
         ("PUT", f"/schedules/{t}", {"frequency": "daily", "enabled": True}),
         ("PUT", f"/badges/{t}", {"enabled": True, "renew": False}),
-        ("PUT", f"/targets/{t}/client", {"client_id": None}),
+        ("PUT", f"/agency/targets/{t}/client", {"client_id": None}),
+        ("GET", f"/agency/clients/{c}", None),
+        ("PUT", f"/agency/clients/{c}", {"name": "renamed by bob"}),
+        ("DELETE", f"/agency/clients/{c}", None),
+        ("DELETE", f"/agency/scans/{s}/shares/{sh}", None),
+        ("GET", f"/organizations/{o}", None),
+        ("GET", f"/organizations/{o}/plan", None),
+        ("GET", f"/organizations/{o}/plan/downgrade-preview?to=free", None),
+        ("POST", f"/organizations/{o}/members", {"email": "bob@example.com", "role": "ADMIN"}),
+        ("PATCH", f"/organizations/{o}/members/{u}", {"role": "VIEWER"}),
+        ("DELETE", f"/organizations/{o}/members/{u}", None),
+        ("GET", f"/organizations/{o}/invitations", None),
+        ("POST", f"/organizations/{o}/invitations", {"email": "x@example.com", "role": "ADMIN"}),
+        ("DELETE", f"/organizations/{o}/invitations/{i}", None),
         ("GET", f"/scans/{s}", None),
         ("GET", f"/scans/{s}/results", None),
         ("GET", f"/scans/{s}/compare?with={s}", None),
@@ -75,6 +111,8 @@ def attacks(w: dict[str, Any]) -> list[tuple[str, str, dict[str, Any] | None]]:
         ("GET", f"/agency/scans/{s}/shares", None),
         ("POST", f"/agency/scans/{s}/shares", {"days": 7}),
         ("PATCH", f"/findings/{f}", {"status": "false_positive", "note": "hidden by bob"}),
+        ("GET", f"/webhooks/{h}/deliveries", None),
+        ("DELETE", f"/account/sessions/{a}", None),
         ("POST", f"/webhooks/{h}/test", None),
         ("POST", f"/webhooks/{h}/rotate", None),
         ("PUT", f"/webhooks/{h}", {"enabled": False}),
@@ -116,7 +154,15 @@ def test_every_route_with_a_foreign_id_refuses_and_changes_nothing(
     tokens = alice.get(f"{API}/api-tokens").json()["items"]
     assert [t["id"] for t in tokens] == [world["token"]["id"]]
     assert alice.get(f"{API}/badges").json()["items"][0]["enabled"] is False
-    assert alice.get(f"{API}/agency/scans/{world['scan']}/shares").json()["items"] == []
+    shares = alice.get(f"{API}/agency/scans/{world['scan']}/shares").json()["items"]
+    assert [x["id"] for x in shares] == [world["share"]] and shares[0]["revoked_at"] is None
+    assert alice.get(f"{API}/agency/clients/{world['client']}").json()["name"] == "Alice client"
+    members = alice.get(f"{API}/organizations/{world['org']}")
+    assert world["owner"] in members.text  # the owner was neither demoted nor removed by Bob
+    invitations = alice.get(f"{API}/organizations/{world['org']}/invitations").json()
+    assert [x["id"] for x in invitations] == [world["invitation"]]
+    # Alice is still signed in: Bob could not end her session.
+    assert alice.get(f"{API}/account/sessions").status_code == 200
     statuses = alice.get(f"{API}/scans/{world['scan']}/results").json()["findings"]
     assert all(f["status"] == "open" for f in statuses)
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ipaddress
+from typing import Any
 
 import pytest
 
@@ -60,3 +61,68 @@ def test_more_internal_addresses_are_not_public(address: str) -> None:
 async def test_tricky_targets_are_refused(url: str) -> None:
     with pytest.raises(TargetError):
         await validate_target(url, SETTINGS)
+
+
+EXTRA_NOT_PUBLIC = [
+    "100.64.0.1",  # carrier-grade NAT
+    "100.127.255.254",
+    "0.0.0.0",  # noqa: S104
+    "::",
+    "::1",
+    "::ffff:169.254.169.254",  # IPv4-mapped cloud metadata
+    "::ffff:10.1.2.3",
+    "fe80::1",
+    "fc00::1",
+    "172.16.0.1",
+    "172.31.255.255",
+    "192.168.1.1",
+    "255.255.255.255",
+]
+
+
+@pytest.mark.parametrize("address", EXTRA_NOT_PUBLIC)
+def test_further_internal_addresses_are_not_public(address: str) -> None:
+    assert is_public_address(ipaddress.ip_address(address)) is False
+
+
+@pytest.mark.parametrize("address", ["93.184.216.34", "8.8.8.8", "2606:4700:4700::1111", "34.200.1.1"])
+def test_ordinary_public_addresses_still_pass(address: str) -> None:
+    assert is_public_address(ipaddress.ip_address(address)) is True
+
+
+WEBHOOK_URLS = [
+    "https://0x7f000001/hook",
+    "https://0177.0.0.1/hook",
+    "https://2130706433/hook",
+    "https://127.1/hook",
+    "https://[::ffff:7f00:1]/hook",
+    "https://[::ffff:169.254.169.254]/hook",
+    "https://100.64.0.1/hook",
+    "https://0.0.0.0/hook",
+    "https://localhost./hook",
+    "https://LOCALHOST/hook",
+    "https://metadata.google.internal/latest",
+    "https://user:pass@93.184.216.34/hook",
+    "https://93.184.216.34@127.0.0.1/hook",
+    "https://example.com:22/hook",
+    "https://example.com:6379/hook",
+    "http://93.184.216.34/hook",
+    "ftp://93.184.216.34/hook",
+    "https://127.0.0.1\\@93.184.216.34/hook",
+]
+
+
+@pytest.mark.parametrize("url", WEBHOOK_URLS)
+def test_a_webhook_address_cannot_name_anything_internal_and_nothing_is_stored(
+    url: str, make_settings: Any, mailer: Any
+) -> None:
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+    from app.tests.conftest import signup
+
+    with TestClient(create_app(make_settings(webhook_signing_key="k" * 40), mailer)) as client:
+        signup(client, "alice@example.com", "Alice Org")
+        response = client.post("/api/v1/webhooks", json={"url": url})
+        assert response.status_code in (400, 422), f"{url} -> {response.status_code}"
+        assert client.get("/api/v1/webhooks").json()["items"] == []

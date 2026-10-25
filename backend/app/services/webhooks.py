@@ -39,7 +39,9 @@ USER_AGENT = "SecureScope-Webhook/1"
 MAX_ATTEMPTS = 2
 MAX_FINDINGS_LISTED = 20
 # A Slack incoming webhook: the one host and the one path shape Slack uses, nothing else.
-SLACK_ADDRESS = re.compile(r"^https://hooks\.slack\.com/services/[A-Z0-9]{8,}/[A-Z0-9]{8,}/[A-Za-z0-9]{16,}$")
+SLACK_ADDRESS = re.compile(
+    r"^https://hooks\.slack\.com/services/[A-Z0-9]{8,}/[A-Z0-9]{8,}/[A-Za-z0-9]{16,}\Z"
+)
 SECRET_PREFIX = "whsec_"  # noqa: S105  # nosec B105 (a label, not a secret)
 
 
