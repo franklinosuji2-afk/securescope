@@ -836,6 +836,28 @@ describe("Targets", () => {
     expect(call).toBeDefined();
   });
 
+  it("labels the challenge button clearly on a verified domain", async () => {
+    window.location.hash = "#/targets";
+    mockFetch(() => ({
+      items: [
+        {
+          ...targetBase,
+          status: "verified",
+          verified_at: "2026-10-20T10:00:00Z",
+          verification_method: "dns_txt",
+        },
+      ],
+    }));
+    renderApp();
+    expect(
+      await screen.findByRole("button", { name: "Erase challenge value" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Remove challenge" }),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument();
+  });
+
   it("hides management controls from viewers", async () => {
     window.location.hash = "#/targets";
     mockApi(
