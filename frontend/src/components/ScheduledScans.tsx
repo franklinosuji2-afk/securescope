@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import * as api from "../api";
 import { formatDate } from "../format";
 import type { Schedule, ScheduleFrequency, ScheduleList } from "../types";
+import { scheduleProblem } from "./ScheduleWarning";
 import { ErrorNotice, Loading } from "./ui";
 
 function message(err: unknown): string {
@@ -73,6 +74,11 @@ function Row({
         </span>
       </label>
       <p className="muted small">{status(site)}</p>
+      {scheduleProblem(site) && (
+        <div className="notice notice-info" role="note">
+          {scheduleProblem(site)}
+        </div>
+      )}
       {error && <ErrorNotice message={error} />}
     </li>
   );
