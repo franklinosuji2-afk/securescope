@@ -10,6 +10,7 @@ import time
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -32,23 +33,40 @@ REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9\-]{8,64}$")
 __all__ = ["VERSION", "create_app"]
 
 
+MAINTENANCE_INTERVAL_SECONDS = 3600
+
+
+async def _maintenance_step(name: str, function: Callable[..., Any], *args: Any) -> Any:
+    """Runs one clean-up step. A failure (for example a database that is still waking up) is logged and the next
+    step still runs; one bad step must never stop the others or end the loop."""
+    try:
+        return await asyncio.to_thread(function, *args)
+    except Exception:
+        logger.exception("maintenance step failed: %s", name)
+        return None
+
+
 async def _maintenance_loop(state: AppState) -> None:
     while True:
         if state.settings.admin_email:
-            await asyncio.to_thread(state.plans.assign_internal_to_operator, state.settings.admin_email)
-        removed = await asyncio.to_thread(state.repo.delete_expired_history)
+            await _maintenance_step(
+                "internal plan", state.plans.assign_internal_to_operator, state.settings.admin_email
+            )
+        removed = await _maintenance_step("history retention", state.repo.delete_expired_history)
         if removed:
             log_event(logger, "retention cleanup", removed=removed)
-        await asyncio.to_thread(state.accounts.purge_expired_sessions)
-        await asyncio.to_thread(state.accounts.purge_expired_oauth_states)
-        await asyncio.to_thread(state.accounts.purge_old_invitations)
-        await asyncio.to_thread(state.analytics.delete_older_than, state.settings.analytics_retention_days)
-        audit_removed = await asyncio.to_thread(
-            state.audit.delete_older_than, state.settings.audit_retention_days
+        await _maintenance_step("expired sessions", state.accounts.purge_expired_sessions)
+        await _maintenance_step("expired sign-in states", state.accounts.purge_expired_oauth_states)
+        await _maintenance_step("old invitations", state.accounts.purge_old_invitations)
+        await _maintenance_step(
+            "analytics retention", state.analytics.delete_older_than, state.settings.analytics_retention_days
+        )
+        audit_removed = await _maintenance_step(
+            "audit retention", state.audit.delete_older_than, state.settings.audit_retention_days
         )
         if audit_removed:
             log_event(logger, "audit retention cleanup", removed=audit_removed)
-        await asyncio.sleep(3600)
+        await asyncio.sleep(MAINTENANCE_INTERVAL_SECONDS)
 
 
 def _route_template(request: Request) -> str:
