@@ -1,4 +1,4 @@
-# API (v0.11)
+# API
 
 Base path `/api/v1`. Interactive schema at `/api/docs` only when `SECURESCOPE_API_DOCS_ENABLED=true` (local development; off in production, because the page loads scripts from a public CDN). Cookie-authenticated; unsafe methods need `X-CSRF-Token`; multi-organization users select one with `X-Organization-Id`.
 
@@ -53,7 +53,7 @@ Base path `/api/v1`. Interactive schema at `/api/docs` only when `SECURESCOPE_AP
 | GET            | `/overview`                                     | scan:read                        | Per recently scanned site: latest score and grade, change since the previous completed scan, open findings by severity, the top open finding and up to 12 past scores. Completed scans only; at most 6 sites, newest first. Also `fix_first` (the single most worth fixing, by severity then confidence) and `other_open` |
 | PATCH          | `/findings/{fingerprint}`                       | finding:triage                   | `{"status": "open"\|"accepted_risk"\|"false_positive", "note"?}` (note max 500); 204; 404 for unknown or other-organization findings; 422 for `resolved` (system only)                                                                                                                                                    |
 
-Errors are `{"detail": "..."}`; validation errors are 422. **Not implemented:** periodic re-verification, schedules, report storage.
+Errors are `{"detail": "..."}`; validation errors are 422. **Not implemented:** periodic re-verification of ownership.
 
 ## Scan states
 
@@ -82,3 +82,50 @@ Every finding in a scan response carries `fingerprint` (a stable id for that che
 | GET | `/badges` | target:read | One entry per verified site |
 | PUT | `/badges/{target_id}` | target:manage | `{"enabled", "renew"}`; the public address is returned while the badge is on |
 | GET | `/badges/{token}.svg` | none | Public badge image; 404 neutral image for unknown or switched-off addresses |
+
+## Sign-in, account and operator routes
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| GET | `/auth/providers` | none | Which sign-in buttons to show: only providers that are configured (Google, GitHub) |
+| GET | `/auth/oauth/{provider}/start` | none | Redirects to the provider; rate limited |
+| GET | `/auth/oauth/{provider}/callback` | none | Completes sign-in and sets the session cookie. See `OAUTH_SETUP.md` |
+| POST | `/auth/resend-verification` | session | Sends a fresh confirmation link; at most 3 per hour; says so when the address is already confirmed |
+| DELETE | `/organizations/{id}/invitations/{invitation_id}` | OWNER, ADMIN | Revokes a pending invitation |
+| POST | `/analytics/collect` | none | Counts one page view of a public page. Always 204; ignores bots and requests with Do Not Track or Global Privacy Control; rate limited. See `ANALYTICS.md` |
+| GET | `/analytics/summary?days=&tz=` | administrator | Cookieless page-view summary (`days` 1 to 90) |
+| GET | `/platform/health` | administrator | Operator view of uptime, request counts and configuration flags (no secrets) |
+
+## Schedules
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| GET | `/schedules` | scan:read | `available` (the plan includes scheduled scans) and one entry per verified site: `frequency` (`off`, `daily`, `weekly`), `url`, `notify`, `next_run_at`, `last_run_at`, `last_scan_id` |
+| PUT | `/schedules/{target_id}` | target:manage | `{frequency, notify?, url?}`. The address defaults to `https://<site>/` and its host must be the verified site (400 otherwise). Turning a schedule on needs a plan with scheduled scans (403); 404 for an unknown or unverified site. Audited as `schedule.updated` |
+| POST | `/internal/run-due` | cron secret | Called by the scheduler, never by a browser. Does not exist unless a cron secret is configured. Each due scan goes through the same ownership, address and allowance checks as a manual scan |
+
+## Webhooks (additional routes)
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| GET | `/webhooks` | scan:read | Configured addresses and whether the plan and server support alerts |
+| PUT | `/webhooks/{webhook_id}` | target:manage | `{"enabled": true\|false}` |
+| POST | `/webhooks/{webhook_id}/test` | target:manage | Sends a test message; `{ok, status}` |
+| POST | `/webhooks/{webhook_id}/rotate` | target:manage | New signing secret, shown once (not for Slack) |
+| DELETE | `/webhooks/{webhook_id}` | target:manage | 204 |
+
+## Agency workspaces
+
+All agency routes need the Agency plan (403 otherwise) and are scoped to the active workspace. Roles are workspace-wide.
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| GET / POST | `/agency/clients` | client:read / client:manage | List / create (`{name, contact_email?, notes?}`) |
+| GET / PUT / DELETE | `/agency/clients/{client_id}` | client:read / client:manage | Deleting a client leaves its websites in the workspace, unassigned |
+| PUT | `/agency/targets/{target_id}/client` | client:manage | `{"client_id": "<id>" \| null}` assigns or unassigns a site; 204 |
+| GET | `/agency/dashboard` | client:read | Per client: its sites, score, grade, open findings by severity, last scan. Stored completed scans only. At most 200 sites are read |
+| GET / PUT | `/agency/branding` | client:read / client:manage | `{agency_name}` shown on reports (up to 80 characters) |
+| POST / GET | `/agency/scans/{scan_id}/shares` | report:share | Create a link for a **completed** scan (`{"days": 7\|30\|90}`, default 30); the secret is in the 201 answer once and only its hash is kept. Rate limited; audited |
+| DELETE | `/agency/scans/{scan_id}/shares/{share_id}` | report:share | Revokes a link; 204 |
+| GET | `/shared/{token}` | none (link) | Report summary for a valid link; the same 404 for unknown, revoked, expired or malformed links |
+| GET | `/shared/{token}/report.pdf` | none (link) | The report snapshot made when the link was created |

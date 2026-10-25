@@ -338,3 +338,22 @@ def test_the_badge_is_deterministic_and_escapes_everything() -> None:
     assert "<script" not in evil and "&lt;script" in evil
     assert "not scanned yet" in render_badge(None) and "unavailable" in render_badge(None, available=False)
     assert "not proof of security" in render_badge(reading)  # said where a screen reader or hover finds it
+
+
+def test_ci_results_leave_out_findings_the_team_triaged(ci_client: TestClient, mock_server: str) -> None:
+    """A finding marked false positive or accepted risk must not fail a pipeline, or the team could never unblock it."""
+    token = make_token(ci_client)["token"]
+    runner = bare(ci_client)
+    started = runner.post(f"{API}/ci/scans", json={"url": f"{mock_server}/plain"}, headers=bearer(token))
+    done = wait_done(runner, token, started.json()["id"])
+    before = {f["id"] for f in done["findings"]}
+    assert len(before) >= 2
+    own = ci_client.get(f"{API}/scans/{done['id']}").json()["findings"]
+    false_positive, accepted = own[0], own[1]
+    for finding, status in ((false_positive, "false_positive"), (accepted, "accepted_risk")):
+        patched = ci_client.patch(f"{API}/findings/{finding['fingerprint']}", json={"status": status})
+        assert patched.status_code == 204, patched.text
+    after = runner.get(f"{API}/ci/scans/{done['id']}", headers=bearer(token)).json()
+    ids = [f["id"] for f in after["findings"]]
+    assert false_positive["id"] not in ids and accepted["id"] not in ids
+    assert set(ids) == before - {false_positive["id"], accepted["id"]}
