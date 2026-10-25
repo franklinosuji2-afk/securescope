@@ -33,6 +33,32 @@ The script writes `backups\securescope-<time>.dump` (ignored by git) and checks 
 
 **The backup contains user e-mail addresses and password hashes.** Keep the file on an encrypted disk or in a private cloud folder and delete old copies.
 
+### Weekly backup on your PC (Windows Task Scheduler)
+
+A task runs `scripts\backup-scheduled.ps1` once a week (default Sunday 21:00) while you are signed in to Windows and Docker Desktop is running; if the PC was off, it runs at the next start. It dumps the database with a **read-only** role, checks the file reads back, keeps the newest 8 dumps (never fewer than 3) and writes one line per run to `backups\backup-log.txt`. On a failure a message box appears and the log says why. If a week passes with no new `OK` line, the backup did not run: check the log first.
+
+**One-time setup**
+
+1. In the Neon SQL editor (not in the console's Roles page, which creates a role that can read *and write* everything), create the read-only role. Generate the password in a password manager and type it only into this editor. Replace `<database>` with your database name (shown in the connection string, often `neondb`):
+
+```
+CREATE ROLE backup_reader WITH LOGIN PASSWORD '<generated password>';
+GRANT CONNECT ON DATABASE <database> TO backup_reader;
+GRANT USAGE ON SCHEMA public TO backup_reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO backup_reader;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO backup_reader;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO backup_reader;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON SEQUENCES TO backup_reader;
+```
+
+   The two `ALTER DEFAULT PRIVILEGES` lines make tables created by later migrations readable too; they apply to objects created by the role that runs them (the same role the migrations use).
+2. Build the connection string for that role: the same host and database as the main one, but user `backup_reader` and the new password, and the **direct** host (no `-pooler` in the name).
+3. In PowerShell: `.\scripts\setup-backup-schedule.ps1`. Paste the string when asked (hidden). The script asks the database whether the role can write anything and refuses it if so, stores the string encrypted for your Windows user on this PC only (`%LOCALAPPDATA%\SecureScope\backup-url.txt`) and creates the task "SecureScope weekly backup".
+4. Run it once now: `Start-ScheduledTask -TaskName 'SecureScope weekly backup'`, wait a minute, then read `backups\backup-log.txt`.
+5. Restore-test the first dump as below.
+
+**Remove it:** `Unregister-ScheduledTask -TaskName 'SecureScope weekly backup' -Confirm:$false`, and delete the stored file and the Neon role (`DROP OWNED BY backup_reader; DROP ROLE backup_reader;`). If the role's password is ever exposed, change it in Neon (`ALTER ROLE backup_reader PASSWORD '...'`) and run the setup script again; the role cannot change data, so the risk is that someone could read it.
+
 **Prove it works** (do this once now, then after any schema change):
 
 ```
