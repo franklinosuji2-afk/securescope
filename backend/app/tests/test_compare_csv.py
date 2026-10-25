@@ -30,7 +30,9 @@ def finding(fid: str, severity: Severity = Severity.LOW, **extra: object) -> Fin
     )
 
 
-def scan(sid: str, minutes: int, findings: list[Finding], score: int = 90, host: str = "a.example") -> ScanDetail:
+def scan(
+    sid: str, minutes: int, findings: list[Finding], score: int = 90, host: str = "a.example"
+) -> ScanDetail:
     return ScanDetail(
         id=sid,
         target_url=f"https://{host}",
@@ -65,7 +67,9 @@ def test_the_order_of_the_two_arguments_does_not_matter() -> None:
 
 def test_findings_are_listed_most_severe_first() -> None:
     old = scan("s1", 0, [])
-    new = scan("s2", 5, [finding("L", Severity.LOW), finding("H", Severity.HIGH), finding("M", Severity.MEDIUM)])
+    new = scan(
+        "s2", 5, [finding("L", Severity.LOW), finding("H", Severity.HIGH), finding("M", Severity.MEDIUM)]
+    )
     assert [f.id for f in compare_scans(old, new).new_findings] == ["H", "M", "L"]
 
 
@@ -163,3 +167,46 @@ def test_another_workspaces_scan_cannot_be_compared_or_exported(
 
 def test_comparison_needs_a_signed_in_user(anon_client: TestClient) -> None:
     assert anon_client.get(f"{API}/scans/abc/compare", params={"with": "def"}).status_code == 401
+
+
+# --- checks that did not run ----------------------------------------------------------------------------
+
+
+def with_skipped(detail: ScanDetail, *names: str) -> ScanDetail:
+    from app.schemas.scan import SkippedCheck, TargetMetadata
+
+    detail.metadata = TargetMetadata(
+        requested_url=detail.target_url,
+        host=detail.host,
+        checks_skipped=[SkippedCheck(name=n, reason="DNS did not answer") for n in names],
+    )
+    return detail
+
+
+def test_a_finding_whose_check_did_not_run_in_the_newer_scan_is_not_called_resolved() -> None:
+    old = scan("s1", 0, [finding("SS-CORS-001"), finding("SS-HDR-CSP-001")])
+    new = with_skipped(scan("s2", 10, []), "cors")
+    result = compare_scans(old, new)
+    assert [f.id for f in result.resolved_findings] == ["SS-HDR-CSP-001"]
+    assert [f.id for f in result.not_comparable_findings] == ["SS-CORS-001"]
+    assert result.not_comparable_checks == ["No risky cross-origin (CORS) headers"]
+
+
+def test_a_finding_whose_check_did_not_run_in_the_older_scan_is_not_called_new() -> None:
+    old = with_skipped(scan("s1", 0, []), "cors")
+    new = scan("s2", 10, [finding("SS-CORS-001"), finding("SS-HDR-CSP-001")])
+    result = compare_scans(old, new)
+    assert [f.id for f in result.new_findings] == ["SS-HDR-CSP-001"]
+    assert [f.id for f in result.not_comparable_findings] == ["SS-CORS-001"]
+
+
+def test_a_skipped_check_does_not_hide_findings_that_were_present_in_both_scans() -> None:
+    both = [finding("SS-CORS-001")]
+    result = compare_scans(scan("s1", 0, both), with_skipped(scan("s2", 10, both), "cors"))
+    assert [f.id for f in result.unchanged_findings] == ["SS-CORS-001"]
+    assert result.not_comparable_findings == []
+
+
+def test_scans_with_no_skipped_checks_have_nothing_marked_not_comparable() -> None:
+    result = compare_scans(scan("s1", 0, [finding("A")]), scan("s2", 10, [finding("B")]))
+    assert result.not_comparable_findings == [] and result.not_comparable_checks == []

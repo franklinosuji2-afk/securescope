@@ -469,6 +469,8 @@ export interface ScanComparison {
   new_findings: Finding[];
   resolved_findings: Finding[];
   unchanged_findings: Finding[];
+  not_comparable_findings?: Finding[];
+  not_comparable_checks?: string[];
   note: string;
 }
 
