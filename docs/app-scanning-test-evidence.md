@@ -353,21 +353,23 @@ Not proven, and not claimed: behaviour with several server processes under real 
 | 7 | API address: user name, password, query and fragment were not refused; no hint when the token goes to a non-default host | Refused; a non-default host prints a warning; a Web Scanning token (`ssk_`) or a token with odd characters is refused before anything is sent |
 | 8 | A `SS_NO_SLEEP` test hook lived in the shipped script | Replaced by a `sleep` parameter of `main` |
 | 9 | Response read without a size bound | Bounded to 5 MiB |
+| 10 | **Found only with genuine Gitleaks output (27 Oct):** Gitleaks SARIF has no `level`, so a leaked GitHub token was read as **medium** and a pipeline with `fail-on: high` would have passed | A secret finding is never below high. The finding is checked in two tests and by a mutation (floor removed, two tests fail) |
 
 ### 19.3 Results (final code)
 | Check | Result |
 |---|---|
-| `test_action_app_scanning.py` (53 tests: conversion, 12 malformed shapes, limits, strict answers, settings, retries, genuine Semgrep, whole path through the real route) | 10 of 10 runs passed on PostgreSQL, 5 of 5 on SQLite |
+| `test_action_app_scanning.py` (56 tests: conversion, 12 malformed shapes, limits, strict answers, settings, retries, genuine Semgrep, whole path through the real route) | 10 of 10 runs passed on PostgreSQL, 5 of 5 on SQLite |
 | Mutations (17 in total: secret message sent, redirects followed, no mask, any api-url, incomplete ignored, unsafe paths sent, new key per attempt, any answer passes, no catch-all, suppressed sent, no size shrink, web token accepted, recursion not caught, failed tool trusted, userinfo allowed, empty id accepted, results cap off) | all caught; two weak tests were strengthened after mutations survived (302 instead of 307 for the redirect test) |
 | Genuine Semgrep OSS 1.182.1 SARIF (local rules, no network; two-file sample) | converted to 2 findings (high, medium) with the right rule, file and line; the genuine file contains the matched source lines and **none** of that text is in the submission, the database or the server log |
-| Real script as a subprocess against a real local server (uvicorn, SQLite, real socket) with that genuine file | exit 1 on the high finding; the same pipeline run again created no second run; `fail-on none` exit 0; a missing second scanner file gave result `incomplete`, exit 1; database: 3 completed + 1 incomplete runs, no source text |
+| Genuine Gitleaks 8.18.4 (official release binary, sha256 checked against the release's published checksums; run on a throwaway folder with a randomly generated fake GitHub token, `--no-git`, **without** `--redact`) | the genuine SARIF contains the fake value in the snippet; the converted submission does not; one `github-pat` finding with rule, file `config/.env` and line 1 only; through the real route and a real socket together with the Semgrep file: exit 1 (2 high findings), and the fake value is found nowhere in the database, audit events, server log, outputs or summary. A `--redact` run of the same tool is the committed fixture `gitleaks-8.18.4-redacted.sarif` (no secret in it; the unredacted case is tested by swapping a canary for `REDACTED`) |
+| Real script as a subprocess against a real local server (uvicorn, SQLite, real socket) with the genuine Semgrep file | exit 1 on the high finding; the same pipeline run again created no second run; `fail-on none` exit 0; a missing second scanner file gave result `incomplete`, exit 1; database: 3 completed + 1 incomplete runs, no source text |
 | `ruff check app` and the action folder, `ruff format --check`, `mypy app`, `mypy --strict action/app-scanning/submit.py` | clean |
 | `scan_secrets.py --history` | see 19.4 |
 | Existing Web Scanning action tests (`test_github_action.py`) | passed; the Web action was not modified |
 
 ### 19.4 Not done and remaining limitations
-- **Genuine Gitleaks output was not tested.** Gitleaks is a Go program; the sandbox could not reach the Go module proxy, and obtaining the binary would mean downloading an executable, which was not done without the owner's say-so. The Gitleaks tests use hand-written SARIF with the fields the format defines (rule id, level, location, region, snippet). Run the action once against real Gitleaks output (with `--redact` off and a fake key in a throwaway repository) before relying on it.
-- Not run on a real GitHub runner (only the script, locally). Windows runners are not supported (`bash` and `python3` needed).
+- **Gitleaks:** now tested with genuine 8.18.4 output (see 19.3). Other versions or other scanners (CodeQL, Bandit, trufflehog) were not tested; the converter reads standard SARIF 2.1.0 fields only, and results without a usable rule or path are left out and counted.
+- Not run on a real GitHub runner (only the script, locally; the Gitleaks binary came from the official release page and its checksum came from the same page, so the check shows the download was not corrupted, not that the release is untampered). Windows runners are not supported (`bash` and `python3` needed).
 - A static-analysis rule message that interpolates matched code is sent (documented in the action README); a secret inside it makes the server refuse the whole submission (422).
 - An incomplete run is accepted and counts toward the allowance (a pipeline whose scanner fails every time spends allowance; the 30 submissions per token per hour pilot limit bounds it).
 - The server cannot verify that a tool ran; results are labelled as reported by the submitter.

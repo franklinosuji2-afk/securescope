@@ -646,3 +646,51 @@ def test_genuine_semgrep_output_goes_through_the_real_route(env, tmp_path, monke
     stored = rows(client, AppFindingRow)
     assert len(stored) == 2
     assert "SELECT" not in dump_tables(client, "app_findings", "app_scans")
+
+
+def test_genuine_gitleaks_output_is_a_high_finding_with_only_rule_file_and_line() -> None:
+    """gitleaks-8.18.4-redacted.sarif was written by Gitleaks 8.18.4 (`--redact`, no git history) on a file with
+    a randomly generated fake GitHub token. Genuine Gitleaks SARIF has no `level`, which must not read as medium."""
+    converted = action.convert(
+        json.loads((FIXTURES / "gitleaks-8.18.4-redacted.sarif").read_text()), "secrets"
+    )
+    assert converted.tool["name"] == "gitleaks"
+    assert converted.findings == [
+        {
+            "kind": "secrets",
+            "rule_id": "github-pat",
+            "severity": "high",
+            "confidence": "medium",
+            "path": "config/.env",
+            "line": 1,
+        }
+    ]
+
+
+def test_an_unredacted_genuine_gitleaks_file_never_leaks_the_value(tmp_path: Path) -> None:
+    """Without `--redact` Gitleaks puts the matched value in the message and the snippet. The only difference from
+    the committed redacted file is that text, so the value is swapped in here and followed through the action."""
+    canary = make_canary()
+    raw = (FIXTURES / "gitleaks-8.18.4-redacted.sarif").read_text(encoding="utf-8")
+    assert "REDACTED" in raw
+    leaky = raw.replace("REDACTED", canary)
+    assert canary in leaky
+    path = tmp_path / "gitleaks.sarif"
+    path.write_text(leaky, encoding="utf-8")
+    document, notes = action.build("p1", "", str(path), "")
+    assert canary not in action.encode(document, notes).decode()
+
+
+def test_genuine_gitleaks_output_goes_through_the_real_route(env, tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    client, pid, token, _w = env
+    code, output = run_action(
+        client,
+        tmp_path,
+        monkeypatch,
+        token,
+        pid,
+        secrets_sarif=str(FIXTURES / "gitleaks-8.18.4-redacted.sarif"),
+    )
+    assert code == 1  # high severity, so fail-on high stops the job
+    stored = rows(client, AppFindingRow)
+    assert len(stored) == 1 and stored[0].severity == "high" and stored[0].kind == "secrets"

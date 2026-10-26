@@ -153,10 +153,15 @@ def convert(document: Any, kind: str) -> Converted:
                 continue
             rule = _d(rules.get(str(result.get("ruleId"))))
             line = _d(physical.get("region")).get("startLine")
+            severity = severity_of(result, rule)
+            if kind == "secrets" and RANK[severity] > RANK["high"]:
+                # Gitleaks writes no level at all, which would read as medium. A hardcoded secret is never
+                # below high, so a pipeline with fail-on high cannot let one through.
+                severity = "high"
             finding: dict[str, Any] = {
                 "kind": kind,
                 "rule_id": rule_id,
-                "severity": severity_of(result, rule),
+                "severity": severity,
                 "confidence": "medium",
                 "path": path,
             }

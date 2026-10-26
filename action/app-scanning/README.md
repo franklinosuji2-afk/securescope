@@ -6,6 +6,7 @@ switched on for your workspace, a plan that includes App Scanning CI, and an `ap
 
 ## What is sent, and what is not
 
+- A secret finding is always at least **high**, whatever level the tool gives it (Gitleaks gives none).
 - Sent: for each finding the rule id, severity, file path, line number and (static analysis only) a short message
   and rule title; the name and version of each tool; your project id; the branch name and the first 12 characters
   of the commit id.
@@ -74,5 +75,5 @@ submission, 5,000 findings, 30 submissions per token per hour.
 - The action does not install or run the tools; you choose, pin and run them.
 - Findings are stored and counted; the SecureScope page does not show code and secret findings yet.
 - Linux and macOS runners only (needs `bash` and `python3`).
-- Tested with genuine Semgrep OSS 1.182.1 SARIF; **not** with genuine Gitleaks output (see the evidence document).
+- Tested with genuine Semgrep OSS 1.182.1 and Gitleaks 8.18.4 SARIF; other tools and versions are not tested.
 - Not tested on a real GitHub runner: only the script, against the real API over a local socket.
