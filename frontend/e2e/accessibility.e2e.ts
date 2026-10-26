@@ -30,6 +30,23 @@ test("public pages have no serious or critical accessibility violations", async 
 });
 
 for (const scheme of ["dark", "light"] as const) {
+  test(`agency and legal pages have no serious or critical accessibility violations (${scheme} theme)`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    for (const route of [
+      "#/agency-features",
+      "#/impressum",
+      "#/privacy",
+      "#/terms",
+    ]) {
+      await page.goto(`/${route}`);
+      await expect(page.getByRole("heading").first()).toBeVisible();
+      await expect(page.locator("html")).toHaveAttribute("data-theme", scheme);
+      expect(await seriousViolations(page), `${scheme} ${route}`).toEqual([]);
+    }
+  });
+
   test(`signed-in pages have no serious or critical accessibility violations (${scheme} theme)`, async ({
     page,
   }) => {
@@ -43,6 +60,11 @@ for (const scheme of ["dark", "light"] as const) {
       "#/findings",
       "#/history",
       "#/team",
+      "#/account",
+      "#/audit",
+      "#/analytics",
+      "#/health",
+      "#/clients",
     ]) {
       await page.goto(`/${route}`);
       await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
@@ -59,6 +81,19 @@ test("the theme can be switched by the user", async ({ page }) => {
   await register(page, uniqueEmail("toggle"));
   await openMenu(page);
   await page.getByRole("button", { name: "Switch to light theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+});
+
+test("a saved theme is applied before the app loads, so the other theme never flashes", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.addInitScript(() =>
+    window.localStorage.setItem("securescope-theme", "light"),
+  );
+  // With the app bundle blocked, only the small script in the page head can have set the theme.
+  await page.route("**/assets/index-*.js", (route) => route.abort());
+  await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 });
 

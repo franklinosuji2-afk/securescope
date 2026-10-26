@@ -36,6 +36,8 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
   footer. The home-page sample PDF was regenerated. Still open: a table of contents for very long reports.
 - **Dark editorial design system** across all pages (brief section 5): shared tokens and components, then apply page by
   page. Do this as its own project with screenshots at four widths, not mixed into feature work.
+  The theme audit of 26 Oct (`docs/dark-mode-audit.md`) found both themes sound and fixed the flash of the wrong theme; this project is
+  now about consistency of components, not about dark mode being broken.
 - **Scan comparison** should say when two scans are not comparable (different checks ran, a check could not run).
 - **Per-rule test audit.** Severity and score are pinned by tests; each of the 40 rules should also have a positive,
   a negative and an edge-case test, and its fix text re-read against the rule.
