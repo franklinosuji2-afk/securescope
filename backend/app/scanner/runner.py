@@ -36,7 +36,7 @@ async def _dns(host: str, settings: Settings) -> DnsObservation | str:
         return "The DNS lookup did not give a usable answer."
 
 
-async def _collect(
+async def collect(
     url: str, settings: Settings
 ) -> tuple[FetchResult, TlsObservation | None, dict[str, ProbeResponse] | None, DnsObservation | str]:
     """The page fetch, one TLS observation and the fixed-path probes, all on the validated target."""
@@ -75,7 +75,7 @@ async def execute_scan(
             return  # cancelled while it was waiting for a free slot
         try:
             result, tls, probes, dns = await asyncio.wait_for(
-                _collect(url, settings), timeout=settings.max_scan_seconds
+                collect(url, settings), timeout=settings.max_scan_seconds
             )
             assessment = assess(result, tls, probes, dns)
             findings = assessment.findings

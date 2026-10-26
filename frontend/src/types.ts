@@ -490,6 +490,15 @@ export interface ScanComparison {
 
 export type ScheduleFrequency = "off" | "daily" | "weekly";
 
+export interface FindingRecheck {
+  finding_id: string;
+  host: string;
+  outcome: "not_seen" | "still_present" | "could_not_check";
+  message: string;
+  checked_at: string;
+  evidence: string | null;
+}
+
 export interface Schedule {
   target_id: string;
   hostname: string;

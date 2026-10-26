@@ -123,6 +123,8 @@ class Settings(BaseSettings):
     # Abuse protection (per client address, in memory)
     scans_per_client_per_hour: int = Field(10, ge=1)
     scans_per_target_per_hour: int = Field(3, ge=1)
+    # Single-finding re-checks make about as many requests as a scan, so they have their own limit per site.
+    rechecks_per_target_per_hour: int = Field(10, ge=1)
 
     # DANGEROUS: lets the scanner reach loopback/private addresses. Only for automated tests
     # against a local mock server. Never enable in a deployed environment.

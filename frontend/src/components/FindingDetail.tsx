@@ -12,6 +12,7 @@ import { guidanceFor } from "../guidance";
 import { buildHash } from "../router";
 import type { Finding, FindingStatus, ScanDetail } from "../types";
 import { ANALYST_STATUSES, canTriageFindings } from "../types";
+import RecheckPanel from "./RecheckPanel";
 import { FindingStatusTag, SeverityBadge } from "./ui";
 
 function Section({
@@ -213,6 +214,7 @@ export default function FindingDetail({
       </header>
 
       <StatusPanel finding={finding} onChanged={onChanged} />
+      <RecheckPanel scan={scan} finding={finding} />
 
       <Section id="d-target" title="Affected target">
         <dl className="meta">

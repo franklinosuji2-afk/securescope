@@ -87,6 +87,7 @@ class AppState:
         self.semaphore = asyncio.Semaphore(settings.max_concurrent_scans)
         self.client_limiter = SlidingWindowLimiter(settings.scans_per_client_per_hour)
         self.target_limiter = SlidingWindowLimiter(settings.scans_per_target_per_hour)
+        self.recheck_limiter = SlidingWindowLimiter(settings.rechecks_per_target_per_hour)
         self.login_ip_limiter = SlidingWindowLimiter(settings.login_attempts_per_ip_per_15min, FIFTEEN_MIN)
         self.login_email_limiter = SlidingWindowLimiter(
             settings.login_attempts_per_email_per_15min, FIFTEEN_MIN
