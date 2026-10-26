@@ -8,6 +8,7 @@ allowed to fetch anything: no remote images, stylesheets or fonts, whatever the 
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -109,6 +110,25 @@ def _ordered(detail: ScanDetail) -> list[Finding]:
     return sorted(counting_findings(detail), key=lambda f: (rank[f.severity], f.id))
 
 
+def key_points(findings: Sequence[Mapping[str, object]], counts: dict[str, int]) -> dict[str, object]:
+    """The cover's plain summary. Built only from the findings and counts in the report, nothing else."""
+    total = len(findings)
+    distinct: list[str] = []
+    for item in findings:  # already most severe first; one line per distinct problem
+        title = str(item["title"])
+        if title not in distinct:
+            distinct.append(title)
+    if total == 0:
+        headline = "The checks did not find any problems."
+    else:
+        urgent = counts.get("critical", 0) + counts.get("high", 0)
+        headline = f"{total} finding{'s' if total != 1 else ''} to review"
+        if urgent:
+            headline += f", {urgent} of high or critical severity"
+        headline += "."
+    return {"headline": headline, "top": distinct[:3], "more": max(0, len(distinct) - 3)}
+
+
 def build_context(
     detail: ScanDetail,
     report_id: str,
@@ -166,6 +186,7 @@ def build_context(
             for s in SEVERITY_ORDER
         ],
         "findings": findings,
+        "key_points": key_points(findings, counts),
         # Findings the team marked as false positives are left out of this document; it says so.
         "excluded_false_positives": len(detail.findings) - len(ordered),
         "plan": plan,
