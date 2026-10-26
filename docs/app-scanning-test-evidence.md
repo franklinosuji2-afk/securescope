@@ -71,3 +71,19 @@ Covers the repository, plan catalogue and migration only. **There are no routes,
 | Mutation checks (each caught by a test)       | failures counted as runs; failed runs counted in usage; idempotent replay removed; workspace filter removed from `get_run`, `start_run` and `finish_run`; hourly limit disabled; Free given CI tokens |
 | Full backend suite on PostgreSQL              | see the batch 33 summary                                                                                                                                                                              |
 | `ruff`, `mypy`                                | clean                                                                                                                                                                                                 |
+
+## 7. Step C2 results (26 Oct 2026, batch 34): manifest parsers
+
+`backend/app/appscan/manifests.py` reads `package-lock.json` (v1, v2, v3), `package.json` (exact versions only) and `requirements.txt` (`==` pins only). It is imported by nothing else yet: no route, no lookup, no UI.
+
+| Check                                                       | Result                                                                                                                 |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `test_appscan_manifests.py`                                 | 37 passed                                                                                                              |
+| All three App Scanning test files together on PostgreSQL    | 110 passed                                                                                                             |
+| Mutation checks (each caught by a test)                     | JSON depth check removed; ranges accepted in `package.json`; binary and archive detection removed; package cap removed |
+| `ruff check`, `ruff format --check` (new files), `mypy app` | clean                                                                                                                  |
+| Full backend suite                                          | **not re-run for this batch** (only new, unreferenced files were added; the last full run was 1172 passed on batch 33) |
+
+What the tests prove: valid files parse; ranges, URLs, local paths, options and unpinned lines are reported as unsupported with fixed reasons and never copied; hostile input (empty, binary, archives, bad UTF-8, malformed JSON, deep nesting, oversized, 20 000-package cap, long and pathological lines) ends in a clean fixed-text error and is fast; a 15 000-package lockfile parses in under 5 seconds on this machine (the 0.1 CPU instance is not measured); no process is started, no network is opened and no file is written while parsing; no file content other than package coordinates appears in a result.
+
+Not proven: behaviour on the real instance size, and that these formats are what customers will upload.
