@@ -37,6 +37,8 @@ export default defineConfig({
       env: {
         SECURESCOPE_DATABASE_URL: database,
         SECURESCOPE_COOKIE_SECURE: "false",
+        // The default vulnerability source is "unavailable", so a scan here ends Failed and is not counted.
+        SECURESCOPE_APP_SCANNING_ENABLED: "true",
         SECURESCOPE_CORS_ORIGINS: '["http://localhost:4173"]',
       },
     },

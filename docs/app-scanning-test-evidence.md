@@ -136,3 +136,17 @@ Defect found by the existing suite: the menu check fired for unverified accounts
 Proven: usage and limitations shown before any scan; a clean result never says "secure" and shows no score or grade; an incomplete result is styled as a problem and lists what was not checked; hostile advisory text renders as text and `javascript:` links are dropped; server refusals are shown and the form stays usable; oversized files are refused before upload; roles that cannot create see no forms; the menu entry is hidden when the server returns 404.
 
 **Not run:** Playwright end-to-end and axe accessibility tests for this page (they need the running backend and browser; no such run was made), mobile and dark-mode visual checks, keyboard-only walkthrough. These are required before the feature is switched on.
+
+## 11. Step D2 results (26 Oct 2026, batch 38): real-browser tests
+
+`e2e/appscanning.e2e.ts` (5 tests) runs against the real backend with `APP_SCANNING_ENABLED` on (set in the e2e server only). Chromium 1194 (Playwright), Linux.
+
+| Check | Result |
+| --- | --- |
+| `appscanning.e2e.ts` | 5 passed: add project and upload; honest "Scanner error, not counted" result (the e2e backend has no vulnerability source); malformed file refused and uncounted; axe WCAG 2 A/AA, no serious or critical violations in dark and light, before and after adding a project; 375 px wide with no horizontal scroll and keyboard entry |
+| Whole e2e suite (116 tests) | first run 111 passed, 3 failed: one was my test matching two elements (fixed); two in `targets.e2e.ts` failed at registration ("Confirm your email address" heading not found) |
+| Re-run of `targets.e2e.ts` with the new file | both passed (7 of 7 passed together) |
+
+The two `targets` failures did not reproduce. The cause is **not established**; the likely candidate is a limit on repeated registrations late in a long run on one address, but that was not checked. The whole suite was not re-run end to end after the fix.
+
+Still not done: a manual screen-reader pass, and a visual check of the findings table with many rows.
