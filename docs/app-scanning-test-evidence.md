@@ -1,6 +1,6 @@
 # App Scanning: test evidence
 
-Date: 26 Oct 2026. **No App Scanning code exists, so no App Scanning test has been written or run.** This file exists so that claim is explicit, and so later phases append real results here rather than rewriting history.
+Date: 26 Oct 2026. **Only Step B (the redaction module and canary harness) exists. Nothing else in App Scanning is built or tested.** This file exists so that claim is explicit, and so later phases append real results here rather than rewriting history.
 
 ## 1. What has been verified so far
 
@@ -41,3 +41,21 @@ Date: 26 Oct 2026. **No App Scanning code exists, so no App Scanning test has be
 | 26 Oct 2026 | 1 (docs only) | none applicable | No tests run |
 
 Rule: an entry is added only with the command that was run and its actual output summary. A phase is not described as tested until its rows above are written and passing.
+
+## 5. Step B results (26 Oct 2026, batch 32)
+
+| Command                                                               | Result                                                                                                                                                                                                                                                                                                |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pytest app/tests/test_appscan_redaction.py`                          | 43 passed                                                                                                                                                                                                                                                                                             |
+| Full backend suite on PostgreSQL 16 (`SECURESCOPE_TEST_DATABASE_URL`) | 1142 tests, 0 failed, 0 skipped                                                                                                                                                                                                                                                                       |
+| Same suite on SQLite (the default)                                    | 3 failures in existing tests: `test_agency_queries` (statement row count) and two concurrency tests in `test_plans.py`. They fail identically with the new files removed, and the repository's CI runs on PostgreSQL, where they pass. An environment limit, not caused by this batch, not fixed here |
+| `ruff check app`                                                      | All checks passed                                                                                                                                                                                                                                                                                     |
+| `mypy app`                                                            | Success, 192 source files                                                                                                                                                                                                                                                                             |
+| `ruff format --check` on the new files                                | Clean (23 older files in `app/` would be reformatted; untouched)                                                                                                                                                                                                                                      |
+| Repository secret scan                                                | No secrets found                                                                                                                                                                                                                                                                                      |
+
+Defects found by the tests and fixed in this batch: the credential-assignment pattern was quadratic (about 1.4 s on 5,000 dotted characters) and is now a bounded keyword look-ahead; the pathological-input test is the permanent guard. Mutation checks, each caught by a test: a mask that keeps the last four characters, a rejection message that adds content, and oversized text treated as clean.
+
+Not tested because it does not exist yet: run accounting, duplicate-request handling, plan isolation, browser-upload restriction for Free, server-side enforcement, any route, table or token rule (Steps C and H).
+
+Known blind spots of the redaction rules (documented in the module): secrets split across lines, low-entropy passwords with no keyword nearby, and pure hexadecimal strings of 32, 40 or 64 characters.

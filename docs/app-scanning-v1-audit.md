@@ -49,15 +49,15 @@ CI-first execution; OSV lookups subject to privacy and terms review; proposed al
 
 ## 6. Implementation plan (smallest safe steps, each a separate batch)
 
-| Step | Content                                                                                              | Needs before start                   |
-| ---- | ---------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| A    | Documentation set (this batch)                                                                       | Owner review                         |
-| B    | Redaction module and canary test harness, no feature                                                 | none                                 |
-| C    | Manifest parsers and result model, tables, plan counter, behind a disabled flag, mocked lookups only | Decisions D1 to D4                   |
-| D    | OSV client, enabled only after the privacy and terms gates are cleared                               | Gate G1                              |
-| E    | Secret findings through CI submission                                                                | B, licence review of the chosen tool |
-| F    | SAST findings through CI submission                                                                  | Licence review of tool and rules     |
-| G    | Unified findings view, reports, history                                                              | C                                    |
-| H    | Action mode, tokens, plan enforcement                                                                | Decision on Free and CI              |
+| Step | Content                                                                                              | Needs before start                                            |
+| ---- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| A    | Documentation set (this batch)                                                                       | Owner review                                                  |
+| B    | Redaction module and canary test harness, no feature                                                 | none. Built in batch 32 (see `app-scanning-test-evidence.md`) |
+| C    | Manifest parsers and result model, tables, plan counter, behind a disabled flag, mocked lookups only | Decisions D1 to D4                                            |
+| D    | OSV client, enabled only after the privacy and terms gates are cleared                               | Gate G1                                                       |
+| E    | Secret findings through CI submission                                                                | B, licence review of the chosen tool                          |
+| F    | SAST findings through CI submission                                                                  | Licence review of tool and rules                              |
+| G    | Unified findings view, reports, history                                                              | C                                                             |
+| H    | Action mode, tokens, plan enforcement                                                                | Decision on Free and CI                                       |
 
 Nothing in B to H is started.
