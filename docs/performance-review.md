@@ -52,7 +52,7 @@ About 22% less for the first visit. Opening a secondary page fetches a few kilob
 - **Audit and session clean-up filter by time alone** while the audit index starts with the workspace. The hourly delete therefore scans the table. Harmless at this size; add an index on the timestamp only when the table is large enough to notice.
 - **Scan history loads each scan's findings** to count them (a page of 25 reads up to about a thousand finding rows). A stored count per scan would avoid it. Not worth a migration yet.
 - **Polling interval while a scan runs** (1.2 s) is fine for scans that last seconds to a minute; if scans get much longer, back off.
-- **No load test** was run; the 429 and queue behaviour under many simultaneous users is unmeasured (security checklist item 53 stays PARTIAL).
+- **Load test:** run on 26 Oct, see `docs/load-test-results.md`. The 429 limits and the queue behaviour held; item 53 stays PARTIAL because the counters are per instance.
 
 ## Statuses for this phase
 

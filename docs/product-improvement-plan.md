@@ -49,7 +49,7 @@ SecureScope is a passive website security checker with accounts, ownership verif
 | 3 | **Verify fix** and "confirmed resolved" separated from "no longer detected" | P1 | Medium | Product audit section 3; reporting audit. Today a fix cannot be confirmed without a full new scan. |
 | 4 | **Overdue-schedule warning and failed-mail alert** | P1 for the pilot | Small | Monitoring audit risks 1, 2 and 5: if the cron stops, scans stop silently; failed mail alerts nobody. |
 | 5 | **Billing foundation before Paddle**: signed webhook receiver, record-and-apply in one transaction, ordering of late events, trial and paused mapping, cancel at the provider before account deletion | P1 before any payment | Large | Subscription audit "Before Paddle", seven items; security checklist item 12. |
-| 6 | **Shared rate limits and a load test** (or a paid edge plan) | P1 before public launch | Medium | Security items 34 and 53 PARTIAL; counters reset on restart and are per process. |
+| 6 | **Shared rate limits and a load test** (load test done 26 Oct, see `load-test-results.md`; shared limits still open) (or a paid edge plan) | P1 before public launch | Medium | Security items 34 and 53 PARTIAL; counters reset on restart and are per process. |
 | 7 | **Separate database roles** for migrations and runtime | P2 (P1 before public launch) | Medium | Security items 27 and 59; operational audit risk 5. |
 | 8 | **Portfolio usability**: filter and sort on Targets, next scheduled scan on Overview, tie wording | P2 | Small | Dashboard audit gaps 1 to 5. |
 | 9 | **Agency**: client-level report, then a premium PDF cover | P2 | Medium | Agency audit gap 1; reporting audit risk 1. |
