@@ -87,3 +87,18 @@ Covers the repository, plan catalogue and migration only. **There are no routes,
 What the tests prove: valid files parse; ranges, URLs, local paths, options and unpinned lines are reported as unsupported with fixed reasons and never copied; hostile input (empty, binary, archives, bad UTF-8, malformed JSON, deep nesting, oversized, 20 000-package cap, long and pathological lines) ends in a clean fixed-text error and is fast; a 15 000-package lockfile parses in under 5 seconds on this machine (the 0.1 CPU instance is not measured); no process is started, no network is opened and no file is written while parsing; no file content other than package coordinates appears in a result.
 
 Not proven: behaviour on the real instance size, and that these formats are what customers will upload.
+
+## 8. Step C3 results (26 Oct 2026, batch 35): findings storage and the dependency scan pipeline
+
+New: `app_findings` table (migration `0022`, additive), `appscan/vulns.py` (the interface a vulnerability source must meet), `appscan/pipeline.py` (statuses, normalisation, sanitising), and `store_result` / `get_findings` in the repository. **No network client exists and nothing is wired to a route.** Every lookup in the tests is a fake.
+
+| Check                                   | Result                                                                                                                                         |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `test_appscan_pipeline.py`              | 33 passed                                                                                                                                      |
+| Full backend suite on PostgreSQL 16     | 1242 tests, 0 failed, 0 skipped                                                                                                                |
+| Mutation checks (each caught by a test) | source outage read as clean; unsupported entries ignored; reply-length check removed; advisory text not cleaned; reference links not validated |
+| `ruff check app`, `mypy app`            | clean                                                                                                                                          |
+
+Proven with fakes: outage, crash, partial answers, misaligned replies and time budget all produce Incomplete or Failed and never a clean result; findings never make a run unsuccessful; a failed run is stored but not counted; a final run's result is not overwritten; another workspace sees no findings; hostile advisory text is cleaned; a canary secret in advisory text never reaches the database.
+
+Not proven: the shape of real OSV responses (field names, severity and fixed-version encoding), real latency and size, and behaviour on the real instance.

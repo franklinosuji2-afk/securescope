@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -63,3 +63,37 @@ class AppScanRow(Base):
             "uq_app_scans_organization_id_idempotency_key", "organization_id", "idempotency_key", unique=True
         ),
     )
+
+
+class AppFindingRow(Base):
+    """One finding of one run. Evidence is stored only after redaction; file contents are never stored."""
+
+    __tablename__ = "app_findings"
+
+    row_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    scan_id: Mapped[str] = mapped_column(ForeignKey("app_scans.id", ondelete="CASCADE"))
+    position: Mapped[int] = mapped_column(Integer)
+    # "dependency", "secrets" or "sast".
+    kind: Mapped[str] = mapped_column(String(16))
+    # Advisory id (for example GHSA-... or CVE-...) or the scanner's rule id.
+    rule_id: Mapped[str] = mapped_column(String(128))
+    title: Mapped[str] = mapped_column(Text)
+    severity: Mapped[str] = mapped_column(String(16))
+    confidence: Mapped[str] = mapped_column(String(8))
+    category: Mapped[str] = mapped_column(String(64))
+    description: Mapped[str] = mapped_column(Text)
+    remediation: Mapped[str] = mapped_column(Text)
+    evidence: Mapped[str | None] = mapped_column(Text)
+    # Where it was found: a file name and, where known, a line.
+    path: Mapped[str | None] = mapped_column(String(255))
+    line: Mapped[int | None] = mapped_column(Integer)
+    # Dependency findings.
+    ecosystem: Mapped[str | None] = mapped_column(String(16))
+    package_name: Mapped[str | None] = mapped_column(String(214))
+    package_version: Mapped[str | None] = mapped_column(String(64))
+    fixed_versions_json: Mapped[str | None] = mapped_column(Text)
+    references_json: Mapped[str | None] = mapped_column(Text)
+    aliases_json: Mapped[str | None] = mapped_column(Text)
+    fingerprint: Mapped[str] = mapped_column(String(64))
+
+    __table_args__ = (Index("ix_app_findings_scan_id_position", "scan_id", "position"),)

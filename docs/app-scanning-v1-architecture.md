@@ -55,3 +55,20 @@ Hosted or server-side code analysis, archives or repository upload, GitHub App, 
 ## 7. Dependencies between decisions
 
 D-A (who calls OSV), D1 to D4 in the entitlements document, and gate G1 in the privacy document must be settled before step D of the implementation plan.
+
+## 8. Dependency scan result rules (built in batch 35, tested with fake sources only)
+
+The scan depends on a `VulnerabilitySource` interface (`appscan/vulns.py`). No network client exists; the OSV integration stays blocked until gates G1, G3 and G4 close.
+
+| Situation                                                                            | Status                                              | Why                                                                                                                                                                   |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Every package checked, source answered for all, nothing unsupported                  | Completed (with or without findings)                | Findings never make a run unsuccessful                                                                                                                                |
+| Source gave no answer for some packages                                              | Incomplete                                          | Names how many were not checked                                                                                                                                       |
+| Entries the parser could not check (ranges, addresses, options)                      | Incomplete                                          | Never described as clean while part of the list is unchecked. A `package.json` with ranges is therefore always incomplete; a lockfile is the way to a complete result |
+| Time budget (default 60 s) ran out                                                   | Incomplete                                          | Remaining batches count as not answered                                                                                                                               |
+| More than 5 000 findings                                                             | Incomplete                                          | Extra findings are cut and the cut is stated                                                                                                                          |
+| Source unreachable for everything, or a reply that does not line up with the request | Failed (not charged)                                | Nothing was checked                                                                                                                                                   |
+| No checkable package in the files                                                    | Failed (not charged)                                | An empty list is not a clean result                                                                                                                                   |
+| Source raises any error                                                              | Treated as unavailable; the error text is discarded | A broken source degrades the scan and cannot leak content                                                                                                             |
+
+Advisory text is untrusted: control characters are removed, text is redacted and capped (500 characters), only `https://` reference links of sane length are kept, fixed versions and ids must match a strict pattern, and an advisory whose id does not match is dropped. A missing severity is shown as Medium with the sentence "The advisory source did not give a severity", not invented as certain. Remediation text never changes dependencies.

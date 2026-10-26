@@ -13,11 +13,12 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import Engine, func, select, update
 from sqlalchemy.exc import IntegrityError
 
+from app.appscan.pipeline import DependencyFinding, ScanOutcome
 from app.appscan.redaction import redact_text, redact_value
 from app.appscan.states import ACTIVE, FINAL, KINDS, NOT_COUNTED, AppScanStatus
 from app.billing.errors import PlanLimitError
 from app.database.session import make_session_factory
-from app.models.app_scan import AppProjectRow, AppScanRow
+from app.models.app_scan import AppFindingRow, AppProjectRow, AppScanRow
 from app.repositories.plans import lock_organization
 
 MAX_INPUTS = 5
@@ -300,6 +301,73 @@ class AppScanRepository:
                 .values(**values)
             )
             return bool(result.rowcount)  # type: ignore[attr-defined]
+
+    def store_result(self, organization_id: str, scan_id: str, outcome: ScanOutcome) -> bool:
+        """Saves a finished scan's findings and final state together, so a run is never final without them.
+        A run that is already final is left as it is (returns False)."""
+        if outcome.status.value not in FINAL:
+            raise ValueError("A run can only be finished with a final state.")
+        with self._session.begin() as session:
+            result = session.execute(
+                update(AppScanRow)
+                .where(
+                    AppScanRow.id == scan_id,
+                    AppScanRow.organization_id == organization_id,
+                    AppScanRow.status.in_(ACTIVE),
+                )
+                .values(
+                    status=outcome.status.value,
+                    finished_at=_now(),
+                    error=redact_text(outcome.error)[:500] if outcome.error else None,
+                    checks_run_json=_json(outcome.checks_run),
+                    checks_skipped_json=_json(outcome.checks_skipped),
+                    scanners_json=_json(outcome.scanners),
+                )
+            )
+            if not result.rowcount:  # type: ignore[attr-defined]
+                return False
+            for position, f in enumerate(outcome.findings):
+                session.add(self._finding_row(scan_id, position, f))
+            return True
+
+    @staticmethod
+    def _finding_row(scan_id: str, position: int, f: DependencyFinding) -> AppFindingRow:
+        return AppFindingRow(
+            scan_id=scan_id,
+            position=position,
+            kind=f.kind,
+            rule_id=f.rule_id,
+            title=f.title,
+            severity=f.severity.value,
+            confidence=f.confidence.value,
+            category=f.category,
+            description=f.description,
+            remediation=f.remediation,
+            evidence=None,
+            path=f.path,
+            line=None,
+            ecosystem=f.ecosystem,
+            package_name=f.package_name,
+            package_version=f.package_version,
+            fixed_versions_json=_json(list(f.fixed_versions)),
+            references_json=_json(list(f.references)),
+            aliases_json=_json(list(f.aliases)),
+            fingerprint=f.fingerprint,
+        )
+
+    def get_findings(self, organization_id: str, scan_id: str) -> list[AppFindingRow]:
+        """Findings of one of this workspace's runs; empty for another workspace's run."""
+        with self._session() as session:
+            rows = list(
+                session.scalars(
+                    select(AppFindingRow)
+                    .join(AppScanRow, AppScanRow.id == AppFindingRow.scan_id)
+                    .where(AppFindingRow.scan_id == scan_id, AppScanRow.organization_id == organization_id)
+                    .order_by(AppFindingRow.position)
+                )
+            )
+            session.expunge_all()
+            return rows
 
     def interrupt_unfinished(self) -> int:
         """Runs a stopped process left queued or running can never finish. They are marked interrupted, and an
