@@ -30,9 +30,10 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
   the same resource), and add a "Verify fix" action that re-checks one finding.
   The re-check exists since 26 Oct ("Check if it is fixed" on a finding: one fresh look, nothing stored, never marks
   a finding resolved). Still open: letting a re-check that examined the same resource mark it resolved.
-- **Premium PDF cover and layout** from the product brief: a cover page with reference, dates, scope and an executive
-  summary; keep each finding together on a page; consistent footer. The score method, DNS wording and scope notes are
-  done.
+- **Premium PDF cover and layout**: done on 26 Oct. Page 1 is now a full cover: title, host, scope line, score and
+  grade, risk rating, severity counts, a plain summary built only from the report's own findings (count, the top three
+  problems), reference, dates and the disclaimer. Findings start on page 2, each kept whole on a page, with the same
+  footer. The home-page sample PDF was regenerated. Still open: a table of contents for very long reports.
 - **Dark editorial design system** across all pages (brief section 5): shared tokens and components, then apply page by
   page. Do this as its own project with screenshots at four widths, not mixed into feature work.
 - **Scan comparison** should say when two scans are not comparable (different checks ran, a check could not run).

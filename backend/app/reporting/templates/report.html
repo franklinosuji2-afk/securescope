@@ -10,26 +10,35 @@
     @bottom-left { content: "SecureScope · {% if sample %}SAMPLE · {% endif %}{{ host }} · {{ report_id }}"; font: 8pt "DejaVu Sans", sans-serif; color: #5b6573; }
     @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8pt "DejaVu Sans", sans-serif; color: #5b6573; }
   }
-  @page :first { margin-top: 0; margin-left: 0; margin-right: 0; @bottom-left { content: ""; } @bottom-right { content: ""; } }
+  @page :first { margin: 0; @bottom-left { content: ""; } @bottom-right { content: ""; } }
   * { box-sizing: border-box; }
   body { font: 10pt/1.5 "DejaVu Sans", "Liberation Sans", Arial, sans-serif; color: #1b2430; margin: 0; overflow-wrap: anywhere; }
   h1, h2, h3 { line-height: 1.25; margin: 0; }
   h2 { font-size: 14pt; margin: 22pt 0 8pt; padding-bottom: 4pt; border-bottom: 1.5pt solid #e3e7ee; color: #142033; }
   h3 { font-size: 11pt; }
   p { margin: 0 0 7pt; }
-  .cover { background: #142033; color: #fff; padding: 18mm 20mm 12mm; min-height: 96mm; }
+  .page-one { height: 296mm; overflow: hidden; }
+  .cover { background: #142033; color: #fff; padding: 16mm 20mm 10mm; height: 106mm; position: relative; }
+  .cover .kicker { margin-top: 16mm; font-size: 10pt; text-transform: uppercase; letter-spacing: 1.2pt; color: #7cc4ff; }
+  .cover .scope { font-size: 9pt; color: #c9d4e6; margin-top: 6pt; max-width: 100mm; }
+  .scorebox { position: absolute; right: 20mm; top: 36mm; text-align: right; }
+  .scorebox .big { font-size: 40pt; font-weight: bold; line-height: 1; }
+  .scorebox .of { font-size: 12pt; color: #c9d4e6; }
+  .scorebox .grade { display: block; font-size: 10pt; color: #7cc4ff; margin-top: 2pt; }
+  .summary-h { margin: 8pt 0 4pt; color: #142033; }
+  ul.top { margin: 0 0 4pt 15pt; }
   .brand { display: flex; align-items: center; gap: 8pt; font-weight: bold; font-size: 13pt; letter-spacing: .3pt; }
   .brand svg { width: 22pt; height: 22pt; }
-  .cover h1 { font-size: 26pt; margin-top: 20mm; }
+  .cover h1 { font-size: 26pt; margin-top: 4pt; }
   .cover .prepared { font-size: 11pt; margin-top: 10pt; color: #c9d4e6; }
   .cover .sample-flag { display: inline-block; margin-top: 14pt; padding: 5pt 10pt; border: 1pt dashed #ffd98a; border-radius: 4pt; color: #ffd98a; font-size: 9pt; font-weight: bold; letter-spacing: .4pt; }
   .cover .site { font-size: 14pt; margin-top: 6pt; color: #c9d4e6; }
-  .meta { display: flex; flex-wrap: wrap; gap: 0; margin: 10mm 20mm 0; }
+  .meta { display: flex; flex-wrap: wrap; gap: 0; margin: 8pt 0 6pt; }
   .meta div { width: 50%; padding: 0 0 8pt; }
   .meta dt { font-size: 8pt; text-transform: uppercase; letter-spacing: .6pt; color: #5b6573; }
   .meta dd { margin: 1pt 0 0; font-weight: bold; }
   .body { padding: 0 17mm; }
-  .first-body { padding: 0 20mm; }
+  .first-body { padding: 8mm 20mm 0; }
   .rating { border: 1.5pt solid {{ risk_colour }}; border-left-width: 6pt; border-radius: 4pt; padding: 10pt 14pt; margin: 6pt 0 10pt; break-inside: avoid; }
   .rating .label { font-size: 8pt; text-transform: uppercase; letter-spacing: .6pt; color: #5b6573; }
   .rating .level { font-size: 20pt; font-weight: bold; color: {{ risk_colour }}; }
@@ -53,25 +62,22 @@
 </style>
 </head>
 <body>
+<div class="page-one">
 <div class="cover">
   <div class="brand">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5l-8-3z" fill="none" stroke="#7cc4ff" stroke-width="1.8" stroke-linejoin="round"/><path transform="translate(12 12.2) scale(0.7) translate(-16 -15.75)" d="M20.4 11.3C19.5 10 17.9 9.2 16 9.2c-2.4 0-4.2 1.2-4.2 3.1 0 1.9 1.6 2.6 4.2 3.3 2.6.7 4.2 1.5 4.2 3.5 0 1.9-1.8 3.2-4.2 3.2-2.1 0-3.8-.9-4.7-2.4" fill="none" stroke="#7cc4ff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
     SecureScope
   </div>
-  <h1>Website security report</h1>
-  <div class="site">{{ host }}</div>
+  <div class="kicker">Website security report</div>
+  <h1>{{ host }}</h1>
+  <p class="scope">Passive checks of the public address {{ target_url }}, scanned {{ scan_date }}.</p>
   {% if prepared_by %}<p class="prepared">Prepared by {{ prepared_by }}</p>{% endif %}
   {% if sample %}<p class="sample-flag">SAMPLE REPORT · a demonstration on example.com, a domain reserved for documentation. Not a real customer or scan.</p>{% endif %}
+  {% if score is not none %}
+  <div class="scorebox"><span class="big">{{ score }}</span><span class="of">/100</span><span class="grade">Grade {{ grade }}</span></div>
+  {% endif %}
 </div>
-<dl class="meta">
-  {% if prepared_by %}<div><dt>Prepared by</dt><dd>{{ prepared_by }}</dd></div>{% endif %}
-  <div><dt>Report ID</dt><dd>{{ report_id }}</dd></div>
-  <div><dt>Scan date</dt><dd>{{ scan_date }}</dd></div>
-  <div><dt>Address scanned</dt><dd>{{ target_url }}</dd></div>
-  <div><dt>Report created</dt><dd>{{ generated_at }}</dd></div>
-</dl>
 <div class="first-body">
-  <h2>Overall result</h2>
   <div class="rating">
     <div class="label">Overall risk rating</div>
     <div class="level">{{ risk.label }}</div>
@@ -81,7 +87,21 @@
   <table class="sev"><tr>
     {% for item in severity_rows %}<td><span class="n" style="color:{{ item.colour }}">{{ item.count }}</span><span class="t">{{ item.label }}</span></td>{% endfor %}
   </tr></table>
+  <h3 class="summary-h">Summary</h3>
+  <p style="margin-bottom:3pt">{{ key_points.headline }}</p>
+  {% if key_points.top %}
+  <p class="fmeta" style="margin:0 0 2pt">Start with:</p>
+  <ul class="top">{% for title in key_points.top %}<li>{{ title }}</li>{% endfor %}</ul>
+  {% if key_points.more %}<p class="fmeta">and {{ key_points.more }} more, listed from page 2.</p>{% endif %}
+  {% endif %}
+  <dl class="meta">
+    {% if prepared_by %}<div><dt>Prepared by</dt><dd>{{ prepared_by }}</dd></div>{% endif %}
+    <div><dt>Report ID</dt><dd>{{ report_id }}</dd></div>
+    <div><dt>Scan date</dt><dd>{{ scan_date }}</dd></div>
+    <div><dt>Report created</dt><dd>{{ generated_at }}</dd></div>
+  </dl>
   <p class="note">{{ disclaimer }}</p>
+</div>
 </div>
 
 <div class="body">
