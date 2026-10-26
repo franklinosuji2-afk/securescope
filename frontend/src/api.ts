@@ -581,3 +581,108 @@ export const setBadge = (targetId: string, enabled: boolean, renew = false) =>
     method: "PUT",
     body: JSON.stringify({ enabled, renew }),
   });
+
+// --- App Scanning (off unless the server enables it) ---------------------------------------------
+
+export type AppResult =
+  | "completed_findings"
+  | "completed_no_findings"
+  | "incomplete"
+  | "scanner_error"
+  | "interrupted"
+  | "cancelled"
+  | "queued"
+  | "running";
+export interface AppUsage {
+  runs_used: number;
+  runs_limit: number | null;
+  projects_used: number;
+  projects_limit: number | null;
+  period_end: string;
+}
+export interface AppOverview {
+  plan: string;
+  usage: AppUsage;
+  supported_files: string[];
+  max_files: number;
+  max_file_bytes: number;
+  ci_tokens_available: boolean;
+  limitations: string[];
+}
+export interface AppProject {
+  id: string;
+  name: string;
+  source: string;
+  created_at: string;
+}
+export interface AppFinding {
+  rule_id: string;
+  title: string;
+  severity: "critical" | "high" | "medium" | "low" | "info";
+  description: string;
+  remediation: string;
+  package_name: string | null;
+  package_version: string | null;
+  fixed_versions: string[];
+  references: string[];
+  aliases: string[];
+  path: string | null;
+}
+export interface AppScanSummary {
+  id: string;
+  project_id: string;
+  status: string;
+  result: AppResult;
+  result_text: string;
+  created_at: string;
+  finished_at: string | null;
+  counts: Record<string, number>;
+}
+export interface AppScan extends AppScanSummary {
+  inputs: { name: string; size: number; sha256: string }[];
+  checks_run: unknown[];
+  checks_skipped: { reason?: string; name?: string }[];
+  scanners: { name?: string; version?: string; data_timestamp?: string }[];
+  findings: AppFinding[];
+  limitations: string[];
+  replayed: boolean;
+}
+
+export async function appScanningAvailable(): Promise<boolean> {
+  try {
+    await request<AppOverview>("/app/overview");
+    return true;
+  } catch {
+    return false;
+  }
+}
+export const getAppOverview = () => request<AppOverview>("/app/overview");
+export const listAppProjects = () =>
+  request<{ items: AppProject[] }>("/app/projects").then((r) => r.items);
+export const createAppProject = (name: string) =>
+  request<AppProject>("/app/projects", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+export const listAppScans = (projectId?: string) =>
+  request<{ items: AppScanSummary[] }>(
+    projectId
+      ? `/app/scans?project_id=${encodeURIComponent(projectId)}`
+      : "/app/scans",
+  ).then((r) => r.items);
+export const getAppScan = (id: string) =>
+  request<AppScan>(`/app/scans/${encodeURIComponent(id)}`);
+export const createAppScan = (
+  projectId: string,
+  files: { name: string; content: string }[],
+  idempotencyKey: string,
+) =>
+  request<AppScan>("/app/scans", {
+    method: "POST",
+    body: JSON.stringify({
+      project_id: projectId,
+      kinds: ["dependency"],
+      files,
+    }),
+    headers: { "Idempotency-Key": idempotencyKey },
+  });

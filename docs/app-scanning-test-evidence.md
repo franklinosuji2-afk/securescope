@@ -118,3 +118,21 @@ Proven: flag off gives 404 for every route including signed-out callers; each ro
 Defect found by the tests: re-entering the application lifespan (a second `TestClient` context) interrupts queued runs, which is the intended restart behaviour; one older accounting test relied on the opposite and was corrected.
 
 Not proven: real source behaviour (OSV is blocked), behaviour under the 0.1 CPU instance, the concurrency semaphore under real parallel load, and any browser UI.
+
+## 10. Step D1 results (26 Oct 2026, batch 37): browser page
+
+New: one "App Scanning" page (`pages/AppScanning.tsx`), API client functions, a hook that shows the menu entry only when the server answers `/app/overview` (the feature is off by default, so the entry is hidden). The navigation itself is unchanged; its redesign remains a separate batch.
+
+| Check | Result |
+| --- | --- |
+| `appscanning.test.tsx` | 11 passed |
+| Full frontend unit suite | 258 passed, 0 failed (31 files) |
+| `eslint`, `tsc -b`, `prettier --check`, `npm run build` | clean |
+| `npm audit --omit=dev` | 0 vulnerabilities |
+| Mutation checks (each caught) | non-https links allowed; browser size check removed; role gate removed |
+
+Defect found by the existing suite: the menu check fired for unverified accounts, which must request nothing; it now waits for a verified email.
+
+Proven: usage and limitations shown before any scan; a clean result never says "secure" and shows no score or grade; an incomplete result is styled as a problem and lists what was not checked; hostile advisory text renders as text and `javascript:` links are dropped; server refusals are shown and the form stays usable; oversized files are refused before upload; roles that cannot create see no forms; the menu entry is hidden when the server returns 404.
+
+**Not run:** Playwright end-to-end and axe accessibility tests for this page (they need the running backend and browser; no such run was made), mobile and dark-mode visual checks, keyboard-only walkthrough. These are required before the feature is switched on.
