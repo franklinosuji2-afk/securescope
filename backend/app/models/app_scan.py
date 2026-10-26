@@ -52,12 +52,15 @@ class AppScanRow(Base):
     ref: Mapped[str | None] = mapped_column(String(120))
     # The same key in one workspace never makes two runs, so a retry is never charged twice.
     idempotency_key: Mapped[str | None] = mapped_column(String(80))
+    # The CI token that submitted this run, if any (for the per-token hourly limit).
+    token_id: Mapped[str | None] = mapped_column(ForeignKey("api_tokens.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         Index("ix_app_scans_organization_id_created_at", "organization_id", "created_at"),
+        Index("ix_app_scans_token_id_created_at", "token_id", "created_at"),
         Index("ix_app_scans_project_id_created_at", "project_id", "created_at"),
         Index(
             "uq_app_scans_organization_id_idempotency_key", "organization_id", "idempotency_key", unique=True

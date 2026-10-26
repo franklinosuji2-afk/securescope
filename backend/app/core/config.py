@@ -133,6 +133,10 @@ class Settings(BaseSettings):
     # Runs processed at once. The free instance has 0.1 CPU, so parsing is done one run at a time. PROVISIONAL.
     max_concurrent_app_scans: int = Field(1, ge=1, le=10)
 
+    # App Scanning CI tokens (PROVISIONAL values). Counted in the database so every instance agrees.
+    app_ci_submissions_per_token_per_hour: int = Field(30, ge=1)
+    app_ci_token_days: int = Field(90, ge=1, le=730)
+
     # DANGEROUS: lets the scanner reach loopback/private addresses. Only for automated tests
     # against a local mock server. Never enable in a deployed environment.
     allow_private_targets: bool = False

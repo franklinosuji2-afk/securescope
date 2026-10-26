@@ -52,10 +52,29 @@ class DependencyFinding:
     category: str = "Vulnerable dependency"
 
 
+@dataclass(frozen=True, slots=True)
+class CodeFinding:
+    """A finding from a tool the customer ran on their own runner (static analysis or secret detection).
+    `evidence` is never a secret value and is empty for secret findings."""
+
+    kind: str
+    rule_id: str
+    title: str
+    severity: Severity
+    confidence: Confidence
+    category: str
+    description: str
+    remediation: str
+    path: str
+    line: int | None
+    fingerprint: str
+    evidence: str | None = None
+
+
 @dataclass(slots=True)
 class ScanOutcome:
     status: AppScanStatus
-    findings: list[DependencyFinding] = field(default_factory=list)
+    findings: list[DependencyFinding | CodeFinding] = field(default_factory=list)
     checks_run: list[str] = field(default_factory=list)
     checks_skipped: list[dict[str, str]] = field(default_factory=list)
     scanners: list[dict[str, str]] = field(default_factory=list)
@@ -228,7 +247,7 @@ def run_dependency_scan(
             {"check": "dependency", "reason": f"Only the first {MAX_FINDINGS} findings are kept."}
         )
         outcome.status = AppScanStatus.INCOMPLETE
-    outcome.findings = findings
+    outcome.findings = [*findings]
 
     if outcome.packages_not_answered:
         outcome.checks_skipped.append(

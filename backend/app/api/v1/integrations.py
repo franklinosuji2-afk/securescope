@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -26,6 +27,9 @@ badge_router = APIRouter(prefix="/badges", tags=["badges"])
 CanManageTokens = Annotated[OrgContext, Depends(require(Permission.ORG_MANAGE_MEMBERS))]
 CanReadTargets = Annotated[OrgContext, Depends(require(Permission.TARGET_READ))]
 CanManageTargets = Annotated[OrgContext, Depends(require(Permission.TARGET_MANAGE))]
+APP_NOT_INCLUDED = (
+    "App Scanning CI access is part of the Professional and Agency plans. Your plan does not include it."
+)
 NOT_INCLUDED = (
     "API tokens for CI are part of the Professional and Agency plans. Your plan does not include them."
 )
@@ -71,7 +75,16 @@ async def create_token(
     body: ApiTokenCreate, request: Request, state: StateDep, ctx: CanManageTokens
 ) -> ApiTokenCreated:
     plan = await state.entitlements.plan_for_async(ctx.organization_id)
-    if not plan.scheduled_scans:
+    expires_in = None
+    if body.scope == "app":
+        # App Scanning tokens do not exist while the feature is off, and only plans that include them may make
+        # one. The server decides; nothing the browser sends or shows matters.
+        if not state.settings.app_scanning_enabled:
+            raise HTTPException(status_code=404, detail="Not found.")
+        if not plan.app_ci_tokens:
+            raise HTTPException(status_code=403, detail=APP_NOT_INCLUDED)
+        expires_in = timedelta(days=state.settings.app_ci_token_days)
+    elif not plan.scheduled_scans:
         raise HTTPException(status_code=403, detail=NOT_INCLUDED)
     key = ctx.organization_id
     if not state.token_admin_limiter.check(key):
@@ -81,12 +94,20 @@ async def create_token(
     if not name:
         raise HTTPException(status_code=400, detail="Give the token a name.")
     created = await asyncio.to_thread(
-        state.integrations.create_token, ctx.organization_id, ctx.principal.user.id, name
+        state.integrations.create_token,
+        ctx.organization_id,
+        ctx.principal.user.id,
+        name,
+        body.scope,
+        expires_in,
     )
     if created is None:
         raise HTTPException(
             status_code=409,
-            detail=f"A workspace can have {MAX_TOKENS_PER_ORGANIZATION} API tokens at most. Remove one first.",
+            detail=(
+                f"A workspace can have {MAX_TOKENS_PER_ORGANIZATION} "
+                f"{'App Scanning ' if body.scope == 'app' else ''}API tokens at most. Remove one first."
+            ),
         )
     out, token = created
     await _audit(state, request, ctx, "api_token.created", "api_token", out.id)

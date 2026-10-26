@@ -52,6 +52,35 @@ Added only when the feature is enabled, and only to match the implementation:
 5. Transfer mechanism and the recipient's location: depends on V6 and counsel's view. **Owner / lawyer item.**
 6. Update `docs/PRIVACY.md`, `docs/DATA_RETENTION.md` and the Privacy page together. A generic sentence that does not match the data flow must not be published.
 
+## 4a. Provisional privacy wording (owner direction, 26 Oct 2026). NOT APPROVED, NOT FOR PUBLICATION
+
+The owner approved this draft as a **direction** only. Publication is blocked until the actual data flow and the OSV terms are verified (gates G1 and G3). It is not in `docs/PRIVACY.md`, not on the Privacy page and must not be added to either yet. If the implementation differs from it, the text changes, not the implementation's description.
+
+> **Application dependency vulnerability checks**
+>
+> When dependency vulnerability scanning is performed, SecureScope may transmit package names, versions and ecosystem information to the OSV vulnerability information service to retrieve information about known vulnerabilities. This information may reveal aspects of the technology stack used by an application.
+>
+> SecureScope does not intentionally transmit application source code or application secrets as part of these vulnerability lookups. Lookup failures may result in an incomplete assessment.
+>
+> The processing details, applicable third-party terms and relevant data-handling information will be described in this notice before the functionality is enabled.
+
+Before the final paragraph may be written, verify and record (with date and source) in section 2: the precise endpoint and fields transmitted (V1); whether requests carry any other identifying information (the server's IP address is visible to any recipient; confirm nothing else); the applicable terms and privacy documentation (V3, V4); logging, caching and retention behaviour on the recipient's side (V5, V6); and whether `docs/PRIVACY.md`, `docs/DATA_RETENTION.md` and any data-protection documentation need updating. State of the implementation today: **no lookup exists and none can run** (the default source is "unavailable"; see the Stage 1 runbook, section 1.4).
+
+Note on the wording "does not intentionally transmit": the implementation design sends only ecosystem, name and version (section 1). That is a statement about a future client, to be proven by a test of the outbound payload when the client exists (security model T10). Until then it describes intent, not behaviour.
+
+## 4b. Review status of the Stage 1 questions (26 Oct 2026)
+
+| Question | Status | Evidence collected so far |
+|---|---|---|
+| OSV API terms, permitted use, request limits | **BLOCKED, not reviewed** | None. The official pages were unreachable from the build environment |
+| Caching and redistribution restrictions | **BLOCKED** | None |
+| Attribution requirements | **BLOCKED** | None |
+| Licence of the vulnerability data and of its aggregated sources | **BLOCKED** | None |
+| Licence of any bundled scanner, rule set or dataset | **BLOCKED FOR RELEASE** | Nothing is bundled in Stage 1; no scanner is chosen |
+| Privacy and data-processing implications | **BLOCKED** | Draft direction in section 4a only; no legal conclusion is recorded here |
+
+Nothing in this file is a legal conclusion and nothing is marked approved.
+
 ## 5. Gates
 
 | Gate | Condition                                                                                    | State |

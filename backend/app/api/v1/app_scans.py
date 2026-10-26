@@ -6,25 +6,39 @@ as JSON; nothing is executed and the file contents are never stored (only name, 
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
+import logging
+from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Annotated
+from types import EllipsisType
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import ValidationError
 
 from app.api.deps import OrgContext, StateDep, request_id, require
+from app.api.v1.ci import CiActor, bearer_actor
 from app.appscan import manifests
 from app.appscan.pipeline import ScanOutcome, run_dependency_scan
 from app.appscan.states import AppScanStatus
+from app.appscan.submission import (
+    MAX_DOCUMENT_BYTES,
+    Submission,
+    SubmissionRejected,
+    build_outcome,
+    parse_submission,
+)
 from app.billing.errors import PlanLimitError
 from app.billing.plans import current_period
 from app.models.app_scan import AppScanRow
 from app.repositories.appscans import (
+    AcceptedRun,
     AppProjectNameTaken,
     AppProjectNotFound,
     AppRateLimited,
     IdempotencyKeyReused,
+    TokenNoLongerValid,
 )
 from app.schemas.app_scan import (
     AppFindingOut,
@@ -41,6 +55,7 @@ from app.schemas.app_scan import (
 )
 from app.security.permissions import Permission
 
+logger = logging.getLogger("securescope.appscans")
 MAX_REQUEST_BYTES = 6 * 1024 * 1024
 SCAN_BUDGET_SECONDS = 20.0
 
@@ -80,16 +95,22 @@ def _valid_id(value: str) -> None:
         raise HTTPException(status_code=404, detail="Not found.")
 
 
-async def _audit(state: StateDep, request: Request, ctx: OrgContext, event: str, kind: str, rid: str) -> None:
+async def _audit_as(
+    state: StateDep, request: Request, organization_id: str, user_id: str, event: str, kind: str, rid: str
+) -> None:
     await asyncio.to_thread(
         state.audit.record,
         event,
-        organization_id=ctx.organization_id,
-        actor_user_id=ctx.principal.user.id,
+        organization_id=organization_id,
+        actor_user_id=user_id,
         resource_type=kind,
         resource_id=rid,
         request_id=request_id(request),
     )
+
+
+async def _audit(state: StateDep, request: Request, ctx: OrgContext, event: str, kind: str, rid: str) -> None:
+    await _audit_as(state, request, ctx.organization_id, ctx.principal.user.id, event, kind, rid)
 
 
 def _label(status: str, finding_count: int) -> str:
@@ -177,22 +198,173 @@ async def _detail(state: StateDep, organization_id: str, scan_id: str, replayed:
     )
 
 
-async def _read_limited_json(request: Request) -> object:
-    """Reads the body without ever holding more than the limit, then parses it. Over the limit: 413."""
+BODY_READ_SECONDS: float = 30
+# Checking a document (JSON, then the secret check) is CPU work. At most one runs at a time per instance, a request
+# waits a short while for its turn, and one that takes too long is refused. The thread cannot be killed, so its
+# slot is only freed when the thread has really finished (see `_run_exclusive`).
+CHECK_WAIT_SECONDS: float = 10
+CHECK_RUN_SECONDS: float = 20
+# A browser scan stops itself after SCAN_BUDGET_SECONDS, but a lookup in progress cannot be interrupted, so a hard
+# limit sits above it. Past it the run ends Failed (not counted); the thread still keeps its slot until it returns.
+SCAN_HARD_SECONDS: float = 60
+CI_KEY_PREFIX = "ci:"
+
+
+class SlotTimeout(Exception):
+    """The work took longer than allowed. The worker thread may still be running and still holds its slot."""
+
+
+async def _run_exclusive[T](
+    state: StateDep,
+    function: Callable[..., T],
+    *args: object,
+    wait_seconds: float | None | EllipsisType = ...,
+    run_seconds: float | None | EllipsisType = ...,
+) -> T:
+    """Runs `function` in a worker thread while holding one processing slot, and gives the slot back only when the
+    thread has finished, even if the request is cancelled or times out meanwhile (a thread cannot be stopped, so
+    letting go of the slot earlier would allow more threads than the limit). Used by every App Scanning route that
+    does CPU-heavy work. `...` means the check defaults above; `None` means no limit (a cancelled wait takes no
+    slot)."""
+    if wait_seconds is ...:
+        wait_seconds = CHECK_WAIT_SECONDS
+    if run_seconds is ...:
+        run_seconds = CHECK_RUN_SECONDS
+    semaphore = state.app_scan_semaphore
+    try:
+        await asyncio.wait_for(semaphore.acquire(), wait_seconds)
+    except TimeoutError as exc:
+        raise HTTPException(
+            status_code=503, detail="Busy. Try again shortly.", headers={"Retry-After": "30"}
+        ) from exc
+    task: asyncio.Future[T] = asyncio.ensure_future(asyncio.to_thread(function, *args))
+
+    def finished(done: asyncio.Future[T]) -> None:
+        semaphore.release()
+        if not done.cancelled():
+            done.exception()  # mark any error as seen; the waiting request reports it
+
+    task.add_done_callback(finished)
+    try:
+        return await asyncio.wait_for(asyncio.shield(task), run_seconds)
+    except TimeoutError as exc:
+        raise SlotTimeout from exc
+
+
+async def _read_body(request: Request, limit: int) -> bytes:
+    """Reads the body without ever holding more than `limit` bytes. Over the limit: 413, before any parsing."""
     declared = request.headers.get("content-length")
-    if declared and declared.isdigit() and int(declared) > MAX_REQUEST_BYTES:
+    if declared and declared.isdigit() and int(declared) > limit:
         raise HTTPException(status_code=413, detail="The upload is too large.")
     chunks: list[bytes] = []
     total = 0
-    async for chunk in request.stream():
-        total += len(chunk)
-        if total > MAX_REQUEST_BYTES:
-            raise HTTPException(status_code=413, detail="The upload is too large.")
-        chunks.append(chunk)
     try:
-        return json.loads(b"".join(chunks))
+        async with asyncio.timeout(BODY_READ_SECONDS):  # a slow sender cannot hold a connection open for ever
+            async for chunk in request.stream():
+                total += len(chunk)
+                if total > limit:
+                    raise HTTPException(status_code=413, detail="The upload is too large.")
+                chunks.append(chunk)
+    except TimeoutError as exc:
+        raise HTTPException(status_code=408, detail="The upload took too long.") from exc
+    return b"".join(chunks)
+
+
+def _parse_document(raw: bytes) -> Submission:
+    return parse_submission(_parse_json(raw))
+
+
+class CheckFailed(Exception):
+    """The worker failed for a reason that is not the submitter's. Carries no text: whatever the original error
+    said could contain part of the document."""
+
+
+def _scan_job(
+    state: Any, organization_id: str, scan_id: str, project_id: str, parsed: list[manifests.ParseResult]
+) -> ScanOutcome | None:
+    """The CPU and lookup work of a browser scan, in a worker thread that holds a processing slot. Returns the
+    result to store, or None when the run was already ended (for example the request was cancelled while it
+    waited for a slot), in which case nothing is scanned."""
+    if not state.app_scans.start_run(organization_id, scan_id):
+        return None
+    try:
+        return run_dependency_scan(project_id, parsed, state.app_source, SCAN_BUDGET_SECONDS)
+    except Exception:  # a defect must end the run honestly, never leave it running or leak details
+        return ScanOutcome(status=AppScanStatus.FAILED, error="The scan could not be completed.")
+
+
+def _check_document(raw: bytes) -> tuple[Submission, ScanOutcome]:
+    """All the CPU-heavy work on a submission, done before anything is stored or counted: reading the JSON, the
+    secret check, the strict schema, and turning it into the result to store (which cleans every text again)."""
+    try:
+        submission = _parse_document(raw)
+        try:
+            outcome = build_outcome(submission)
+        except Exception:  # a defect in building the result ends the run honestly, and leaks nothing
+            outcome = ScanOutcome(status=AppScanStatus.FAILED, error="The submission could not be processed.")
+        return submission, outcome
+    except (SubmissionRejected, HTTPException):
+        raise
+    except Exception as exc:
+        logger.warning("an app scanning submission could not be checked (%s)", type(exc).__name__)
+        raise CheckFailed from None
+
+
+def _parse_json(raw: bytes) -> object:
+    try:
+        return json.loads(raw)
     except (ValueError, RecursionError) as exc:
         raise HTTPException(status_code=400, detail="The request is not valid JSON.") from exc
+
+
+async def _read_limited_json(request: Request) -> object:
+    return _parse_json(await _read_body(request, MAX_REQUEST_BYTES))
+
+
+async def _accept(
+    state: StateDep,
+    organization_id: str,
+    project_id: str,
+    user_id: str,
+    kinds: list[str],
+    inputs: list[dict[str, object]],
+    monthly_limit: int | None,
+    period_start: datetime,
+    idempotency_key: str | None,
+    ref: str | None,
+    token_id: str | None = None,
+) -> AcceptedRun:
+    """The one place a run is accepted and counted, for browser uploads and CI submissions alike."""
+    try:
+        return await asyncio.to_thread(
+            state.app_scans.accept_run,
+            organization_id,
+            project_id,
+            user_id,
+            kinds,
+            inputs,
+            monthly_limit,
+            period_start,
+            state.settings.app_scans_per_project_per_hour,
+            idempotency_key,
+            ref,
+            token_id,
+            state.settings.app_ci_submissions_per_token_per_hour if token_id else None,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except PlanLimitError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except AppRateLimited as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except AppProjectNotFound as exc:
+        raise HTTPException(status_code=404, detail="Not found.") from exc
+    except TokenNoLongerValid as exc:
+        raise HTTPException(status_code=401, detail=REFUSED_CALLER) from exc
+    except IdempotencyKeyReused as exc:
+        raise HTTPException(
+            status_code=409, detail="This idempotency key was used for another project."
+        ) from exc
 
 
 # --- overview ------------------------------------------------------------------------------------------
@@ -294,6 +466,9 @@ async def create_scan(
     ctx: CanCreate,
     idempotency_key: Annotated[str | None, Header(max_length=80)] = None,
 ) -> AppScanOut:
+    if idempotency_key is not None and idempotency_key.startswith(CI_KEY_PREFIX):
+        # That namespace belongs to CI submissions, so the two kinds of key can never meet.
+        raise HTTPException(status_code=422, detail="This Idempotency-Key is not allowed.")
     raw = await _read_limited_json(request)
     try:
         body = AppScanCreate.model_validate(raw)
@@ -332,47 +507,44 @@ async def create_scan(
     inputs: list[dict[str, object]] = [
         {"name": r.file_name, "size": r.size, "sha256": r.sha256} for r in parsed
     ]
-    try:
-        accepted = await asyncio.to_thread(
-            state.app_scans.accept_run,
-            ctx.organization_id,
-            body.project_id,
-            ctx.principal.user.id,
-            list(body.kinds),
-            inputs,
-            plan.app_scans_per_month,
-            start,
-            state.settings.app_scans_per_project_per_hour,
-            idempotency_key,
-            body.ref,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except PlanLimitError as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
-    except AppRateLimited as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
-    except AppProjectNotFound as exc:
-        raise HTTPException(status_code=404, detail="Not found.") from exc
-    except IdempotencyKeyReused as exc:
-        raise HTTPException(
-            status_code=409, detail="This idempotency key was used for another project."
-        ) from exc
+    accepted = await _accept(
+        state,
+        ctx.organization_id,
+        body.project_id,
+        ctx.principal.user.id,
+        list(body.kinds),
+        inputs,
+        plan.app_scans_per_month,
+        start,
+        idempotency_key,
+        body.ref,
+    )
     if accepted.replay:
         return await _detail(state, ctx.organization_id, accepted.scan_id, replayed=True)
     await _audit(state, request, ctx, "app_scan.created", "app_scan", accepted.scan_id)
 
-    # 3. Run it. One at a time on this instance; a stopped request leaves the run marked interrupted.
+    # 3. Run it. One at a time on this instance. The worker thread only computes the result; storing it is a
+    # separate, atomic step done here, so a stopped, cancelled or timed-out request can never leave partial
+    # findings or a completed run behind: it ends Interrupted or Failed, and neither is counted.
     scan_id = accepted.scan_id
     try:
-        async with state.app_scan_semaphore:
-            await asyncio.to_thread(state.app_scans.start_run, ctx.organization_id, scan_id)
-            try:
-                outcome = await asyncio.to_thread(
-                    run_dependency_scan, body.project_id, parsed, state.app_source, SCAN_BUDGET_SECONDS
-                )
-            except Exception:  # a defect must end the run honestly, never leave it running or leak details
-                outcome = ScanOutcome(status=AppScanStatus.FAILED, error="The scan could not be completed.")
+        try:
+            outcome = await _run_exclusive(
+                state,
+                _scan_job,
+                state,
+                ctx.organization_id,
+                scan_id,
+                body.project_id,
+                parsed,
+                wait_seconds=None,
+                run_seconds=SCAN_HARD_SECONDS,
+            )
+        except SlotTimeout:
+            outcome = ScanOutcome(
+                status=AppScanStatus.FAILED, error="The scan took too long and was stopped."
+            )
+        if outcome is not None:
             await asyncio.to_thread(state.app_scans.store_result, ctx.organization_id, scan_id, outcome)
     except asyncio.CancelledError:
         await asyncio.shield(
@@ -387,3 +559,109 @@ async def create_scan(
         raise
     await _audit(state, request, ctx, "app_scan.finished", "app_scan", scan_id)
     return await _detail(state, ctx.organization_id, scan_id)
+
+
+# --- CI submissions (results of tools the customer ran on their own runner) ----------------------------------------
+
+REFUSED_CALLER = "The API token is not valid, or it has been removed."
+
+
+async def app_ci_actor(
+    request: Request, state: StateDep, authorization: Annotated[str | None, Header()] = None
+) -> CiActor:
+    """A bearer token of App Scanning scope, from a member who may still start scans, in a workspace whose plan
+    still includes App Scanning CI access. Anything else gets the same 401."""
+    actor = await bearer_actor(request, state, authorization, "app")
+    plan = await state.entitlements.plan_for_async(actor.organization_id)
+    if not plan.app_ci_tokens:
+        raise HTTPException(status_code=401, detail=REFUSED_CALLER)
+    return actor
+
+
+@router.post("/ci/submissions", response_model=AppScanOut, status_code=201)
+async def submit_ci_results(
+    request: Request,
+    state: StateDep,
+    actor: Annotated[CiActor, Depends(app_ci_actor)],
+    idempotency_key: Annotated[str | None, Header(max_length=70)] = None,
+) -> AppScanOut:
+    if not idempotency_key:
+        raise HTTPException(
+            status_code=400, detail="Send an Idempotency-Key header (for example your pipeline run id)."
+        )
+    # Size first, then structure, then secrets, all before anything is stored or counted.
+    raw = await _read_body(request, MAX_DOCUMENT_BYTES)
+    try:
+        # Reading a large document (JSON, the secret check over every string, building the result) is real work:
+        # it runs in a worker thread, one at a time per instance, before anything is stored or counted, so a
+        # busy answer, a timeout or a cancelled request leaves no run behind.
+        submission, outcome = await _run_exclusive(state, _check_document, raw)
+    except SubmissionRejected as exc:
+        raise HTTPException(status_code=422, detail={"code": exc.code, "message": str(exc)}) from exc
+    except SlotTimeout:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "too_complex",
+                "message": "The submission took too long to check and was refused.",
+            },
+        ) from None
+    except CheckFailed:
+        raise HTTPException(status_code=500, detail="The submission could not be checked.") from None
+
+    plan = await state.entitlements.plan_for_async(actor.organization_id)
+    start, _ = current_period(datetime.now(UTC))
+    inputs: list[dict[str, object]] = [
+        {"name": "ci-submission", "size": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+    ]
+    kinds: list[str] = sorted({c.kind for c in submission.checks})
+    accepted = await _accept(
+        state,
+        actor.organization_id,
+        submission.project_id,
+        actor.user_id,
+        kinds,
+        inputs,
+        plan.app_scans_per_month,
+        start,
+        f"{CI_KEY_PREFIX}{idempotency_key}",
+        submission.ref or None,
+        actor.token_id,
+    )
+    if accepted.replay:
+        return await _detail(state, actor.organization_id, accepted.scan_id, replayed=True)
+    scan_id = accepted.scan_id
+    try:
+        # Only database work is left: the run is recorded, then the already-built result is stored.
+        await _audit_as(
+            state, request, actor.organization_id, actor.user_id, "app_scan.submitted", "app_scan", scan_id
+        )
+        await asyncio.to_thread(state.app_scans.start_run, actor.organization_id, scan_id)
+        await asyncio.to_thread(state.app_scans.store_result, actor.organization_id, scan_id, outcome)
+    except asyncio.CancelledError:
+        await asyncio.shield(
+            asyncio.to_thread(
+                state.app_scans.finish_run,
+                actor.organization_id,
+                scan_id,
+                AppScanStatus.INTERRUPTED,
+                "The request ended before the submission was processed.",
+            )
+        )
+        raise
+    except Exception:
+        # Whatever went wrong, the run must not stay queued or running; it ends Failed and is not counted.
+        await asyncio.shield(
+            asyncio.to_thread(
+                state.app_scans.finish_run,
+                actor.organization_id,
+                scan_id,
+                AppScanStatus.FAILED,
+                "The submission could not be processed.",
+            )
+        )
+        raise
+    await _audit_as(
+        state, request, actor.organization_id, actor.user_id, "app_scan.finished", "app_scan", scan_id
+    )
+    return await _detail(state, actor.organization_id, scan_id)

@@ -12,13 +12,15 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import Engine, func, select, update
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
-from app.appscan.pipeline import DependencyFinding, ScanOutcome
+from app.appscan.pipeline import CodeFinding, DependencyFinding, ScanOutcome
 from app.appscan.redaction import redact_text, redact_value
 from app.appscan.states import ACTIVE, FINAL, KINDS, NOT_COUNTED, AppScanStatus
 from app.billing.errors import PlanLimitError
 from app.database.session import make_session_factory
 from app.models.app_scan import AppFindingRow, AppProjectRow, AppScanRow
+from app.models.integration import ApiTokenRow
 from app.repositories.plans import lock_organization
 
 MAX_INPUTS = 5
@@ -34,6 +36,10 @@ class AppProjectNameTaken(Exception):
 
 class AppProjectNotFound(Exception):
     pass
+
+
+class TokenNoLongerValid(Exception):
+    """The CI token used for a submission was revoked or expired before the run was accepted."""
 
 
 class AppRateLimited(Exception):
@@ -151,6 +157,22 @@ class AppScanRepository:
 
     # --- runs ---------------------------------------------------------------------------
 
+    @staticmethod
+    def _token_is_active(session: Session, organization_id: str, token_id: str) -> bool:
+        # Read inside the same transaction that records the run, so a revocation that has already committed
+        # is always seen, and a replay with a revoked token is refused like any other request.
+        row = session.scalar(
+            select(ApiTokenRow).where(
+                ApiTokenRow.id == token_id, ApiTokenRow.organization_id == organization_id
+            )
+        )
+        if row is None or row.revoked_at is not None:
+            return False
+        if row.expires_at is None:
+            return True
+        expires = row.expires_at if row.expires_at.tzinfo else row.expires_at.replace(tzinfo=UTC)
+        return expires > _now()
+
     def accept_run(
         self,
         organization_id: str,
@@ -163,6 +185,8 @@ class AppScanRepository:
         per_project_hourly_limit: int | None,
         idempotency_key: str | None = None,
         ref: str | None = None,
+        token_id: str | None = None,
+        per_token_hourly_limit: int | None = None,
     ) -> AcceptedRun:
         """Stores one accepted request. Invalid requests raise before anything is written or counted."""
         chosen = _clean_kinds(kinds)
@@ -178,6 +202,8 @@ class AppScanRepository:
         try:
             with self._session.begin() as session:
                 lock_organization(session, organization_id)
+                if token_id is not None and not self._token_is_active(session, organization_id, token_id):
+                    raise TokenNoLongerValid(token_id)
                 project = session.scalar(
                     select(AppProjectRow).where(
                         AppProjectRow.id == project_id,
@@ -212,6 +238,20 @@ class AppScanRepository:
                         raise AppRateLimited(
                             "This project has reached its hourly limit for App Scanning runs. Try again later."
                         )
+                if token_id is not None and per_token_hourly_limit is not None:
+                    # Counted in the database, so every instance sees the same number.
+                    by_token = session.scalar(
+                        select(func.count())
+                        .select_from(AppScanRow)
+                        .where(
+                            AppScanRow.token_id == token_id,
+                            AppScanRow.created_at >= now - timedelta(hours=1),
+                        )
+                    )
+                    if int(by_token or 0) >= per_token_hourly_limit:
+                        raise AppRateLimited(
+                            "This token has reached its hourly limit for submissions. Try again later."
+                        )
                 if monthly_limit is not None:
                     used = self._counted_runs(session, organization_id, period_start)
                     if used >= monthly_limit:
@@ -230,6 +270,7 @@ class AppScanRepository:
                         inputs_json=inputs_json,
                         ref=safe_ref,
                         idempotency_key=idempotency_key,
+                        token_id=token_id,
                         created_at=now,
                     )
                 )
@@ -331,7 +372,30 @@ class AppScanRepository:
             return True
 
     @staticmethod
-    def _finding_row(scan_id: str, position: int, f: DependencyFinding) -> AppFindingRow:
+    def _finding_row(scan_id: str, position: int, f: DependencyFinding | CodeFinding) -> AppFindingRow:
+        if isinstance(f, CodeFinding):
+            return AppFindingRow(
+                scan_id=scan_id,
+                position=position,
+                kind=f.kind,
+                rule_id=f.rule_id,
+                title=f.title,
+                severity=f.severity.value,
+                confidence=f.confidence.value,
+                category=f.category,
+                description=f.description,
+                remediation=f.remediation,
+                evidence=redact_text(f.evidence) if f.evidence else None,
+                path=f.path,
+                line=f.line,
+                ecosystem=None,
+                package_name=None,
+                package_version=None,
+                fixed_versions_json=None,
+                references_json=None,
+                aliases_json=None,
+                fingerprint=f.fingerprint,
+            )
         return AppFindingRow(
             scan_id=scan_id,
             position=position,

@@ -15,6 +15,8 @@ class ApiTokenOut(BaseModel):
     created_at: datetime
     last_used_at: datetime | None = None
     created_by_email: str | None = None
+    scope: str = "web"
+    expires_at: datetime | None = None
 
 
 class ApiTokenCreated(ApiTokenOut):
@@ -30,6 +32,8 @@ class ApiTokenList(BaseModel):
 
 class ApiTokenCreate(BaseModel):
     name: str = Field(min_length=1, max_length=80)
+    # "web" (the default, so existing clients are unchanged) or "app" (App Scanning CI submissions).
+    scope: Literal["web", "app"] = "web"
 
 
 class BadgeOut(BaseModel):

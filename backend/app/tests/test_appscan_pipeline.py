@@ -100,6 +100,7 @@ def test_findings_do_not_make_the_scan_unsuccessful() -> None:
     out = p.run_dependency_scan(PROJECT, parsed([pkg("lodash", "4.17.20")]), FakeSource({"lodash": [ADV]}))
     assert out.status is AppScanStatus.COMPLETED and len(out.findings) == 1
     f = out.findings[0]
+    assert isinstance(f, p.DependencyFinding)
     assert (
         f.severity is Severity.HIGH and f.fixed_versions == ("4.17.21",) and f.aliases == ("CVE-2021-23337",)
     )
@@ -276,6 +277,7 @@ def test_untrusted_advisory_text_is_cleaned_before_use() -> None:
         "GHSA-good"
     ]  # an advisory id with control characters is dropped
     f = out.findings[0]
+    assert isinstance(f, p.DependencyFinding)
     assert_no_canary(secret, f.description)
     assert "\x00" not in f.description and "\x1b" not in f.description and len(f.description) < 800
     assert f.references == ("https://ok.example/advisory",) and f.fixed_versions == ("1.0.1",)
