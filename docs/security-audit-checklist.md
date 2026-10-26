@@ -62,7 +62,7 @@ Columns: status; evidence (files, routes, tests); risk and remediation, includin
 | 50 | Account deletion removes user data, jobs, tokens, integrations | **PASS** | Schema-driven sweep of every reference to users and organisations; text search for the email, workspace name and webhook secret | None | `test_deletion_sweep` | Backups keep data until they expire (documented) |
 | 51 | Entitlements enforced on the server | **PASS** | Plan resolved server-side; invariants over 7,000+ combinations | Operator-assigned plan vs lower subscription is an owner decision | `test_subscription_invariants`, `test_plans` | No live billing provider |
 | 52 | Reports and job results unavailable to unauthorised users | **PASS** | See 10 | None | `test_cross_customer` | See 10 |
-| 53 | Rate and resource limits against scan abuse | **PARTIAL** | Per-client and per-target limits, a concurrency semaphore, 3 scheduled jobs per cron call, a monthly allowance, and a global queue cap (`api/v1/scans.py` answers 429 when pending scans reach 4 times the concurrency limit) | In-memory counters (see 34); the queue cap is per instance | `test_scan_control` | Load test not run (queued project) |
+| 53 | Rate and resource limits against scan abuse | **PARTIAL** | Per-client and per-target limits, a concurrency semaphore, 3 scheduled jobs per cron call, a monthly allowance, and a global queue cap (`api/v1/scans.py` answers 429 when pending scans reach 4 times the concurrency limit) | In-memory counters (see 34); the queue cap is per instance | `test_scan_control`, `scripts/loadtest.py` | Load test run 26 Oct (`docs/load-test-results.md`): limits held, no server errors |
 | 54 | Tracked files scanned for secrets | **PASS** | Secret scan clean; only `.env.example` tracked | None | Command in test-evidence | Pattern based |
 | 55 | Git history scanned | **PASS** | See 16 | None | same | Same |
 | 56 | Dependency manifests and lockfiles | **PASS** | Backend pinned in `requirements.txt`; frontend `package-lock.json`; audits clean | None | Commands in test-evidence | Transitive packages not individually reviewed |
@@ -101,7 +101,7 @@ Not covered by the guard: the placeholder password with a non-https `public_base
 | 12 | Deleting an account does not cancel a paid subscription | None while no paid plan is live | No. Blocks paid launch | Block or cancel at deletion once Paddle exists | Deletion with an active subscription |
 | 27 / 59 | Migrations run under the runtime database role | A compromised application could change the schema | No, with a trusted pilot | Separate migration role (hosting change) | None in code |
 | 34 | In-memory rate limiters | Reset on restart; not shared across instances | No on one instance, with the edge rule | Cloudflare rate-limit rule | None in code |
-| 53 | Same limiters; queue cap is per instance | Same as 34 | No | Same as 34 | Load test (queued) |
+| 53 | Same limiters; queue cap is per instance | Same as 34 | No | Same as 34 | Load test run 26 Oct (see results) |
 | 60 | Backup and restore scripts not run on the owner's PC | Unproven recovery | Yes, as a condition: run once before real customer data | Run both scripts, record the date | None |
 
 None is a confirmed code defect that blocks a pilot, so none was changed.
