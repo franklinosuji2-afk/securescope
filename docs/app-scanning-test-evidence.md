@@ -333,3 +333,43 @@ Not proven, and not claimed: behaviour with several server processes under real 
 | `pip-audit -r requirements.txt` | no known vulnerabilities (frontend dependencies unchanged; `npm audit` not rerun) |
 
 **Remaining risks:** manifest parsing before acceptance runs in threads that do not hold a slot (bounded by 6 MiB and five files); limits are per instance, and multi-process or production-scale behaviour is not tested; a thread past the hard limit cannot be killed, it only keeps its slot.
+
+## 19. GitHub Action for CI submissions (26 to 27 Oct 2026, local branch `app-scanning-action`, not pushed)
+
+**What:** `action/app-scanning/` (`action.yml`, `submit.py`, `README.md`): a composite action that converts SARIF files from the customer's own tools into a submission and sends it to `POST /app/ci/submissions`. Standard library only; it does not install or run any scanner; no backend code changed. Tests: `backend/app/tests/test_action_app_scanning.py` and a genuine Semgrep fixture `backend/app/tests/fixtures/sarif/semgrep-1.182.1.sarif`.
+
+### 19.1 The earlier history-scan finding
+`scan_secrets.py --history` reported 1 possible secret: `docs/app-scanning-test-evidence.md:347`, rule "AWS access key id". Source: a sentence in this uncommitted section quoting AWS's published documentation example key (the value AWS prints in its own docs; it is not a credential). Checked without printing it: it is that known example (hash compared), it appears in no commit on any ref (`git log --all -S`), and no other AWS-key-shaped string exists in the working tree, the new files or the first 400 commits. **Classification: false positive; no credential was exposed, so no rotation or revocation is needed.** The sentence was reworded and the scan now reports "No secrets found in files or history". The first copy of that sentence was in a diff file sent to the owner in chat (uncommitted, never pushed).
+
+### 19.2 Review findings and fixes (all before any commit)
+| # | Finding in the first version | Fix |
+|---|---|---|
+| 1 | Malformed SARIF (a string where an object is expected, and similar) raised an uncaught exception; a Python traceback exits with **1**, the same code as "findings found" | Every access goes through type-safe helpers; `main` catches any unexpected error and exits **2** with a fixed message that quotes no input |
+| 2 | A 201 with an empty or odd body passed the job; results such as `scanner_error` or `interrupted` could pass | Only `completed_no_findings` and `completed_findings` can pass; the answer must have a valid run id and a result, otherwise exit 2 |
+| 3 | A document with 5,000 findings of 1,000-character messages exceeds the server's 4 MiB limit and would fail with 413 | Messages are shortened, then the least severe findings are dropped (binary search), with a log note |
+| 4 | Deeply nested JSON raised `RecursionError`; non-regular files, binary files and files over 20 MiB were not all handled | All end in a clear exit 2; results read per file are capped at 200,000 |
+| 5 | A SARIF with no run, or a tool reporting `executionSuccessful: false`, counted as a check that ran | Sent as a skipped check (result incomplete, job fails) |
+| 6 | Results suppressed by the tool were sent | Left out and counted in the log |
+| 7 | API address: user name, password, query and fragment were not refused; no hint when the token goes to a non-default host | Refused; a non-default host prints a warning; a Web Scanning token (`ssk_`) or a token with odd characters is refused before anything is sent |
+| 8 | A `SS_NO_SLEEP` test hook lived in the shipped script | Replaced by a `sleep` parameter of `main` |
+| 9 | Response read without a size bound | Bounded to 5 MiB |
+
+### 19.3 Results (final code)
+| Check | Result |
+|---|---|
+| `test_action_app_scanning.py` (53 tests: conversion, 12 malformed shapes, limits, strict answers, settings, retries, genuine Semgrep, whole path through the real route) | 10 of 10 runs passed on PostgreSQL, 5 of 5 on SQLite |
+| Mutations (17 in total: secret message sent, redirects followed, no mask, any api-url, incomplete ignored, unsafe paths sent, new key per attempt, any answer passes, no catch-all, suppressed sent, no size shrink, web token accepted, recursion not caught, failed tool trusted, userinfo allowed, empty id accepted, results cap off) | all caught; two weak tests were strengthened after mutations survived (302 instead of 307 for the redirect test) |
+| Genuine Semgrep OSS 1.182.1 SARIF (local rules, no network; two-file sample) | converted to 2 findings (high, medium) with the right rule, file and line; the genuine file contains the matched source lines and **none** of that text is in the submission, the database or the server log |
+| Real script as a subprocess against a real local server (uvicorn, SQLite, real socket) with that genuine file | exit 1 on the high finding; the same pipeline run again created no second run; `fail-on none` exit 0; a missing second scanner file gave result `incomplete`, exit 1; database: 3 completed + 1 incomplete runs, no source text |
+| `ruff check app` and the action folder, `ruff format --check`, `mypy app`, `mypy --strict action/app-scanning/submit.py` | clean |
+| `scan_secrets.py --history` | see 19.4 |
+| Existing Web Scanning action tests (`test_github_action.py`) | passed; the Web action was not modified |
+
+### 19.4 Not done and remaining limitations
+- **Genuine Gitleaks output was not tested.** Gitleaks is a Go program; the sandbox could not reach the Go module proxy, and obtaining the binary would mean downloading an executable, which was not done without the owner's say-so. The Gitleaks tests use hand-written SARIF with the fields the format defines (rule id, level, location, region, snippet). Run the action once against real Gitleaks output (with `--redact` off and a fake key in a throwaway repository) before relying on it.
+- Not run on a real GitHub runner (only the script, locally). Windows runners are not supported (`bash` and `python3` needed).
+- A static-analysis rule message that interpolates matched code is sent (documented in the action README); a secret inside it makes the server refuse the whole submission (422).
+- An incomplete run is accepted and counts toward the allowance (a pipeline whose scanner fails every time spends allowance; the 30 submissions per token per hour pilot limit bounds it).
+- The server cannot verify that a tool ran; results are labelled as reported by the submitter.
+- Sending to a non-default host is allowed (with a warning): whoever controls the workflow file can already read the secret.
+- The full backend suite and Playwright were not rerun for this step: no backend or frontend code changed; one test file, a fixture and the action folder were added.
