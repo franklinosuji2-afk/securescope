@@ -74,6 +74,7 @@ const AUDIT_LABELS: Record<string, string> = {
   "scan.created": "Scan started",
   "scan.cancelled": "Scan cancelled",
   "scan.retried": "Scan run again",
+  "finding.rechecked": "Finding checked again",
   "scan.deleted": "Scan deleted",
   "scan.scheduled": "Scheduled scan started",
   "schedule.updated": "Schedule changed",

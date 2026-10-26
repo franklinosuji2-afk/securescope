@@ -28,6 +28,8 @@ Written 23 October 2026. Ordered by what matters most. "You" means the site owne
 - **Slack alerts** are built (Integrations > Webhook alerts > "A Slack channel"): same triggers as the email and webhook alerts, incoming-webhook style, no evidence in the message. Not built: Microsoft Teams, interactive Slack features (buttons, a Slack app with sign-in).
 - **Verification workflow.** Separate "no longer detected" from "confirmed resolved" (needs a later scan that examined
   the same resource), and add a "Verify fix" action that re-checks one finding.
+  The re-check exists since 26 Oct ("Check if it is fixed" on a finding: one fresh look, nothing stored, never marks
+  a finding resolved). Still open: letting a re-check that examined the same resource mark it resolved.
 - **Premium PDF cover and layout** from the product brief: a cover page with reference, dates, scope and an executive
   summary; keep each finding together on a page; consistent footer. The score method, DNS wording and scope notes are
   done.

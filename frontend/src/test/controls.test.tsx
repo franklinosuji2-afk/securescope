@@ -405,6 +405,7 @@ describe("audit log", () => {
       "scan.retried",
       "report.exported",
       "finding.status_changed",
+      "finding.rechecked",
       "org.member.added",
       "target.verified",
       "auth.login.success",

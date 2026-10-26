@@ -99,6 +99,7 @@ def attacks(w: dict[str, Any]) -> list[tuple[str, str, dict[str, Any] | None]]:
         ("DELETE", f"/organizations/{o}/invitations/{i}", None),
         ("GET", f"/scans/{s}", None),
         ("GET", f"/scans/{s}/results", None),
+        ("POST", f"/scans/{s}/findings/{f}/recheck", None),
         ("GET", f"/scans/{s}/compare?with={s}", None),
         ("GET", f"/scans/{s}/report?format=json", None),
         ("GET", f"/scans/{s}/report?format=md", None),

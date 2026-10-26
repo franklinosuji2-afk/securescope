@@ -23,6 +23,7 @@ from app.repositories.scans import IdempotencyKeyTaken
 from app.scanner.runner import execute_scan
 from app.schemas.compare import ScanComparison
 from app.schemas.scan import (
+    FindingRecheck,
     ReportLink,
     ResultFinding,
     ScanCreate,
@@ -33,10 +34,12 @@ from app.schemas.scan import (
 )
 from app.security.permissions import Permission
 from app.security.target import TargetError, parse_target_url, validate_target
+from app.services.recheck import recheck
 
 logger = logging.getLogger("securescope.api")
 router = APIRouter(prefix="/scans", tags=["scans"])
 
+FINDING_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}\Z")
 REPORT_HTML_CSP = "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'"
 
 CanRead = Annotated[OrgContext, Depends(require(Permission.SCAN_READ))]
@@ -392,6 +395,45 @@ async def delete_scan(scan_id: str, request: Request, state: StateDep, ctx: CanC
             status_code=409, detail="This scan could not be deleted because it is still running."
         )
     await _audit_scan(state, request, actor_of(ctx), "scan.deleted", scan_id)
+
+
+@router.post("/{scan_id}/findings/{finding_id}/recheck", response_model=FindingRecheck)
+async def recheck_finding(
+    scan_id: str, finding_id: str, request: Request, state: StateDep, ctx: CanCreate
+) -> FindingRecheck:
+    """Looks at the site again and says whether one finding of a finished scan is still there.
+
+    Ownership, the target rules and a rate limit apply exactly as for a scan. Nothing is stored and the
+    scan allowance is not used; the finding is not marked resolved (only a full scan does that).
+    """
+    if not FINDING_ID.match(finding_id):
+        raise HTTPException(status_code=404, detail="Finding not found.")
+    detail = await _load(state, ctx, scan_id)
+    if detail.status != ScanStatus.COMPLETED:
+        raise HTTPException(status_code=409, detail="Only a finished scan has findings to check again.")
+    finding = next((f for f in detail.findings if f.id == finding_id), None)
+    if finding is None:
+        raise HTTPException(status_code=404, detail="Finding not found.")
+    verified = await asyncio.to_thread(state.targets.find_verified, ctx.organization_id, detail.host)
+    if verified is None:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Ownership of {detail.host} is not verified (it may have expired). Check Targets first.",
+        )
+    try:
+        target = await validate_target(detail.target_url, state.settings)
+    except TargetError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    key = f"{ctx.organization_id}:{target.host}"
+    if not state.recheck_limiter.check(key):
+        raise HTTPException(status_code=429, detail="This site was checked too often recently. Try again later.")
+    if state.pending >= state.settings.max_concurrent_scans * 4:
+        raise HTTPException(status_code=429, detail="The scanner is busy. Try again in a minute.")
+    state.recheck_limiter.record(key)
+    async with state.semaphore:
+        answer = await recheck(target.host, target.url, finding, state.settings)
+    await _audit_scan(state, request, actor_of(ctx), "finding.rechecked", scan_id)
+    return answer
 
 
 @router.post("/{scan_id}/retry", response_model=ScanDetail, status_code=202)

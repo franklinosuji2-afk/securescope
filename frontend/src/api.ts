@@ -8,6 +8,7 @@ import type {
   SharedReportInfo,
   PlatformHealth,
   AuditList,
+  FindingRecheck,
   FindingStatus,
   Invitation,
   InvitationPreview,
@@ -352,6 +353,12 @@ export const cancelScan = (id: string) =>
   });
 export const deleteScan = (id: string) =>
   request<void>(`/scans/${encodeURIComponent(id)}`, { method: "DELETE" });
+export const recheckFinding = (scanId: string, findingId: string) =>
+  request<FindingRecheck>(
+    `/scans/${encodeURIComponent(scanId)}/findings/${encodeURIComponent(findingId)}/recheck`,
+    { method: "POST" },
+  );
+
 export const retryScan = (id: string) =>
   request<ScanDetail>(`/scans/${encodeURIComponent(id)}/retry`, {
     method: "POST",

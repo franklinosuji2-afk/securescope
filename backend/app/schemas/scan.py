@@ -166,6 +166,17 @@ class ScanDetail(ScanSummary):
     )
 
 
+class FindingRecheck(BaseModel):
+    """The answer to "is this finding still there?", from a fresh look at the site. Nothing is stored."""
+
+    finding_id: str
+    host: str
+    outcome: Literal["not_seen", "still_present", "could_not_check"]
+    message: str
+    checked_at: datetime
+    evidence: str | None = Field(default=None, description="Safe, redacted evidence from this look, if still present")
+
+
 class ResultFinding(Finding):
     """A finding as the client sees it in the results: it also says which address it concerns."""
 
