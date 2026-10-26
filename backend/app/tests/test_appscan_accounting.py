@@ -411,9 +411,11 @@ def test_another_workspace_cannot_see_or_change_a_project_or_run(
     alice: TestClient, repo: AppScanRepository, org: str, project: str
 ) -> None:
     run = accept(repo, org, project).scan_id
-    with TestClient(alice.app) as bob:
-        signup(bob, "bob@example.com", "Bob Org")
-        bob_org = org_of(bob)
+    bob = TestClient(
+        alice.app
+    )  # no `with`: entering the lifespan again would (correctly) interrupt the queued run
+    signup(bob, "bob@example.com", "Bob Org")
+    bob_org = org_of(bob)
     assert repo.list_projects(bob_org) == []
     with pytest.raises(AppProjectNotFound):
         accept(repo, bob_org, project)

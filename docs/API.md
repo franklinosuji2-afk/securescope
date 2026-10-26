@@ -57,6 +57,16 @@ Base path `/api/v1`. Interactive schema at `/api/docs` only when `SECURESCOPE_AP
 
 Errors are `{"detail": "..."}`; validation errors are 422. **Not implemented:** periodic re-verification of ownership.
 
+## App Scanning (dependency scanning, off by default)
+
+All routes answer `404` unless `APP_SCANNING_ENABLED` is on, before any sign-in check. Prefix `/api/v1/app`. Reads need `SCAN_READ`; creating needs `SCAN_CREATE` (viewers cannot).
+
+- `/app/overview` (`GET`): plan, usage (runs and projects, with limits), supported files, whether CI tokens are available. No score or grade.
+- `/app/projects` (`GET`; `POST` with `{"name"}`): per-plan project cap, `403` over it, `409` for a duplicate name.
+- `/app/projects/{project_id}/archive` (`POST`): `204`.
+- `/app/scans` (`GET`, optional `project_id`) and `/app/scans/{scan_id}` (`GET`): result label, counts per severity, findings, checks run and skipped, scanner versions, a limitations block.
+- `/app/scans` (`POST`): JSON `{"project_id", "kinds": ["dependency"], "files": [{"name", "content"}], "ref"}`, 1 to 5 files from `package-lock.json`, `package.json`, `requirements.txt`; body limit 6 MiB (`413`). Invalid input is `422` and not counted. `Idempotency-Key` makes a retry return the same run (`replayed: true`) without a second charge. `403` at the plan limit, `429` at the per-project hourly limit. Only accepted runs are counted; failed and interrupted runs are not.
+
 ## Scan states
 
 `queued` -> `running` -> `completed` or `failed`; a queued or running scan can become `cancelled`. The database decides every race: a scan that finishes after it was cancelled is discarded, and a cancelled scan never changes finding states, scores or the overview. Cancellation works inside the one API process that runs the scan; a scan left over from a restart is marked `failed` at startup. Running a scan again creates a new scan and keeps the old one in history.

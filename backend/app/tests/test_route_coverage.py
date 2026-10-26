@@ -23,6 +23,9 @@ PUBLIC_OR_OWN_SCOPE = {
     "GET /auth/oauth/{}/callback",
     # A CI token only reaches scans of its own workspace (test_cross_customer, test_integrations).
     "GET /ci/scans/{}",
+    # App Scanning: every query takes the workspace id and answers 404 for another one (test_appscan_routes).
+    "POST /app/projects/{}/archive",
+    "GET /app/scans/{}",
 }
 
 

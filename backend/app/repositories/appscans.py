@@ -355,6 +355,26 @@ class AppScanRepository:
             fingerprint=f.fingerprint,
         )
 
+    def list_runs(
+        self, organization_id: str, project_id: str | None = None, limit: int = 100
+    ) -> list[tuple[AppScanRow, list[str]]]:
+        """This workspace's most recent runs with the severity of each finding, newest first."""
+        with self._session() as session:
+            query = select(AppScanRow).where(AppScanRow.organization_id == organization_id)
+            if project_id is not None:
+                query = query.where(AppScanRow.project_id == project_id)
+            rows = list(session.scalars(query.order_by(AppScanRow.created_at.desc()).limit(limit)))
+            severities: dict[str, list[str]] = {r.id: [] for r in rows}
+            if rows:
+                for scan_id, severity in session.execute(
+                    select(AppFindingRow.scan_id, AppFindingRow.severity).where(
+                        AppFindingRow.scan_id.in_(list(severities))
+                    )
+                ):
+                    severities[scan_id].append(severity)
+            session.expunge_all()
+            return [(r, severities[r.id]) for r in rows]
+
     def get_findings(self, organization_id: str, scan_id: str) -> list[AppFindingRow]:
         """Findings of one of this workspace's runs; empty for another workspace's run."""
         with self._session() as session:

@@ -49,3 +49,13 @@ class VulnerabilitySource(Protocol):
     max_batch: int
 
     def lookup(self, packages: Sequence[Package]) -> LookupResult: ...
+
+
+class UnavailableSource:
+    """The source used until a real one is approved and built: it never answers. Every scan that reaches it ends
+    as Failed (and is not charged), which is the honest result: nothing was checked."""
+
+    max_batch = 1000
+
+    def lookup(self, packages: Sequence[Package]) -> LookupResult:
+        raise SourceUnavailable

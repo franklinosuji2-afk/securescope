@@ -102,3 +102,19 @@ New: `app_findings` table (migration `0022`, additive), `appscan/vulns.py` (the 
 Proven with fakes: outage, crash, partial answers, misaligned replies and time budget all produce Incomplete or Failed and never a clean result; findings never make a run unsuccessful; a failed run is stored but not counted; a final run's result is not overwritten; another workspace sees no findings; hostile advisory text is cleaned; a canary secret in advisory text never reaches the database.
 
 Not proven: the shape of real OSV responses (field names, severity and fixed-version encoding), real latency and size, and behaviour on the real instance.
+
+## 9. Step C4 results (26 Oct 2026, batch 36): API routes behind a disabled feature flag
+
+New: `api/v1/app_scans.py` (7 routes under `/api/v1/app`), `schemas/app_scan.py`, `UnavailableSource` (the default source), `list_runs` in the repository, start-up interruption of unfinished app runs. **The flag `APP_SCANNING_ENABLED` is off by default and every route answers 404 until it is on. No real vulnerability source exists, so a real scan ends Failed (not counted).** No frontend yet.
+
+| Check                                                         | Result                                                                                       |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `test_appscan_routes.py` + route-coverage + API-docs guards   | see the batch 36 summary for the final count                                                 |
+| Mutation checks (each caught by a test)                       | feature flag check removed; viewer allowed to create; streamed size cap removed; pipeline defect read as clean; idempotent replay recharged; id validation removed |
+| `ruff check app`, `mypy app`                                  | clean                                                                                        |
+
+Proven: flag off gives 404 for every route including signed-out callers; each role gets exactly what the permission matrix allows; another workspace gets 404 on every id route; malformed ids are 404; bad files, duplicates, oversized bodies (declared and chunked) are refused and not counted; plan project cap 403, monthly cap 403, hourly cap 429; idempotent retries are not charged twice and a key cannot be reused across projects; outages and pipeline defects end Incomplete or Failed, never "no findings"; no score or grade in any response; canary secrets are not echoed or stored; audit events carry ids only; runs left unfinished at start-up become interrupted and uncounted.
+
+Defect found by the tests: re-entering the application lifespan (a second `TestClient` context) interrupts queued runs, which is the intended restart behaviour; one older accounting test relied on the opposite and was corrected.
+
+Not proven: real source behaviour (OSV is blocked), behaviour under the 0.1 CPU instance, the concurrency semaphore under real parallel load, and any browser UI.

@@ -12,6 +12,7 @@ from typing import Annotated
 import httpx
 from fastapi import Depends, Header, HTTPException, Query, Request
 
+from app.appscan.vulns import UnavailableSource, VulnerabilitySource
 from app.billing.entitlements import Entitlements
 from app.core.config import Settings
 from app.database.session import make_engine
@@ -21,6 +22,7 @@ from app.repositories.accounts import AccountRepository, AuditRepository, Sessio
 from app.repositories.activation import ActivationRepository
 from app.repositories.agency import AgencyRepository
 from app.repositories.analytics import AnalyticsRepository
+from app.repositories.appscans import AppScanRepository
 from app.repositories.billing import BillingRepository
 from app.repositories.feedback import FeedbackRepository
 from app.repositories.integrations import IntegrationRepository
@@ -78,6 +80,10 @@ class AppState:
         self.analytics_salt = salt
         self.analytics_limiter = SlidingWindowLimiter(settings.analytics_events_per_client_per_hour)
         self.audit = AuditRepository(self.engine)
+        # App Scanning (off by default). The source is replaced when a vulnerability database is approved.
+        self.app_scans = AppScanRepository(self.engine)
+        self.app_source: VulnerabilitySource = UnavailableSource()
+        self.app_scan_semaphore = asyncio.Semaphore(settings.max_concurrent_app_scans)
         self.feedback = FeedbackRepository(self.engine)
         # Saves or changes of feedback per person per hour.
         self.feedback_limiter = SlidingWindowLimiter(20)
