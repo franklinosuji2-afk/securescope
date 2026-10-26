@@ -37,6 +37,11 @@ export default defineConfig({
       env: {
         SECURESCOPE_DATABASE_URL: database,
         SECURESCOPE_COOKIE_SECURE: "false",
+        // The default vulnerability source is "unavailable", so a scan here ends Failed and is not counted.
+        SECURESCOPE_APP_SCANNING_ENABLED: "true",
+        // The suite registers more accounts from one address than the production sign-up limit (10 per hour)
+        // allows, and that in-memory limit lives as long as this server. Raised for this test server only.
+        SECURESCOPE_REGISTRATIONS_PER_IP_PER_HOUR: "1000",
         SECURESCOPE_CORS_ORIGINS: '["http://localhost:4173"]',
       },
     },

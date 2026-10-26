@@ -22,6 +22,7 @@ export type Page =
   | "agency-features"
   | "shared"
   | "clients"
+  | "app-scanning"
   | "compare"
   | "impressum"
   | "privacy"
@@ -47,6 +48,7 @@ const PAGES: readonly Page[] = [
   "agency-features",
   "shared",
   "clients",
+  "app-scanning",
   "compare",
   "impressum",
   "privacy",

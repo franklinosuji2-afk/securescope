@@ -32,9 +32,9 @@ class CiActor:
     token_id: str
 
 
-async def ci_actor(
-    request: Request, state: StateDep, authorization: Annotated[str | None, Header()] = None
-) -> CiActor:
+async def bearer_actor(request: Request, state: StateDep, authorization: str | None, scope: str) -> CiActor:
+    """Authenticates a bearer token for one scope. A token of another scope, an unknown, revoked or expired
+    token, and a token whose owner has lost access all get the same answer."""
     client = client_key(request, state)
     scheme, _, token = (authorization or "").partition(" ")
     if scheme.lower() != "bearer" or not token.strip():
@@ -42,7 +42,7 @@ async def ci_actor(
     if not state.ci_bad_token_limiter.check(client):
         raise HTTPException(status_code=429, detail="Too many failed attempts. Try again later.")
     identity = await asyncio.to_thread(state.integrations.authenticate, token.strip())
-    if identity is None:
+    if identity is None or identity.scope != scope:
         state.ci_bad_token_limiter.record(client)
         raise HTTPException(status_code=401, detail="The API token is not valid, or it has been removed.")
     # The token is only as strong as the person behind it is today.
@@ -62,6 +62,12 @@ async def ci_actor(
         raise HTTPException(status_code=429, detail="Too many requests for this token. Try again later.")
     state.ci_limiter.record(identity.token_id)
     return CiActor(identity.organization_id, identity.user_id, identity.token_id)
+
+
+async def ci_actor(
+    request: Request, state: StateDep, authorization: Annotated[str | None, Header()] = None
+) -> CiActor:
+    return await bearer_actor(request, state, authorization, "web")
 
 
 CiDep = Annotated[CiActor, Depends(ci_actor)]

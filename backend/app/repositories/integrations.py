@@ -15,6 +15,7 @@ from app.models.account import UserRow
 from app.models.integration import ApiTokenRow, SiteBadgeRow
 from app.models.scan import ScanRow
 from app.models.target import TargetRow
+from app.repositories.plans import lock_organization
 from app.schemas.integration import ApiTokenOut, BadgeOut
 from app.security.tokens import hash_token
 
@@ -38,6 +39,7 @@ class TokenIdentity:
     token_id: str
     organization_id: str
     user_id: str
+    scope: str = "web"
 
 
 @dataclass(frozen=True)
@@ -53,8 +55,14 @@ class BadgeReading:
     scanned_at: datetime | None
 
 
-def new_api_token() -> str:
-    return TOKEN_PREFIX + secrets.token_urlsafe(32)
+# App Scanning tokens have their own prefix. Code from before token scopes only accepts "ssk_" tokens, so if
+# a deploy is rolled back without a database downgrade, an App Scanning token is not recognised at all (it cannot
+# be mistaken for a Web Scanning token), and the expiry it carries is not silently ignored.
+APP_TOKEN_PREFIX = "ssa_"  # noqa: S105  # nosec B105 (a label, not a secret)
+
+
+def new_api_token(scope: str = "web") -> str:
+    return (APP_TOKEN_PREFIX if scope == "app" else TOKEN_PREFIX) + secrets.token_urlsafe(32)
 
 
 class IntegrationRepository:
@@ -79,18 +87,41 @@ class IntegrationRepository:
                     created_at=_aware(t.created_at),
                     last_used_at=_aware(t.last_used_at),
                     created_by_email=email,
+                    scope=t.scope,
+                    expires_at=_aware(t.expires_at),
                 )
                 for t, email in rows
             ]
 
-    def create_token(self, organization_id: str, user_id: str, name: str) -> tuple[ApiTokenOut, str] | None:
-        """None when the workspace already has the maximum."""
-        token = new_api_token()
+    def create_token(
+        self,
+        organization_id: str,
+        user_id: str,
+        name: str,
+        scope: str = "web",
+        expires_in: timedelta | None = None,
+    ) -> tuple[ApiTokenOut, str] | None:
+        """None when the workspace already has the maximum. `scope` is "web" or "app"; only the caller that has
+        checked the plan may ask for "app"."""
+        if scope not in ("web", "app"):
+            raise ValueError("Unknown token scope.")
+        if scope == "app" and expires_in is None:
+            raise ValueError("An App Scanning token must expire.")
+        token = new_api_token(scope)
         with self._session.begin() as session:
+            # Counting and inserting happen under the workspace lock, so concurrent requests cannot both pass the
+            # same count and exceed the limit.
+            lock_organization(session, organization_id)
             count = session.scalar(
                 select(func.count())
                 .select_from(ApiTokenRow)
-                .where(ApiTokenRow.organization_id == organization_id, ApiTokenRow.revoked_at.is_(None))
+                .where(
+                    ApiTokenRow.organization_id == organization_id,
+                    ApiTokenRow.revoked_at.is_(None),
+                    # The limit is per scope: App Scanning tokens never use up the slots Web Scanning
+                    # integrations rely on, and the other way round.
+                    ApiTokenRow.scope == scope,
+                )
             )
             if (count or 0) >= MAX_TOKENS_PER_ORGANIZATION:
                 return None
@@ -100,12 +131,21 @@ class IntegrationRepository:
                 created_by=user_id,
                 name=name,
                 token_hash=hash_token(token),
-                prefix=token[: len(TOKEN_PREFIX) + 4],
+                prefix=token[: len(TOKEN_PREFIX) + 4],  # both prefixes are four characters
                 created_at=_now(),
+                scope=scope,
+                expires_at=_now() + expires_in if expires_in is not None else None,
             )
             session.add(row)
             session.flush()
-            out = ApiTokenOut(id=row.id, name=row.name, prefix=row.prefix, created_at=_aware(row.created_at))
+            out = ApiTokenOut(
+                id=row.id,
+                name=row.name,
+                prefix=row.prefix,
+                created_at=_aware(row.created_at),
+                scope=row.scope,
+                expires_at=_aware(row.expires_at),
+            )
             return out, token
 
     def revoke_token(self, organization_id: str, token_id: str) -> bool:
@@ -122,9 +162,19 @@ class IntegrationRepository:
             row.revoked_at = _now()
             return True
 
+    def is_active(self, token_id: str) -> bool:
+        """True while the token exists, is not revoked and has not expired. Asked again right before an App
+        Scanning run is accepted, so a token revoked while a request was in flight is not honoured."""
+        with self._session.begin() as session:
+            row = session.scalar(select(ApiTokenRow).where(ApiTokenRow.id == token_id))
+            if row is None or row.revoked_at is not None:
+                return False
+            expires = _aware(row.expires_at)
+            return expires is None or expires > _now()
+
     def authenticate(self, token: str) -> TokenIdentity | None:
         """The identity behind a token, or None. Revoked tokens and unknown ones look the same."""
-        if not token.startswith(TOKEN_PREFIX) or len(token) > 200:
+        if not token.startswith((TOKEN_PREFIX, APP_TOKEN_PREFIX)) or len(token) > 200:
             return None
         with self._session.begin() as session:
             row = session.scalar(
@@ -134,10 +184,13 @@ class IntegrationRepository:
             )
             if row is None or row.created_by is None:
                 return None
+            expires = _aware(row.expires_at)
+            if expires is not None and expires <= _now():
+                return None  # an expired token looks like an unknown one
             last = _aware(row.last_used_at)
             if last is None or _now() - last > TOUCH_INTERVAL:
                 row.last_used_at = _now()
-            return TokenIdentity(row.id, row.organization_id, row.created_by)
+            return TokenIdentity(row.id, row.organization_id, row.created_by, row.scope)
 
     # --- badges ----------------------------------------------------------------------------------------
 

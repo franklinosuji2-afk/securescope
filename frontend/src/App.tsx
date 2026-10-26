@@ -34,6 +34,8 @@ const Clients = lazyPage(() => import("./pages/Clients"));
 const SampleReport = lazyPage(() => import("./pages/SampleReport"));
 const SharedReport = lazyPage(() => import("./pages/SharedReport"));
 import { useAgencyAvailable } from "./agency";
+import { useAppScanningAvailable } from "./appScanning";
+const AppScanning = lazyPage(() => import("./pages/AppScanning"));
 import { forgetInvite, pendingInvite } from "./pendingInvite";
 import { canReadAudit, canReadClients } from "./types";
 import { trackPageView, trackedPageName } from "./tracking";
@@ -43,6 +45,7 @@ const NAV: { page: Page; label: string }[] = [
   { page: "targets", label: "Targets" },
   { page: "integrations", label: "Integrations" },
   { page: "clients", label: "Clients" },
+  { page: "app-scanning", label: "App Scanning" },
   { page: "findings", label: "Findings" },
   { page: "history", label: "Scan History" },
   { page: "team", label: "Team" },
@@ -66,6 +69,10 @@ export default function App() {
   const agency = useAgencyAvailable(
     organization?.id ?? null,
     !!user && !!organization && canReadClients(organization.role),
+  );
+  const appScanning = useAppScanningAvailable(
+    organization?.id ?? null,
+    !!user && user.email_verified && !!organization,
   );
   useEffect(() => {
     if (!menuOpen) return;
@@ -236,10 +243,12 @@ export default function App() {
             {NAV.filter((n) =>
               n.page === "clients"
                 ? agency === true
-                : n.page === "analytics" || n.page === "health"
-                  ? user.is_admin === true
-                  : n.page !== "audit" ||
-                    (organization ? canReadAudit(organization.role) : false),
+                : n.page === "app-scanning"
+                  ? appScanning === true
+                  : n.page === "analytics" || n.page === "health"
+                    ? user.is_admin === true
+                    : n.page !== "audit" ||
+                      (organization ? canReadAudit(organization.role) : false),
             ).map((n) => (
               <a
                 key={n.page}
@@ -319,6 +328,11 @@ export default function App() {
           {route.page === "targets" && <Targets />}
           {route.page === "integrations" && <Integrations />}
           {route.page === "clients" && agency === true && <Clients />}
+          {route.page === "app-scanning" && appScanning === true && (
+            <AppScanning
+              canCreate={organization ? organization.role !== "VIEWER" : false}
+            />
+          )}
           {route.page === "findings" && <Findings route={route} />}
           {route.page === "history" && (
             <History onOpen={(id) => navigate("findings", id)} />

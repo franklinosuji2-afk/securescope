@@ -35,7 +35,7 @@ PUBLIC = {
 def test_every_route_refuses_a_visitor_unless_it_is_public_on_purpose(
     make_settings: Any, mailer: Any
 ) -> None:
-    with TestClient(create_app(make_settings(), mailer)) as client:
+    with TestClient(create_app(make_settings(app_scanning_enabled=True), mailer)) as client:
         answers = []
         for path, operations in client.app.openapi()["paths"].items():  # type: ignore[attr-defined]
             for method in operations:
