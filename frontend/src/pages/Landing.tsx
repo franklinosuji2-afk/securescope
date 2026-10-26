@@ -581,7 +581,7 @@ export default function Landing() {
                 width="745"
                 height="1053"
                 loading="lazy"
-                alt="First page of the sample website security report for example.com: title, scan details and an overall risk rating of Medium"
+                alt="First page of the sample website security report for example.com: the host, the score, an overall risk rating of Medium and a short summary"
               />
               <span className="landing-pdf-hint" aria-hidden="true">
                 Open the PDF
