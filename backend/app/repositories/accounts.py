@@ -24,6 +24,7 @@ from app.models.account import (
     SessionRow,
     UserRow,
 )
+from app.models.app_scan import AppProjectRow, AppScanRow
 from app.models.scan import FindingRow, FindingStateRow, ReportRow, ScanRow
 from app.models.target import TargetRow
 from app.schemas.audit import AuditEntry
@@ -505,6 +506,8 @@ class AccountRepository:
                 session.execute(delete(FindingRow).where(FindingRow.scan_id.in_(scan_ids)))
                 session.execute(delete(ScanRow).where(ScanRow.organization_id == org_id))
                 session.execute(delete(FindingStateRow).where(FindingStateRow.organization_id == org_id))
+                session.execute(delete(AppScanRow).where(AppScanRow.organization_id == org_id))
+                session.execute(delete(AppProjectRow).where(AppProjectRow.organization_id == org_id))
                 session.execute(delete(TargetRow).where(TargetRow.organization_id == org_id))
                 session.execute(delete(InvitationRow).where(InvitationRow.organization_id == org_id))
                 session.execute(delete(AuditEventRow).where(AuditEventRow.organization_id == org_id))
@@ -514,6 +517,8 @@ class AccountRepository:
             # What this person did in workspaces that continue stays, but no longer points at them.
             for model, column in (
                 (ScanRow, "requested_by"),
+                (AppScanRow, "requested_by"),
+                (AppProjectRow, "created_by"),
                 (TargetRow, "created_by"),
                 (FindingStateRow, "updated_by"),
                 (ReportRow, "generated_by"),

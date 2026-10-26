@@ -59,3 +59,15 @@ Defects found by the tests and fixed in this batch: the credential-assignment pa
 Not tested because it does not exist yet: run accounting, duplicate-request handling, plan isolation, browser-upload restriction for Free, server-side enforcement, any route, table or token rule (Steps C and H).
 
 Known blind spots of the redaction rules (documented in the module): secrets split across lines, low-entropy passwords with no keyword nearby, and pure hexadecimal strings of 32, 40 or 64 characters.
+
+## 6. Step C1 results (26 Oct 2026, batch 33): tables, counter and run accounting
+
+Covers the repository, plan catalogue and migration only. **There are no routes, no parsers and no UI**, so nothing here shows route-level enforcement, upload handling or the Free-plan token restriction at an endpoint (those are Step H).
+
+| Check                                         | Result                                                                                                                                                                                                |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `test_appscan_accounting.py` on PostgreSQL 16 | 30 passed                                                                                                                                                                                             |
+| Same file on SQLite                           | 28 passed, 2 skipped (the two thread-race tests need PostgreSQL row locks, like the existing plan concurrency tests)                                                                                  |
+| Mutation checks (each caught by a test)       | failures counted as runs; failed runs counted in usage; idempotent replay removed; workspace filter removed from `get_run`, `start_run` and `finish_run`; hourly limit disabled; Free given CI tokens |
+| Full backend suite on PostgreSQL              | see the batch 33 summary                                                                                                                                                                              |
+| `ruff`, `mypy`                                | clean                                                                                                                                                                                                 |

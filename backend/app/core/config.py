@@ -126,6 +126,13 @@ class Settings(BaseSettings):
     # Single-finding re-checks make about as many requests as a scan, so they have their own limit per site.
     rechecks_per_target_per_hour: int = Field(10, ge=1)
 
+    # App Scanning. Off until the feature is finished and released; nothing reads these while it is off.
+    app_scanning_enabled: bool = False
+    # Runs accepted per project per hour, counted in the database so every instance agrees. PROVISIONAL.
+    app_scans_per_project_per_hour: int = Field(6, ge=1)
+    # Runs processed at once. The free instance has 0.1 CPU, so parsing is done one run at a time. PROVISIONAL.
+    max_concurrent_app_scans: int = Field(1, ge=1, le=10)
+
     # DANGEROUS: lets the scanner reach loopback/private addresses. Only for automated tests
     # against a local mock server. Never enable in a deployed environment.
     allow_private_targets: bool = False

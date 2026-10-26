@@ -26,10 +26,26 @@ class Plan:
     # Automation: scans that run on a schedule, with email and webhook alerts when something new appears, and
     # API tokens for CI (the GitHub Action). Site badges are open to every plan.
     scheduled_scans: bool = False
+    # App Scanning (code and dependency checks), a separate allowance from website scans. PROVISIONAL starting
+    # values, not commercial commitments, and not shown to customers: nothing is sold or advertised yet.
+    # 0 means the plan does not include it; None means no limit (internal plan only).
+    app_scans_per_month: int | None = 0
+    app_projects: int | None = 0
+    # Tokens that let a customer's pipeline submit App Scanning results. Free is browser upload only.
+    app_ci_tokens: bool = False
 
 
 FREE = Plan(
-    "free", "Free", 0, max_websites=1, scans_per_month=3, history_days=30, can_invite=False, purchasable=False
+    "free",
+    "Free",
+    0,
+    max_websites=1,
+    scans_per_month=3,
+    history_days=30,
+    can_invite=False,
+    purchasable=False,
+    app_scans_per_month=5,
+    app_projects=1,
 )
 PROFESSIONAL = Plan(
     "professional",
@@ -41,6 +57,9 @@ PROFESSIONAL = Plan(
     can_invite=False,
     purchasable=True,
     scheduled_scans=True,
+    app_scans_per_month=100,
+    app_projects=10,
+    app_ci_tokens=True,
 )
 AGENCY = Plan(
     "agency",
@@ -53,6 +72,9 @@ AGENCY = Plan(
     purchasable=True,
     client_workspace=True,
     scheduled_scans=True,
+    app_scans_per_month=500,
+    app_projects=50,
+    app_ci_tokens=True,
 )
 # For the operator's own workspaces only. Assigned by the server, never offered to customers.
 INTERNAL = Plan(
@@ -66,6 +88,9 @@ INTERNAL = Plan(
     purchasable=False,
     client_workspace=True,
     scheduled_scans=True,
+    app_scans_per_month=None,
+    app_projects=None,
+    app_ci_tokens=True,
 )
 
 PLANS: dict[str, Plan] = {plan.id: plan for plan in (FREE, PROFESSIONAL, AGENCY, INTERNAL)}
