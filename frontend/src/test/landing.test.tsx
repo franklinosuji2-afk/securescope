@@ -1,5 +1,5 @@
 import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CONTACT } from "../contact";
 import Landing from "../pages/Landing";
 
@@ -48,5 +48,64 @@ describe("public home page", () => {
       /testimonial/i,
     ];
     for (const pattern of forbidden) expect(text).not.toMatch(pattern);
+  });
+});
+
+describe("two products on the home page", () => {
+  it("names both products and gives App Scanning an honest status", () => {
+    const { container } = page();
+    const text = container.textContent ?? "";
+    expect(text).toContain("Website Scanning");
+    expect(text).toContain("App Scanning");
+    expect(container.querySelector("#app-scanning")?.textContent).toContain(
+      "In development",
+    );
+    expect(container.querySelector("#products")?.textContent).toContain(
+      "Available",
+    );
+  });
+
+  it("does not present planned features as available", () => {
+    const { container } = page();
+    const card = container.querySelector("#products")?.textContent ?? "";
+    const planned = card.slice(card.indexOf("Planned, not available"));
+    for (const item of ["SAST", "Secret detection", "vulnerability database"])
+      expect(planned).toContain(item);
+    // Nothing outside that list claims them as working.
+    const rest = card.slice(0, card.indexOf("Planned, not available"));
+    expect(rest).not.toMatch(/SAST|Secret detection/);
+  });
+
+  it("says an unavailable source is never a clean result", () => {
+    const { container } = page();
+    const section = container.querySelector("#app-scanning")?.textContent ?? "";
+    expect(section).toMatch(/never reported as clean/);
+    expect(section).toMatch(/not a penetration test/);
+    expect(section).toContain("Illustrative example");
+  });
+
+  it("publishes no App Scanning allowances, prices or unlimited claims", () => {
+    const { container } = page();
+    const section = container.querySelector("#app-scanning")?.textContent ?? "";
+    const products = container.querySelector("#products")?.textContent ?? "";
+    for (const t of [section, products]) {
+      expect(t).not.toMatch(/unlimited/i);
+      expect(t).not.toMatch(/\d+ runs|runs per month|€|\$\s?\d/i);
+    }
+  });
+
+  it("makes no request to the App Scanning API", () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    page();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it("links to the privacy notice and the terms from the trust section", () => {
+    const { container } = page();
+    const trust = container.querySelector("#app-scanning");
+    expect(trust?.querySelector('a[href="#/privacy"]')).not.toBeNull();
+    expect(trust?.querySelector('a[href="#/terms"]')).not.toBeNull();
   });
 });

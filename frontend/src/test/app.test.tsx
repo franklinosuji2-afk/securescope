@@ -451,10 +451,13 @@ describe("Authentication", () => {
     mockApi(() => ({}), null);
     renderApp();
     expect(
-      await screen.findByRole("heading", { level: 1, name: /Find the gaps/ }),
+      await screen.findByRole("heading", {
+        level: 1,
+        name: /Know what puts your/,
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole("link", { name: "Create free account" })[0],
+      screen.getAllByRole("link", { name: "Scan your website" })[0],
     ).toHaveAttribute("href", "#/register");
     expect(screen.getByRole("link", { name: "Impressum" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Target URL")).not.toBeInTheDocument();
