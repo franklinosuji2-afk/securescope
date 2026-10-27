@@ -650,8 +650,9 @@ export interface AppScan extends AppScanSummary {
 
 export async function appScanningAvailable(): Promise<boolean> {
   try {
-    await request<AppOverview>("/app/overview");
-    return true;
+    const o = await request<AppOverview>("/app/overview");
+    // An answer that is not an overview (an error page, an empty body) is not "available".
+    return typeof o?.plan === "string" && typeof o?.usage === "object";
   } catch {
     return false;
   }

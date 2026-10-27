@@ -79,7 +79,9 @@ async function upload(content = "{}") {
 describe("App Scanning page", () => {
   it("shows usage and the limitations before any scan", async () => {
     render(<AppScanning canCreate />);
-    expect(await screen.findByText(/Runs this month: 1 of 5/)).toBeTruthy();
+    expect(
+      await screen.findByText(/Runs this month: 1 of 5 used, 4 left/),
+    ).toBeTruthy();
     expect(screen.getByText(/Only declared dependencies/)).toBeTruthy();
   });
 
@@ -207,6 +209,76 @@ describe("App Scanning page", () => {
   });
 });
 
+describe("usage display", () => {
+  const withUsage = (plan: string, usage: Record<string, unknown>) =>
+    vi.mocked(api.getAppOverview).mockResolvedValue(
+      overview({
+        plan,
+        usage: { ...overview().usage, ...usage },
+      } as Partial<AppOverview>),
+    );
+
+  it.each([
+    ["Free", 5, 1, "0 of 5 used, 5 left", "0 of 1 used, 1 left"],
+    [
+      "Professional",
+      100,
+      10,
+      "0 of 100 used, 100 left",
+      "0 of 10 used, 10 left",
+    ],
+    ["Agency", 500, 50, "0 of 500 used, 500 left", "0 of 50 used, 50 left"],
+  ])(
+    "shows the configured limits for %s",
+    async (plan, runs, projects, r, p) => {
+      withUsage(plan, {
+        runs_used: 0,
+        runs_limit: runs,
+        projects_used: 0,
+        projects_limit: projects,
+      });
+      render(<AppScanning canCreate />);
+      expect(
+        await screen.findByText(
+          new RegExp(`Runs this month: ${r}.*Projects: ${p}`),
+        ),
+      ).toBeTruthy();
+    },
+  );
+
+  it("says no limit only for the internal plan", async () => {
+    withUsage("Internal", { runs_limit: null, projects_limit: null });
+    render(<AppScanning canCreate />);
+    expect(await screen.findByText(/1 used, no limit/)).toBeTruthy();
+    expect(screen.queryByText(/unlimited/i)).toBeNull();
+  });
+
+  it.each([
+    ["a missing limit on a customer plan", "Free", { runs_limit: null }],
+    ["an undefined limit", "Professional", { projects_limit: undefined }],
+    ["a negative count", "Agency", { runs_used: -1 }],
+    ["a non-numeric count", "Free", { projects_used: "many" }],
+  ])(
+    "shows usage as unavailable, not unlimited, for %s",
+    async (_n, plan, bad) => {
+      withUsage(plan, bad);
+      render(<AppScanning canCreate />);
+      expect(
+        await screen.findByText(/usage figures are unavailable/),
+      ).toBeTruthy();
+      expect(screen.queryByText(/unlimited|undefined|NaN/i)).toBeNull();
+    },
+  );
+
+  it("says when the allowance is used up", async () => {
+    withUsage("Free", { runs_used: 5, runs_limit: 5 });
+    render(<AppScanning canCreate />);
+    expect(
+      await screen.findByText(/5 of 5 used, 0 left \(run limit reached\)/),
+    ).toBeTruthy();
+  });
+});
+
 describe("menu entry", () => {
   const user = {
     id: "u1",
@@ -214,7 +286,7 @@ describe("menu entry", () => {
     email_verified: true,
     organizations: [{ id: "o1", name: "Org", slug: "org", role: "OWNER" }],
   };
-  function stub(appStatus: number) {
+  function stub(appStatus: number, who: object = user, appBody?: object) {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
@@ -223,11 +295,11 @@ describe("menu entry", () => {
           return {
             ok: appStatus === 200,
             status: appStatus,
-            json: async () => ({}),
+            json: async () => appBody ?? (appStatus === 200 ? overview() : {}),
           };
         const body =
           path === "/auth/me"
-            ? user
+            ? who
             : path === "/scans" || path === "/targets"
               ? { items: [], total: 0 }
               : {};
@@ -261,5 +333,41 @@ describe("menu entry", () => {
     expect(
       await screen.findByRole("link", { name: "App Scanning" }),
     ).toBeTruthy();
+  });
+  it("makes no App Scanning request for an unverified user", async () => {
+    stub(200, { ...user, email_verified: false });
+    render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>,
+    );
+    await waitFor(() =>
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/auth/me"),
+        expect.anything(),
+      ),
+    );
+    await new Promise((r) => setTimeout(r, 100));
+    expect(screen.queryByRole("link", { name: "App Scanning" })).toBeNull();
+    const calls = vi
+      .mocked(globalThis.fetch)
+      .mock.calls.map((c) => String(c[0]));
+    expect(calls.some((u) => u.includes("/app/"))).toBe(false);
+  });
+  it("is hidden when the answer is not an overview", async () => {
+    stub(200, user, {});
+    render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>,
+    );
+    await screen.findAllByText("Targets");
+    await waitFor(() =>
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/app/overview"),
+        expect.anything(),
+      ),
+    );
+    expect(screen.queryByRole("link", { name: "App Scanning" })).toBeNull();
   });
 });
