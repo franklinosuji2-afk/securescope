@@ -22,6 +22,10 @@ const ICONS: Record<string, string> = {
   users:
     "M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-6 9a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M21 20a6 6 0 0 0-4-5.6",
   log: "M5 4h14v16H5zM9 9h6M9 13h6M9 17h3",
+  folder: "M3 6h6l2 2h10v11H3zM3 6v13",
+  scan: "M4 8V4h4M20 8V4h-4M4 16v4h4m12-4v4h-4M8 12h8",
+  review: "M5 4h14v16H5zM8 9h8M8 13h5m2 4 2 2 3-3",
+  fix: "m14 6 4 4-9 9H5v-4zM12 8l4 4",
 };
 
 function Icon({ name }: { name: string }) {
@@ -202,6 +206,66 @@ const FEATURES = [
   },
 ];
 
+const APP_STEPS = [
+  {
+    icon: "folder",
+    title: "Add your project",
+    text: "Create a project for the application you want to assess.",
+  },
+  {
+    icon: "scan",
+    title: "Analyse supported manifests",
+    text: "Upload package-lock.json, package.json or requirements.txt. The files are read, never run.",
+  },
+  {
+    icon: "review",
+    title: "Review findings and coverage",
+    text: "See what was found, what was checked and what could not be.",
+  },
+  {
+    icon: "fix",
+    title: "Investigate and remediate",
+    text: "Each finding names the package and, where the source provides it, a fixed version.",
+  },
+];
+
+const APP_WORKS = [
+  "Reading supported dependency manifests",
+  "Listing the packages and exact versions they declare",
+  "Recording a result as completed, incomplete or failed, never guessed",
+];
+const APP_PLANNED = [
+  "Connecting the vulnerability database (a licence and privacy review comes first)",
+  "Code analysis (SAST)",
+  "Secret detection",
+  "Downloadable App Scanning reports",
+];
+
+// Illustrative only: not a real scan, not real customer data.
+const APP_PREVIEW = [
+  {
+    pkg: "example-library 1.2.0",
+    finding: "Known vulnerability (illustrative)",
+    severity: "High",
+    sev: "high",
+    status: "Completed",
+  },
+  {
+    pkg: "another-package ^2.0.0",
+    finding: "Not checked: the version is a range, not an exact version",
+    severity: "Not rated",
+    sev: "info",
+    status: "Skipped",
+  },
+  {
+    pkg: "Whole run",
+    finding: "Vulnerability source unavailable: no result is reported",
+    severity: "Not rated",
+    sev: "info",
+    status: "Incomplete",
+  },
+];
+
 const FAQ = [
   {
     q: "Who is SecureScope for?",
@@ -224,6 +288,10 @@ const FAQ = [
     a: "No. It checks the basics that are visible from outside, such as headers, cookies, HTTPS and exposed files. A clean result does not mean a site is secure, and every report says what was not checked.",
   },
   {
+    q: "What is App Scanning, and can I use it?",
+    a: "App Scanning will check the dependency files of an application for known vulnerabilities. It is in development and not open to the public: the vulnerability database is not connected yet, so it cannot report vulnerabilities today. Website Scanning is the product available now.",
+  },
+  {
     q: "Where is my data?",
     a: "Scan results are kept for as long as your plan allows (30, 90 or 365 days) and then deleted. You can delete your account and its data yourself. See the privacy notice for details.",
   },
@@ -239,7 +307,17 @@ export default function Landing() {
     const wanted = new URLSearchParams(
       window.location.hash.split("?")[1] ?? "",
     ).get("section");
-    if (wanted && ["problem", "checks", "how", "pricing"].includes(wanted))
+    if (
+      wanted &&
+      [
+        "problem",
+        "checks",
+        "how",
+        "pricing",
+        "products",
+        "app-scanning",
+      ].includes(wanted)
+    )
       requestAnimationFrame(() => scrollTo(wanted));
   }, []);
   // Escape closes the menu and returns focus to its button; a press outside closes it too.
@@ -329,32 +407,39 @@ export default function Landing() {
         <main id="landing-main">
           <section className="landing-hero">
             <div>
-              <p className="landing-eyebrow">Website security checks</p>
+              <p className="landing-eyebrow">
+                Website &amp; application security
+              </p>
               <h1>
-                Find the gaps in your website’s security{" "}
-                <span className="landing-grad">before anyone else does.</span>
+                Know what puts your{" "}
+                <span className="landing-grad">digital assets at risk.</span>
               </h1>
               <p className="landing-lead">
-                SecureScope checks the security basics of a site you own: HTTPS,
-                headers, cookies, certificates and exposed files. You get a
-                score, the evidence, and plain instructions for fixing each
-                problem.
+                Check the security basics of a website you own today: HTTPS,
+                headers, cookies, certificates and exposed files. App Scanning,
+                for known vulnerabilities in your application’s dependencies, is
+                in development. Either way you get clear findings and plain
+                instructions for fixing them.
               </p>
               <div className="landing-cta">
                 <a className="btn" href={register}>
-                  Create free account
-                </a>
-                <a className="btn-ghost" href="#/sample-report">
-                  View sample report
+                  Scan your website
                 </a>
                 <button
                   type="button"
                   className="btn-ghost"
-                  onClick={() => scrollTo("how")}
+                  onClick={() => scrollTo("app-scanning")}
                 >
-                  See how it works
+                  Explore App Scanning
                 </button>
+                <a className="btn-ghost" href="#/sample-report">
+                  View sample report
+                </a>
               </div>
+              <p className="landing-cta-note muted small">
+                Clear findings. Actionable guidance. Security visibility without
+                unnecessary complexity.
+              </p>
               <ul className="landing-chips" aria-label="Highlights">
                 <li>Passive checks only</li>
                 <li>Ownership verified first</li>
@@ -407,6 +492,17 @@ export default function Landing() {
                   <span>No security.txt contact file</span>
                 </li>
               </ul>
+              <div className="landing-sample-app">
+                <p className="landing-sample-app-title">
+                  App Scanning
+                  <span className="landing-status">In development</span>
+                </p>
+                <p className="muted small">
+                  Illustrative: when the vulnerability source is unavailable the
+                  run is reported as <strong>Incomplete</strong>, never as
+                  clean.
+                </p>
+              </div>
               <div className="landing-sample-links">
                 <a className="landing-sample-link" href="#/sample-report">
                   Open the full sample report <span aria-hidden="true">→</span>
@@ -420,6 +516,61 @@ export default function Landing() {
                 </a>
               </div>
             </figure>
+          </section>
+
+          <section
+            id="products"
+            className="landing-section"
+            aria-labelledby="h-products"
+          >
+            <p className="landing-eyebrow">Platform</p>
+            <h2 id="h-products">Two products, one place to look</h2>
+            <div className="landing-products">
+              <article className="card landing-product">
+                <p className="landing-status landing-status-live">Available</p>
+                <h3>Website Scanning</h3>
+                <p className="muted">
+                  Assess the security configuration of a website you have
+                  verified you own, and review each finding with the evidence
+                  and a fix.
+                </p>
+                <ul className="landing-ticks">
+                  <li>HTTPS, headers, cookies and TLS certificates</li>
+                  <li>Exposed files and information leaks</li>
+                  <li>Findings ranked by severity, with a PDF report</li>
+                </ul>
+                <a className="btn" href={register}>
+                  Scan your website
+                </a>
+              </article>
+              <article className="card landing-product">
+                <p className="landing-status">In development</p>
+                <h3>App Scanning</h3>
+                <p className="muted">
+                  Assess supported dependency manifests for known
+                  vulnerabilities. Not open to the public yet.
+                </p>
+                <p className="landing-list-title">Built so far</p>
+                <ul className="landing-ticks">
+                  {APP_WORKS.map((t) => (
+                    <li key={t}>{t}</li>
+                  ))}
+                </ul>
+                <p className="landing-list-title">Planned, not available</p>
+                <ul className="landing-planned">
+                  {APP_PLANNED.map((t) => (
+                    <li key={t}>{t}</li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => scrollTo("app-scanning")}
+                >
+                  Read about App Scanning
+                </button>
+              </article>
+            </div>
           </section>
 
           <section
@@ -541,6 +692,126 @@ export default function Landing() {
                 </article>
               ))}
             </div>
+          </section>
+
+          <section
+            id="app-scanning"
+            className="landing-section"
+            aria-labelledby="h-app-scanning"
+          >
+            <p className="landing-eyebrow">App Scanning · In development</p>
+            <h2 id="h-app-scanning">
+              Dependency security, explained before it is switched on
+            </h2>
+            <p className="landing-sub muted">
+              App Scanning is not generally available and there is no waiting
+              list yet. This is how it is designed to work, and what it will and
+              will not tell you.
+            </p>
+            <ol className="landing-steps">
+              {APP_STEPS.map((st, i) => (
+                <li key={st.title} className="card">
+                  <Icon name={st.icon} />
+                  <span className="landing-step-no" aria-hidden="true">
+                    {i + 1}
+                  </span>
+                  <h3>{st.title}</h3>
+                  <p className="muted">{st.text}</p>
+                </li>
+              ))}
+            </ol>
+            <ul className="landing-honest">
+              <li>
+                Only supported files and exact package versions are assessed.
+              </li>
+              <li>
+                Unsupported or unpinned dependencies may remain unchecked.
+              </li>
+              <li>
+                If the vulnerability source is unavailable the result is
+                incomplete or failed. It is never reported as clean.
+              </li>
+              <li>
+                It is not a penetration test, and uploaded code is never
+                executed.
+              </li>
+            </ul>
+
+            <h3 className="landing-subhead" id="h-app-preview">
+              What a result looks like
+            </h3>
+            <div className="landing-table-wrap">
+              <table
+                className="landing-table"
+                aria-describedby="app-preview-note"
+              >
+                <caption className="visually-hidden">
+                  Illustrative App Scanning results
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Package</th>
+                    <th scope="col">Finding</th>
+                    <th scope="col">Severity</th>
+                    <th scope="col">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {APP_PREVIEW.map((r) => (
+                    <tr key={r.pkg}>
+                      <th scope="row" data-label="Package">
+                        {r.pkg}
+                      </th>
+                      <td data-label="Finding">{r.finding}</td>
+                      <td data-label="Severity">
+                        <span className={`sev sev-${r.sev}`}>{r.severity}</span>
+                      </td>
+                      <td data-label="Status">
+                        <strong>{r.status}</strong>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p id="app-preview-note" className="landing-fineprint muted small">
+              Illustrative example with made-up package names. It is not a real
+              scan and not customer data. Severity is shown only when the
+              vulnerability source provides it.
+            </p>
+
+            <h3 className="landing-subhead" id="h-app-privacy">
+              Privacy and trust
+            </h3>
+            <div className="landing-grid landing-trust">
+              <article className="card landing-card">
+                <h4>Website Scanning</h4>
+                <p className="muted">
+                  Reads what any visitor could read from a site you have
+                  verified you own, and never stores page contents.
+                </p>
+              </article>
+              <article className="card landing-card">
+                <h4>App Scanning</h4>
+                <p className="muted">
+                  Uploaded files are read in memory. SecureScope keeps findings,
+                  file names, package names and versions, and file digests, not
+                  file contents.
+                </p>
+              </article>
+              <article className="card landing-card">
+                <h4>Not yet decided</h4>
+                <p className="muted">
+                  The vulnerability database is not connected. What would be
+                  sent to it is reviewed first, and the privacy notice is
+                  updated before App Scanning opens.
+                </p>
+              </article>
+            </div>
+            <p className="landing-fineprint muted small">
+              See the <a href="#/privacy">privacy notice</a> and the{" "}
+              <a href="#/terms">terms</a>.
+            </p>
           </section>
 
           <section

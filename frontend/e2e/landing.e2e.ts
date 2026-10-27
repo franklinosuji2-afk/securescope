@@ -8,7 +8,7 @@ for (const scheme of ["dark", "light"] as const) {
     await page.emulateMedia({ colorScheme: scheme });
     await page.goto("/#/");
     await expect(
-      page.getByRole("heading", { level: 1, name: /Find the gaps/ }),
+      page.getByRole("heading", { level: 1, name: /Know what puts your/ }),
     ).toBeVisible();
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -47,7 +47,7 @@ test("the home page leads to registration and sign-in, and scrolls to its sectio
     .getByRole("button", { name: "Pricing" })
     .click();
   await expect(page.getByRole("heading", { name: "Pricing" })).toBeInViewport();
-  await page.getByRole("link", { name: "Create free account" }).first().click();
+  await page.getByRole("link", { name: "Scan your website" }).first().click();
   await expect(page).toHaveURL(/#\/register/);
   await page.goto("/#/");
   await page.getByRole("link", { name: "Sign in" }).first().click();
@@ -147,7 +147,7 @@ test("the plan comparison table is accessible and honest about plans", async ({
   page,
 }) => {
   await page.goto("/#/");
-  const table = page.getByRole("table");
+  const table = page.locator("#pricing").getByRole("table");
   await expect(table).toBeVisible();
   await expect(
     table.getByRole("columnheader", { name: "Agency" }),

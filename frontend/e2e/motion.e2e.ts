@@ -9,7 +9,7 @@ test.describe("motion", () => {
     });
     const page = await context.newPage();
     await page.goto("/#/");
-    const cta = page.getByRole("link", { name: "Create free account" }).first();
+    const cta = page.getByRole("link", { name: "Scan your website" }).first();
     await expect(cta).toBeVisible();
     // The entrance animation finishes: nothing stays faded or shifted.
     await page.waitForTimeout(900);
@@ -51,7 +51,7 @@ test.describe("motion", () => {
 
   test("with reduced motion nothing moves", async ({ page }) => {
     await page.goto("/#/");
-    const cta = page.getByRole("link", { name: "Create free account" }).first();
+    const cta = page.getByRole("link", { name: "Scan your website" }).first();
     await cta.hover();
     await page.waitForTimeout(200);
     expect(await cta.evaluate((e) => getComputedStyle(e).transform)).toBe(
