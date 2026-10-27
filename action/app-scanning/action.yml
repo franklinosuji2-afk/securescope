@@ -1,0 +1,60 @@
+name: "SecureScope App Scanning: submit SARIF results"
+description: >-
+  Sends the results of static analysis and secret scanning tools you already run in your pipeline (SARIF files) to
+  SecureScope App Scanning, and fails the job when findings of a chosen severity are present. SecureScope never
+  receives your source code, and never receives the value of a secret. The result is only as complete as the
+  tools you ran; it is not a guarantee of security.
+author: "SecureScope"
+branding:
+  icon: "shield"
+  color: "green"
+
+inputs:
+  api-key:
+    description: "A SecureScope App Scanning API token (scope: app). Store it as an encrypted repository secret."
+    required: true
+  project-id:
+    description: "The id of the App Scanning project in SecureScope."
+    required: true
+  sast-sarif:
+    description: "Path to the SARIF file written by your static analysis tool (for example Semgrep). Empty means no static analysis check."
+    required: false
+    default: ""
+  secrets-sarif:
+    description: "Path to the SARIF file written by your secret scanner (for example Gitleaks). Empty means no secret check."
+    required: false
+    default: ""
+  fail-on:
+    description: "Fail the job when a finding of this severity or higher is present: critical, high, medium, low or none."
+    required: false
+    default: "high"
+  api-url:
+    description: "The SecureScope API address. Only change this if you were given a different one."
+    required: false
+    default: "https://getsecurescope.com/api/v1"
+
+outputs:
+  scan-id:
+    description: "The id of the run in SecureScope."
+    value: ${{ steps.submit.outputs.scan-id }}
+  result:
+    description: "completed_findings, completed_no_findings, incomplete or another result label."
+    value: ${{ steps.submit.outputs.result }}
+  passed:
+    description: "true when no finding at or above fail-on was present and every check ran."
+    value: ${{ steps.submit.outputs.passed }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: submit
+      shell: bash
+      # Inputs reach the script only as environment variables, never pasted into the script text.
+      env:
+        SS_API_KEY: ${{ inputs.api-key }}
+        SS_PROJECT_ID: ${{ inputs.project-id }}
+        SS_SAST_SARIF: ${{ inputs.sast-sarif }}
+        SS_SECRETS_SARIF: ${{ inputs.secrets-sarif }}
+        SS_FAIL_ON: ${{ inputs.fail-on }}
+        SS_API_URL: ${{ inputs.api-url }}
+      run: python3 "$GITHUB_ACTION_PATH/submit.py"
