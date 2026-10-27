@@ -295,6 +295,8 @@ def post(url: str, token: str, key: str, body: bytes) -> tuple[int, dict[str, An
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
             "Idempotency-Key": key,
+            # A plain, honest name. Python's default one is refused by many firewalls before the request is read.
+            "User-Agent": "SecureScope-App-Action/1",
         },
     )
     opener = urllib.request.build_opener(_NoRedirect)
@@ -308,7 +310,9 @@ def post(url: str, token: str, key: str, body: bytes) -> tuple[int, dict[str, An
     try:
         parsed = json.loads(raw)
     except (ValueError, RecursionError):
-        parsed = {}
+        # Not an answer from the API (for example a firewall page). Keep a short, cleaned excerpt for the log.
+        text = re.sub(r"<[^>]*>", " ", raw.decode("utf-8", "replace"))
+        return status, {"_not_json": " ".join(text.split())[:160]}, retry
     return status, parsed if isinstance(parsed, dict) else {}, retry
 
 
@@ -335,11 +339,16 @@ def explain(status: int, body: dict[str, Any]) -> str:
     if isinstance(detail, dict):
         detail = detail.get("message")
     detail = clean(detail or "", 200) if isinstance(detail, str) else ""
+    if not detail and isinstance(body.get("_not_json"), str):
+        detail = (
+            "The answer was not from the SecureScope API (a firewall or proxy may have refused it): "
+            + clean(body["_not_json"], 160)
+        )
     known = {
         0: "no answer after eight attempts (server not reachable).",
         400: "the request was refused.",
         401: "the token was refused (wrong, revoked, expired, or not an App Scanning token on a plan that includes it).",
-        403: "the monthly allowance of this plan is used up.",
+        403: "the request was refused.",
         404: "the project was not found in the workspace of this token.",
         409: "this Idempotency-Key was used for a different project.",
         413: "the results are larger than 4 MiB.",
