@@ -1,0 +1,47 @@
+# Runs SecureScope's own App Scanning Action on this repository, by hand only (the owner's pilot).
+# Needs the repository secret SECURESCOPE_APP_TOKEN (an App Scanning token) and the repository variable
+# SECURESCOPE_APP_PROJECT_ID. See docs/app-scanning-self-scan.md. Nothing here runs on push or on pull requests.
+name: App Scanning self-scan
+on:
+  workflow_dispatch:
+    inputs:
+      fail-on:
+        description: "Fail the job at this severity or higher: critical, high, medium, low or none"
+        required: false
+        default: "none"
+permissions:
+  contents: read
+concurrency:
+  group: app-scanning-self-scan
+  cancel-in-progress: false
+jobs:
+  appscan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GITLEAKS_VERSION: "8.18.4"
+      # sha256 of gitleaks_8.18.4_linux_x64.tar.gz, as published in the release's checksums file
+      GITLEAKS_SHA256: ba6dbb656933921c775ee5a2d1c13a91046e7952e9d919f9bac4cec61d628e7d
+      SEMGREP_VERSION: "1.182.1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Static analysis (Semgrep, pinned)
+        run: pipx run --spec "semgrep==${SEMGREP_VERSION}" semgrep --config p/default --metrics=off --sarif --output semgrep.sarif .
+      - name: Secret scan (Gitleaks, pinned and checksum-verified, values redacted)
+        run: |
+          set -euo pipefail
+          curl -fsSL -o gitleaks.tgz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tgz" | sha256sum --check --strict
+          tar -xzf gitleaks.tgz gitleaks
+          ./gitleaks detect --source . --redact --report-format sarif --report-path gitleaks.sarif --exit-code 0
+      - name: Send the results to SecureScope
+        uses: ./action/app-scanning
+        with:
+          api-key: ${{ secrets.SECURESCOPE_APP_TOKEN }}
+          project-id: ${{ vars.SECURESCOPE_APP_PROJECT_ID }}
+          sast-sarif: semgrep.sarif
+          secrets-sarif: gitleaks.sarif
+          fail-on: ${{ inputs.fail-on }}
