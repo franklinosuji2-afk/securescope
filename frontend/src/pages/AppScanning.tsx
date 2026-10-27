@@ -7,6 +7,7 @@ import {
   SeverityBadge,
 } from "../components/ui";
 import { formatDate } from "../format";
+import { describeUsage } from "../appScanning";
 
 const SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"] as const;
 
@@ -235,7 +236,7 @@ export default function AppScanning({ canCreate }: { canCreate: boolean }) {
   if (!overview)
     return <ErrorNotice message={error ?? "App Scanning is not available."} />;
   const u = overview.usage;
-  const limit = (n: number | null) => (n === null ? "unlimited" : String(n));
+  const usage = describeUsage(overview.plan, u);
 
   return (
     <div className="stack">
@@ -246,10 +247,17 @@ export default function AppScanning({ canCreate }: { canCreate: boolean }) {
         stored; only package names and versions are looked up.
       </p>
       {error && <ErrorNotice message={error} />}
-      <p>
-        Runs this month: {u.runs_used} of {limit(u.runs_limit)}. Projects:{" "}
-        {u.projects_used} of {limit(u.projects_limit)}.
-      </p>
+      {usage ? (
+        <p>
+          Runs this month: {usage.runs}. Projects: {usage.projects}.
+          {usage.resets ? ` Runs reset on ${usage.resets} (UTC).` : ""}
+        </p>
+      ) : (
+        <div className="notice" role="status">
+          Your usage figures are unavailable right now. The server still
+          enforces your plan's limits.
+        </div>
+      )}
 
       {!canCreate ? (
         <div className="notice" role="status">
