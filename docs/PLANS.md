@@ -28,7 +28,7 @@ An internal plan (no limits, 365 days, can invite) is given automatically to wor
 
 ## App Scanning (provisional; not offered, not advertised)
 
-Code and dependency checks are being built as a separate module (`docs/app-scanning-v1-*.md`). The plan catalogue already carries starting values so the server can enforce them once routes exist; **nothing is sold, shown to customers or reachable yet** (`SECURESCOPE_APP_SCANNING_ENABLED` is off and there are no routes).
+Code and dependency checks are being built as a separate module (`docs/app-scanning-v1-*.md`). The plan catalogue already carries starting values so the server can enforce them; **nothing is sold or shown to customers**. The routes exist behind `SECURESCOPE_APP_SCANNING_ENABLED` (off by default) and, when it is on, `SECURESCOPE_APP_SCANNING_ALLOWED_ORGS` limits them to the listed workspaces.
 
 |                                                    | Free                     | Professional | Agency | Internal |
 | -------------------------------------------------- | ------------------------ | ------------ | ------ | -------- |

@@ -31,7 +31,7 @@ trusted proxy secret.
 ## `/metrics` (Prometheus text format)
 Off unless `SECURESCOPE_METRICS_TOKEN` is set (then `404`). Request with
 `Authorization: Bearer <token>`; a missing or wrong token gives `401`. The endpoint is on the API host
-itself (for example `https://securescope-api-t1q7.onrender.com/metrics`), not through the Cloudflare
+itself (for example `https://<api-origin-host>/metrics`), not through the Cloudflare
 Worker, which forwards only `/api/*`.
 
 Exposed series: `securescope_up`, `securescope_process_start_time_seconds`, `securescope_database_up`,
@@ -54,7 +54,7 @@ scrape_configs:
       type: Bearer
       credentials_file: /etc/prometheus/securescope.token   # a file containing only the token
     static_configs:
-      - targets: ["securescope-api-t1q7.onrender.com"]
+      - targets: ["<api-origin-host>"]
 ```
 
 Useful starting queries: error ratio
