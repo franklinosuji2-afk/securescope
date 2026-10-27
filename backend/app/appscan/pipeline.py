@@ -253,7 +253,8 @@ def run_dependency_scan(
         outcome.checks_skipped.append(
             {
                 "check": "dependency",
-                "reason": f"The vulnerability source gave no answer for {outcome.packages_not_answered} packages.",
+                "reason": "The vulnerability source gave no answer for "
+                f"{outcome.packages_not_answered} package{'' if outcome.packages_not_answered == 1 else 's'}.",
             }
         )
     if outcome.packages_checked == 0:
