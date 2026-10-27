@@ -128,6 +128,11 @@ class Settings(BaseSettings):
 
     # App Scanning. Off until the feature is finished and released; nothing reads these while it is off.
     app_scanning_enabled: bool = False
+    # Pilot allow-list: the ids of the workspaces that may use App Scanning while it is switched on. A JSON list in
+    # SECURESCOPE_APP_SCANNING_ALLOWED_ORGS. Unset means every workspace (tests and local use); an empty list means
+    # none. A site served over https must set it, so switching the feature on can never open it to everyone by
+    # forgetting this value. It adds a gate on top of the plans and changes no plan value.
+    app_scanning_allowed_orgs: list[str] | None = None
     # Runs accepted per project per hour, counted in the database so every instance agrees. PROVISIONAL.
     app_scans_per_project_per_hour: int = Field(6, ge=1)
     # Runs processed at once. The free instance has 0.1 CPU, so parsing is done one run at a time. PROVISIONAL.
@@ -140,6 +145,25 @@ class Settings(BaseSettings):
     # DANGEROUS: lets the scanner reach loopback/private addresses. Only for automated tests
     # against a local mock server. Never enable in a deployed environment.
     allow_private_targets: bool = False
+
+    def app_scanning_allows(self, organization_id: str) -> bool:
+        """True when the feature is on for this workspace: on, and either no list is set or the workspace is on it."""
+        return self.app_scanning_enabled and (
+            self.app_scanning_allowed_orgs is None or organization_id in self.app_scanning_allowed_orgs
+        )
+
+    @model_validator(mode="after")
+    def _pilot_is_named(self) -> Settings:
+        if (
+            self.app_scanning_enabled
+            and self.app_scanning_allowed_orgs is None
+            and self.public_base_url.lower().startswith("https://")
+        ):
+            raise ValueError(
+                "SECURESCOPE_APP_SCANNING_ALLOWED_ORGS must list the workspaces that may use App Scanning "
+                "(a JSON list; [] for none) before the feature is switched on for an https site"
+            )
+        return self
 
     @model_validator(mode="after")
     def _mail_is_complete(self) -> Settings:

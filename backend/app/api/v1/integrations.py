@@ -79,7 +79,7 @@ async def create_token(
     if body.scope == "app":
         # App Scanning tokens do not exist while the feature is off, and only plans that include them may make
         # one. The server decides; nothing the browser sends or shows matters.
-        if not state.settings.app_scanning_enabled:
+        if not state.settings.app_scanning_allows(ctx.organization_id):
             raise HTTPException(status_code=404, detail="Not found.")
         if not plan.app_ci_tokens:
             raise HTTPException(status_code=403, detail=APP_NOT_INCLUDED)
