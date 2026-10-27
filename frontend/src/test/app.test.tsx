@@ -451,7 +451,10 @@ describe("Authentication", () => {
     mockApi(() => ({}), null);
     renderApp();
     expect(
-      await screen.findByRole("heading", { level: 1, name: /Know what puts your/ }),
+      await screen.findByRole("heading", {
+        level: 1,
+        name: /Know what puts your/,
+      }),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole("link", { name: "Scan your website" })[0],
