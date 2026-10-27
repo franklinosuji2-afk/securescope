@@ -242,9 +242,10 @@ export default function AppScanning({ canCreate }: { canCreate: boolean }) {
     <div className="stack">
       <h1>App Scanning</h1>
       <p className="muted">
-        Checks the exact package versions in your dependency files against a
-        vulnerability database. Your files are read in memory and are not
-        stored; only package names and versions are looked up.
+        Reads the exact package versions in your dependency files. The
+        vulnerability database is not connected yet, so a browser scan cannot
+        report vulnerabilities today and ends as failed, not as clean. Your
+        files are read in memory and are not stored.
       </p>
       {error && <ErrorNotice message={error} />}
       {usage ? (

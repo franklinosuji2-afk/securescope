@@ -85,6 +85,14 @@ describe("App Scanning page", () => {
     expect(screen.getByText(/Only declared dependencies/)).toBeTruthy();
   });
 
+  it("does not claim a vulnerability database is being queried", async () => {
+    render(<AppScanning canCreate />);
+    expect(
+      await screen.findByText(/database is not connected yet/),
+    ).toBeTruthy();
+    expect(screen.queryByText(/are looked up/)).toBeNull();
+  });
+
   it("a clean result says no findings from the selected checks, never 'secure'", async () => {
     vi.mocked(api.createAppScan).mockResolvedValue(scan());
     render(<AppScanning canCreate />);

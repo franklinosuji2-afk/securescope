@@ -131,7 +131,14 @@ def test_partial_answers_make_the_scan_incomplete_and_say_which_part() -> None:
     out = p.run_dependency_scan(PROJECT, parsed([pkg("a"), pkg("b")]), FakeSource({"b": None}))
     assert out.status is AppScanStatus.INCOMPLETE
     assert out.packages_checked == 1 and out.packages_not_answered == 1
-    assert any("no answer for 1 packages" in s["reason"] for s in out.checks_skipped)
+    assert any("no answer for 1 package." in s["reason"] for s in out.checks_skipped)
+
+
+def test_the_count_of_unanswered_packages_is_pluralised() -> None:
+    out = p.run_dependency_scan(
+        PROJECT, parsed([pkg("a"), pkg("b"), pkg("c")]), FakeSource({"b": None, "c": None})
+    )
+    assert any("no answer for 2 packages." in s["reason"] for s in out.checks_skipped)
 
 
 def test_one_failed_batch_does_not_hide_the_findings_from_the_others() -> None:
