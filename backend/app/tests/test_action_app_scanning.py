@@ -694,3 +694,45 @@ def test_genuine_gitleaks_output_goes_through_the_real_route(env, tmp_path, monk
     assert code == 1  # high severity, so fail-on high stops the job
     stored = rows(client, AppFindingRow)
     assert len(stored) == 1 and stored[0].severity == "high" and stored[0].kind == "secrets"
+
+
+def _serve(status: int, body: bytes, content_type: str, seen: list[str | None]) -> tuple[HTTPServer, str]:
+    class Answer(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            seen.append(self.headers.get("User-Agent"))
+            self.rfile.read(int(self.headers.get("Content-Length", "0")))
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args: Any) -> None:
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Answer)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server, f"http://127.0.0.1:{server.server_address[1]}/api/v1"
+
+
+def test_a_403_that_is_not_the_plan_limit_is_not_called_a_used_up_allowance() -> None:
+    """A firewall page (HTML, no JSON detail) must not be reported as an exhausted allowance."""
+    seen: list[str | None] = []
+    server, base = _serve(
+        403, b"<html><body><h1>Access denied</h1> Error 1010</body></html>", "text/html", seen
+    )
+    try:
+        status, body, _retry = action.post(f"{base}/app/ci/submissions", "ssa_" + "x" * 30, "k", b"{}")
+    finally:
+        server.shutdown()
+    message = action.explain(status, body)
+    assert status == 403
+    assert "used up" not in message and "allowance" not in message
+    assert "not from the SecureScope API" in message and "Access denied" in message
+    assert seen == ["SecureScope-App-Action/1"]  # not Python's default, which firewalls often refuse
+
+
+def test_a_real_plan_limit_is_shown_as_the_server_worded_it() -> None:
+    detail = "Your plan includes 5 App Scanning runs per month and they are used up. Upgrade or wait."
+    message = action.explain(403, {"detail": detail})
+    assert message.startswith("SecureScope answered 403: the request was refused.") and detail in message
