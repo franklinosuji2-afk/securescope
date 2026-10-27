@@ -10,6 +10,7 @@ from app.api.v1 import (
     account,
     agency,
     analytics,
+    app_scans,
     audit,
     auth,
     ci,
@@ -58,6 +59,7 @@ router.include_router(oauth.router)
 router.include_router(organizations.router)
 router.include_router(invitations.router)
 router.include_router(scans.router)
+router.include_router(app_scans.router)
 router.include_router(targets.router)
 router.include_router(findings.router)
 router.include_router(overview.router)

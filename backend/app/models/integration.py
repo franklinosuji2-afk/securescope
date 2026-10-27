@@ -24,6 +24,11 @@ class ApiTokenRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # What the token may reach: "web" (the GitHub Action's scan routes, as always) or "app" (App Scanning CI
+    # submissions). A token has exactly one scope. Existing tokens are "web".
+    scope: Mapped[str] = mapped_column(String(16), default="web", server_default="web")
+    # Only new App Scanning tokens expire; Web Scanning tokens have none (unchanged behaviour).
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         UniqueConstraint("token_hash", name="uq_api_tokens_token_hash"),

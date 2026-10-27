@@ -2,17 +2,17 @@
 
 Every workspace (organization) has one plan. The server decides what the plan allows; the browser only shows it.
 
-| | Free | Professional | Agency |
-|---|---|---|---|
-| Price (hypothesis, not charged yet) | €0 | €19 / month | €49 / month |
-| Websites | 1 | 5 | 20 |
-| Scans per calendar month | 3 | 30 | 150 |
-| Scan history kept | 30 days | 90 days | 365 days |
-| Invite teammates and clients | no | no | yes |
-| Client workspace (clients, dashboard, agency name on PDFs, share links) | no | no | yes |
-| Scheduled scans (daily or weekly) with email and webhook alerts | no | yes | yes |
-| GitHub Action and API tokens for CI | no | yes | yes |
-| Public score badge (opt-in, per verified site) | yes | yes | yes |
+|                                                                         | Free    | Professional | Agency      |
+| ----------------------------------------------------------------------- | ------- | ------------ | ----------- |
+| Price (hypothesis, not charged yet)                                     | €0      | €19 / month  | €49 / month |
+| Websites                                                                | 1       | 5            | 20          |
+| Scans per calendar month                                                | 3       | 30           | 150         |
+| Scan history kept                                                       | 30 days | 90 days      | 365 days    |
+| Invite teammates and clients                                            | no      | no           | yes         |
+| Client workspace (clients, dashboard, agency name on PDFs, share links) | no      | no           | yes         |
+| Scheduled scans (daily or weekly) with email and webhook alerts         | no      | yes          | yes         |
+| GitHub Action and API tokens for CI                                     | no      | yes          | yes         |
+| Public score badge (opt-in, per verified site)                          | yes     | yes          | yes         |
 
 An internal plan (no limits, 365 days, can invite) is given automatically to workspaces owned by the operator (`SECURESCOPE_ADMIN_EMAIL`). It cannot be bought. The prices are assumptions to test, not commitments.
 
@@ -25,6 +25,18 @@ An internal plan (no limits, 365 days, can invite) is given automatically to wor
 - `subscriptions` and `billing_events` tables (migration 0016): groundwork for a billing provider. **Nothing writes them yet**, so every workspace's plan is exactly what it was before. `billing_events` holds only the provider's event id and type, so a repeated delivery is recognised and ignored; no payload is kept.
 - `app/billing/lifecycle.py`: the rule for which plan applies (below).
 - `GET /api/v1/organizations/{id}/plan/downgrade-preview?to=<plan>` (owner/admin): read-only list of what a lower plan would exceed or lose (`app/billing/preview.py`).
+
+## App Scanning (provisional; not offered, not advertised)
+
+Code and dependency checks are being built as a separate module (`docs/app-scanning-v1-*.md`). The plan catalogue already carries starting values so the server can enforce them once routes exist; **nothing is sold, shown to customers or reachable yet** (`SECURESCOPE_APP_SCANNING_ENABLED` is off and there are no routes).
+
+|                                                    | Free                     | Professional | Agency | Internal |
+| -------------------------------------------------- | ------------------------ | ------------ | ------ | -------- |
+| App Scanning runs per calendar month (provisional) | 5                        | 100          | 500    | no limit |
+| App Scanning projects (placeholder)                | 1                        | 10           | 50     | no limit |
+| App Scanning CI tokens                             | no (browser upload only) | yes          | yes    | yes      |
+
+Rules (decisions of 26 Oct 2026): runs have their own counter and never use up website scans, or the reverse. One accepted request for one project is one run. Rejected requests, failed runs and interrupted runs are not counted; a retry with the same idempotency key returns the first run and is not counted again. A per-project hourly limit (`SECURESCOPE_APP_SCANS_PER_PROJECT_PER_HOUR`, placeholder 6) is counted in the database. Website limits, tokens and permissions are unchanged. These numbers are hypotheses; the Free plan keeps no CI access because tokens stay a Professional feature.
 
 ## Which plan applies
 

@@ -103,6 +103,12 @@ def create_app(settings: Settings | None = None, mailer: Mailer | None = None) -
         interrupted = await asyncio.to_thread(state.repo.fail_interrupted)
         if interrupted:
             log_event(logger, "marked interrupted scans as failed", count=interrupted)
+        try:
+            app_interrupted = await asyncio.to_thread(state.app_scans.interrupt_unfinished)
+            if app_interrupted:
+                log_event(logger, "marked interrupted app scans", count=app_interrupted)
+        except Exception:  # App Scanning must never stop the rest of the application from starting
+            logger.warning("could not clean up unfinished app scans at start-up")
         app.state.s = state
         cleaner = asyncio.create_task(_maintenance_loop(state))
         try:

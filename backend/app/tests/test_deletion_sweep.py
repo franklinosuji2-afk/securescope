@@ -6,6 +6,7 @@ looks for the person's email, workspace name and webhook address as text in ever
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -15,6 +16,7 @@ from sqlalchemy import Table, func, select
 from app.billing.lifecycle import SubscriptionState
 from app.database.base import Base
 from app.main import create_app
+from app.repositories.appscans import AppScanRepository
 from app.tests.conftest import PASSWORD, signup, trust_host
 from app.tests.test_client_accounts import confirm_email
 from app.tests.test_finding_lifecycle import API, member_client
@@ -118,6 +120,11 @@ def populate(client: TestClient, mock_server: str) -> dict[str, str]:
         ),
     )
     state.billing.record_event("test", "evt_sweep", "subscription.created", org)
+    # App Scanning data is part of "everything a customer can create" too.
+    apps = AppScanRepository(state.engine)
+    user = client.get(f"{API}/auth/me").json()["id"]
+    project = apps.create_project(org, user, "Sweep app project", "upload", None)
+    apps.accept_run(org, project, user, ["dependency"], [], None, datetime.now(UTC), None)
     return {"org": org, "scan": scan}
 
 
