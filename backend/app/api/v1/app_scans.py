@@ -17,7 +17,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import ValidationError
 
-from app.api.deps import OrgContext, StateDep, request_id, require
+from app.api.deps import OrgContext, StateDep, organization_context, request_id, require
 from app.api.v1.ci import CiActor, bearer_actor
 from app.appscan import manifests
 from app.appscan.pipeline import ScanOutcome, run_dependency_scan
@@ -86,8 +86,19 @@ async def _enabled(state: StateDep) -> None:
 
 router = APIRouter(prefix="/app", tags=["app-scanning"], dependencies=[Depends(_enabled)])
 
-CanRead = Annotated[OrgContext, Depends(require(Permission.SCAN_READ))]
-CanCreate = Annotated[OrgContext, Depends(require(Permission.SCAN_CREATE))]
+
+async def _listed_workspace(
+    state: StateDep, ctx: Annotated[OrgContext, Depends(organization_context)]
+) -> OrgContext:
+    """The pilot allow-list: a workspace that is not on it gets the answer of a feature that is switched off. This
+    runs before the role check, so nothing about the feature is told to a workspace that may not use it."""
+    if not state.settings.app_scanning_allows(ctx.organization_id):
+        raise HTTPException(status_code=404, detail="Not found.")
+    return ctx
+
+
+CanRead = Annotated[OrgContext, Depends(require(Permission.SCAN_READ, _listed_workspace))]
+CanCreate = Annotated[OrgContext, Depends(require(Permission.SCAN_CREATE, _listed_workspace))]
 
 
 def _valid_id(value: str) -> None:
@@ -572,6 +583,8 @@ async def app_ci_actor(
     """A bearer token of App Scanning scope, from a member who may still start scans, in a workspace whose plan
     still includes App Scanning CI access. Anything else gets the same 401."""
     actor = await bearer_actor(request, state, authorization, "app")
+    if not state.settings.app_scanning_allows(actor.organization_id):
+        raise HTTPException(status_code=404, detail="Not found.")
     plan = await state.entitlements.plan_for_async(actor.organization_id)
     if not plan.app_ci_tokens:
         raise HTTPException(status_code=401, detail=REFUSED_CALLER)

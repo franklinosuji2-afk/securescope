@@ -204,6 +204,13 @@ def test_shutdown_with_a_browser_scan_in_flight_leaves_a_consistent_database(  #
         await asyncio.to_thread(started.wait, 5)
         request.cancel()  # what a server does to requests still running at shutdown
         await asyncio.gather(request, return_exceptions=True)
+        # The write that marks the run interrupted is a background task of the handler's cancel path and starts a
+        # moment after the request task has ended. Give it that moment while the application still runs; the
+        # assertion after the shutdown is unchanged.
+        for _ in range(100):
+            if await asyncio.to_thread(statuses, client) == ["interrupted"]:
+                break
+            await asyncio.sleep(0.05)
         threading.Timer(1.0, release.set).start()  # the thread ends after the lifespan has ended
 
     begun = time.perf_counter()

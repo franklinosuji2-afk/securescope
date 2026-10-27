@@ -270,3 +270,9 @@ Fill this in during execution. An empty row means not done.
 Sign-off (all required): engineer __________ owner __________ date __________
 
 Explicit approval required before enabling the feature: **not given.**
+
+## Pilot allow-list (before the flag is ever switched on in production)
+
+`SECURESCOPE_APP_SCANNING_ALLOWED_ORGS` is a JSON list of workspace ids, for example `["<id>"]`. While the feature is on, only listed workspaces can use it; every other workspace gets the `404` of a feature that is off. `[]` means nobody. The app refuses to start with the feature on, an https address and no list, so forgetting the list cannot open the feature to everyone. It adds a gate on top of the plans and changes no plan value, billing or Web Scanning behaviour. A workspace id is `organizations[0].id` in `GET /api/v1/auth/me` for that account.
+
+Order for a pilot: set the list first (and `SECURESCOPE_APP_SCANNING_ENABLED` second, in the same Render save), then check that a workspace that is not listed gets `404` on `/api/v1/app/overview`. Switching the flag off again is the kill switch.

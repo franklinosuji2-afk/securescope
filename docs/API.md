@@ -59,7 +59,7 @@ Errors are `{"detail": "..."}`; validation errors are 422. **Not implemented:** 
 
 ## App Scanning (dependency scanning, off by default)
 
-All routes answer `404` unless `APP_SCANNING_ENABLED` is on, before any sign-in check. Prefix `/api/v1/app`. Reads need `SCAN_READ`; creating needs `SCAN_CREATE` (viewers cannot).
+All routes answer `404` unless `APP_SCANNING_ENABLED` is on, before any sign-in check. When `APP_SCANNING_ALLOWED_ORGS` (a JSON list of workspace ids) is set, a workspace that is not on the list gets the same `404` (browser routes, CI submissions and the creation of an App Scanning token); `[]` means none. An https site must set it before the flag can be switched on. Prefix `/api/v1/app`. Reads need `SCAN_READ`; creating needs `SCAN_CREATE` (viewers cannot).
 
 - `/app/overview` (`GET`): plan, usage (runs and projects, with limits), supported files, whether CI tokens are available. No score or grade.
 - `/app/projects` (`GET`; `POST` with `{"name"}`): per-plan project cap, `403` over it, `409` for a duplicate name.
