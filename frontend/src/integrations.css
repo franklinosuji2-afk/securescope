@@ -1,0 +1,214 @@
+/* Integrations: alerts, badges and API access. Each part is a ruled section; each item is a ruled row. */
+.ig {
+  --i-serif: var(
+    --serif,
+    "Newsreader Variable",
+    "Iowan Old Style",
+    Georgia,
+    serif
+  );
+  --i-code: var(
+    --code,
+    "JetBrains Mono Variable",
+    ui-monospace,
+    "SFMono-Regular",
+    Menlo,
+    monospace
+  );
+  gap: clamp(24px, 3vw, 40px);
+}
+.ig > * {
+  min-width: 0;
+}
+.ig .page-head {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 12px;
+}
+.ig .page-head h1 {
+  margin: 0;
+  font-family: var(--i-serif);
+  font-size: clamp(2.2rem, 1.4rem + 2.6vw, 3.4rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.ig .page-head p {
+  max-width: 68ch;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+/* Each part */
+.ig > section {
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-strong);
+}
+.ig > section > h2 {
+  margin: 0;
+  font-family: var(--i-serif);
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.ig > section > p {
+  max-width: 68ch;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* The items: ruled rows, not cards */
+.ig > section > .plain-list {
+  gap: 0;
+  border-top: 1px solid var(--border);
+}
+.ig > section > .plain-list > li,
+.ig > section > .plain-list > li + li,
+.ig > section > .plain-list > li:hover {
+  max-width: none;
+  gap: 12px;
+  padding: 18px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.ig > section > .plain-list > li h3 {
+  margin: 0;
+  font-family: var(--i-code);
+  font-size: 1rem;
+  font-weight: 500;
+}
+.ig > section > .plain-list > li > p,
+.ig > section > .plain-list > li > label {
+  max-width: 68ch;
+  margin: 0;
+  line-height: 1.55;
+}
+.ig > section > .plain-list code {
+  font-family: var(--i-code);
+  font-size: 0.8125rem;
+}
+.ig > section > .plain-list > li img {
+  justify-self: start;
+  max-width: 100%;
+}
+.ig > section > .plain-list > li .input {
+  max-width: 44rem;
+  font-family: var(--i-code);
+  font-size: 0.8125rem;
+}
+.ig > section > .plain-list details {
+  max-width: 68ch;
+}
+.ig > section > .plain-list summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.ig > section > .plain-list:last-child > li:last-child {
+  border-bottom: 0;
+}
+.ig .plain-list details .plain-list {
+  gap: 6px;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+}
+.ig .plain-list details .plain-list li + li {
+  padding-top: 0;
+  border: 0;
+}
+
+/* Adding something, and the how-to notes */
+.ig form.card,
+.ig details.card {
+  max-width: 36rem;
+  padding: 20px 24px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: none;
+}
+.ig details.card {
+  max-width: 68ch;
+  padding: 14px 24px;
+}
+.ig form.card label {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.ig form.card .input {
+  min-height: 44px;
+  border-radius: 6px;
+  background-color: var(--bg);
+}
+.ig form.card select.input {
+  appearance: none;
+  padding-right: 40px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) 50%,
+    calc(100% - 14px) 50%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+}
+.ig details.card summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.ig details.card > p {
+  max-width: 62ch;
+  margin: 12px 0 0;
+  line-height: 1.6;
+}
+.ig details.card code,
+.ig .notice code {
+  font-family: var(--i-code);
+  font-size: 0.8125rem;
+}
+.ig details.card pre {
+  margin: 12px 0 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  font-family: var(--i-code);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+/* Notices, and the one-time secret */
+.ig .notice {
+  max-width: 68ch;
+  border-radius: 6px;
+  line-height: 1.55;
+}
+.ig .notice.form-stack {
+  max-width: 44rem;
+  padding: 16px 20px;
+}
+.ig .notice.form-stack > code {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+@media (max-width: 420px) {
+  .ig form.card,
+  .ig details.card {
+    padding: 18px;
+  }
+}
