@@ -7,6 +7,9 @@ import { EmptyState, ErrorNotice, Loading } from "../components/ui";
 import { formatDate } from "../format";
 import type { Target, VerificationMethod } from "../types";
 import { canManageTargets } from "../types";
+import "@fontsource-variable/newsreader/opsz.css";
+import "@fontsource-variable/jetbrains-mono/wght.css";
+import "../targets.css";
 
 const STATUS_LABEL: Record<Target["status"], string> = {
   verified: "Verified",
@@ -278,7 +281,7 @@ export default function Targets() {
   }
 
   return (
-    <div className="stack">
+    <div className="stack tg">
       <header className="page-head">
         <h1>Targets</h1>
         <p>
@@ -336,10 +339,7 @@ export default function Targets() {
         </EmptyState>
       )}
       {targets && targets.length > 0 && (
-        <ul
-          className="stack"
-          style={{ listStyle: "none", padding: 0, margin: 0 }}
-        >
+        <ul className="tg-list">
           {targets.map((t) => (
             <TargetCard
               key={t.id}
