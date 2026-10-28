@@ -1,11 +1,14 @@
 # Weekly dependency update pull requests. They only open PRs; nothing is merged or deployed automatically,
-# and CI (tests, audits, secret scan) runs on each one.
+# and CI (tests, audits, secret scan) runs on each one. A cooldown of 7 days waits for newly published versions to
+# prove themselves before a version-update PR is proposed (security updates are not delayed by it).
 version: 2
 updates:
   - package-ecosystem: pip
     directory: /backend
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       python-minor-and-patch:
@@ -14,6 +17,8 @@ updates:
     directory: /frontend
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     ignore:
       # typescript-eslint supports TypeScript below 6.1 only; @types/node must match the Node version in use (22).
@@ -30,11 +35,15 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 3
   - package-ecosystem: docker
     directory: /backend
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     ignore:
       # Stay on the Python version the code is tested against; move it by hand.
       - dependency-name: python
@@ -43,6 +52,8 @@ updates:
     directory: /frontend
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     ignore:
       # Node base image: stay on a long-term-support release; move it by hand.
       - dependency-name: node
