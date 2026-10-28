@@ -58,12 +58,11 @@ With Cloudflare, Bot Fight Mode on the Free plan challenges such requests and ca
 
 ## Expected results and known noise
 
-- **Gitleaks reports 4 findings today**, all `generic-api-key` in test files whose strings are made up (a wrong
-  password in `test_log_secrets.py`, sample inputs for the redaction tests in `test_appscan_redaction.py`, a test
-  idempotency key in `test_idempotency.py`). I read the flagged lines; none is a real credential. A secret finding
-  is always at least **high**, so with `fail-on: high` the job fails until these are reviewed. They are not
-  suppressed here on purpose: allow-listing them (a `.gitleaks.toml` allowlist or an inline `gitleaks:allow`) is an
-  owner decision.
+- **Gitleaks and the test files.** Four `generic-api-key` hits used to appear in three test files whose strings are
+  made up on purpose (a wrong password in `test_log_secrets.py`, sample inputs for the redaction tests in
+  `test_appscan_redaction.py`, a test idempotency key in `test_idempotency.py`). `.gitleaks.toml` now ignores
+  exactly those three files and keeps every default rule everywhere else, so a real secret in any other file,
+  including another test file, is still reported. Add a file to that list only after reading the flagged line.
 - The SecureScope page does not show code and secret findings yet; the run is visible in the run history and counts
   as an App Scanning run for the workspace.
 - Semgrep rules are fetched from the Semgrep registry at run time, so the rule set can change between runs.

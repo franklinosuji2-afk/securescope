@@ -1,0 +1,16 @@
+# Gitleaks configuration for this repository (picked up automatically from the repository root).
+# It keeps every default rule and ignores only the three test files below, which contain made-up values
+# on purpose (they test that real secrets are redacted and never logged). Nothing else is excluded:
+# a secret anywhere else in the repository is still reported.
+title = "SecureScope"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fake secrets used as test input"
+paths = [
+  '''^backend/app/tests/test_appscan_redaction\.py$''',
+  '''^backend/app/tests/test_idempotency\.py$''',
+  '''^backend/app/tests/test_log_secrets\.py$''',
+]
