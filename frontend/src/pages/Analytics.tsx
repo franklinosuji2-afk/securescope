@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { ApiError, fetchActivation, fetchAnalytics } from "../api";
-import { DailyHistogram, Kpi, Panel, trendOf } from "../components/charts";
+import { Kpi, Panel, trendOf } from "../components/charts";
+import TimeChart from "../components/TimeChart";
 import { EmptyState, ErrorNotice, Loading } from "../components/ui";
 import { formatDate } from "../format";
+import "../metrics.css";
 import type {
   ActivationFunnel,
   AnalyticsCount,
@@ -138,6 +140,7 @@ function Bars({
   label?: (name: string) => string;
 }) {
   const max = Math.max(1, ...items.map((i) => i.count));
+  const total = items.reduce((sum, i) => sum + i.count, 0);
   return (
     <Panel title={title}>
       {items.length === 0 ? (
@@ -148,7 +151,14 @@ function Bars({
             <li key={i.name}>
               <div className="bar-line">
                 <span>{label(i.name)}</span>
-                <strong>{i.count}</strong>
+                <strong>
+                  {i.count}
+                  {total > 0 && (
+                    <span className="bar-share">
+                      {Math.round((i.count / total) * 100)}%
+                    </span>
+                  )}
+                </strong>
               </div>
               <div className="bar-track" aria-hidden="true">
                 <div
@@ -168,16 +178,12 @@ function DailyChart({ data }: { data: AnalyticsSummary }) {
   const series = data.current.series;
   const total = `${data.current.visitors} visitors and ${data.current.views} page views in ${series.length} days`;
   return (
-    <Panel
-      title="Daily visitors and views"
-      aside={
-        <p className="chart-legend">
-          <span>Visitors</span>
-          <span>Page views</span>
-        </p>
-      }
-    >
-      <DailyHistogram series={series} label={total} />
+    <Panel title="Daily visitors and views">
+      <TimeChart
+        series={series}
+        previous={data.previous.series}
+        label={total}
+      />
       <details className="trend-table">
         <summary className="small">Show as a table</summary>
         <div className="table-wrap">
@@ -241,7 +247,7 @@ export default function Analytics() {
 
   const loading = data === null && error === null;
   return (
-    <div className="stack dash">
+    <div className="stack dash mx">
       <header className="dash-head">
         <div>
           <h1>Website analytics</h1>
@@ -310,6 +316,7 @@ export default function Analytics() {
               value={data.current.visitors}
               note={change(data.current.visitors, data.previous.visitors)}
               trend={trendOf(data.current.visitors, data.previous.visitors)}
+              spark={data.current.series.map((d) => d.visitors)}
             />
             <Kpi
               tone="lime"
@@ -317,6 +324,7 @@ export default function Analytics() {
               value={data.current.views}
               note={change(data.current.views, data.previous.views)}
               trend={trendOf(data.current.views, data.previous.views)}
+              spark={data.current.series.map((d) => d.views)}
             />
           </ul>
           <DailyChart data={data} />

@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ApiError,
   fetchPlatformHealth,
   getFeedbackSummary,
   type FeedbackSummary,
 } from "../api";
-import { ColumnChart, Flag, Kpi, Panel, Row, Rows } from "../components/charts";
+import { Flag, Kpi, Panel, Row, Rows } from "../components/charts";
+import { Donut, Levels } from "../components/viz";
 import { ErrorNotice, Loading } from "../components/ui";
 import { formatDate } from "../format";
+import "../metrics.css";
 import type { PlatformHealth } from "../types";
 
 export function duration(seconds: number): string {
@@ -125,6 +127,8 @@ export default function Health() {
   const [data, setData] = useState<PlatformHealth | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadedAt, setLoadedAt] = useState<Date | null>(null);
+  const [routeQuery, setRouteQuery] = useState("");
+  const [errorsOnly, setErrorsOnly] = useState(false);
 
   const load = useCallback(() => {
     fetchPlatformHealth()
@@ -149,8 +153,16 @@ export default function Health() {
   }, [load]);
 
   const problems = data ? attention(data) : [];
+  const routes = useMemo(() => {
+    const q = routeQuery.trim().toLowerCase();
+    return (data?.requests.routes ?? []).filter(
+      (r) =>
+        (!errorsOnly || r.errors > 0) &&
+        (q === "" || r.route.toLowerCase().includes(q)),
+    );
+  }, [data, routeQuery, errorsOnly]);
   return (
-    <div className="stack dash">
+    <div className="stack dash mx">
       <header className="dash-head">
         <div>
           <h1>Platform health</h1>
@@ -241,20 +253,13 @@ export default function Health() {
               data.requests.p99_ms === null ? (
                 <p className="muted small">No requests measured yet.</p>
               ) : (
-                <ColumnChart
+                <Levels
                   label={`Latency: median ${data.requests.p50_ms} ms, p95 ${data.requests.p95_ms} ms, p99 ${data.requests.p99_ms} ms`}
-                  columns={[
-                    {
-                      label: "median",
-                      value: data.requests.p50_ms,
-                      tone: "cyan",
-                    },
-                    {
-                      label: "p95",
-                      value: data.requests.p95_ms,
-                      tone: "violet",
-                    },
-                    { label: "p99", value: data.requests.p99_ms, tone: "pink" },
+                  unit="ms"
+                  levels={[
+                    { label: "Median", value: data.requests.p50_ms },
+                    { label: "p95", value: data.requests.p95_ms },
+                    { label: "p99", value: data.requests.p99_ms },
                   ]}
                 />
               )}
@@ -262,24 +267,31 @@ export default function Health() {
             <Panel
               title={`Scan outcomes, last ${data.scans.window_hours} hours`}
             >
-              <ColumnChart
-                label="Scans by outcome"
-                columns={[
+              <Donut
+                label={`Scans by outcome: ${data.scans.completed} completed, ${data.scans.failed} error, ${data.scans.cancelled} cancelled, ${data.scans.in_progress} running`}
+                total={
+                  data.scans.completed +
+                  data.scans.failed +
+                  data.scans.cancelled +
+                  data.scans.in_progress
+                }
+                unit="scans"
+                parts={[
                   {
-                    label: "completed",
+                    label: "Completed",
                     value: data.scans.completed,
-                    tone: "green",
+                    tone: "good",
                   },
-                  { label: "error", value: data.scans.failed, tone: "pink" },
+                  { label: "Error", value: data.scans.failed, tone: "bad" },
                   {
-                    label: "cancelled",
+                    label: "Cancelled",
                     value: data.scans.cancelled,
-                    tone: "amber",
+                    tone: "warn",
                   },
                   {
-                    label: "running",
+                    label: "Running",
                     value: data.scans.in_progress,
-                    tone: "cyan",
+                    tone: "info",
                   },
                 ]}
               />
@@ -372,37 +384,60 @@ export default function Health() {
             {data.requests.routes.length === 0 ? (
               <p className="muted small">No requests measured yet.</p>
             ) : (
-              <div className="table-wrap">
-                <table className="data-table">
-                  <caption className="visually-hidden">
-                    Requests per route since the last restart
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">Route</th>
-                      <th scope="col" className="num">
-                        Requests
-                      </th>
-                      <th scope="col" className="num">
-                        Errors
-                      </th>
-                      <th scope="col" className="num">
-                        p95
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.requests.routes.map((r) => (
-                      <tr key={r.route}>
-                        <td className="route">{r.route}</td>
-                        <td className="num">{r.requests}</td>
-                        <td className="num">{r.errors}</td>
-                        <td className="num">{ms(r.p95_ms)}</td>
+              <>
+                <div className="table-tools">
+                  <input
+                    className="input"
+                    type="search"
+                    placeholder="Filter routes"
+                    aria-label="Filter routes"
+                    value={routeQuery}
+                    onChange={(e) => setRouteQuery(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="chip"
+                    aria-pressed={errorsOnly}
+                    onClick={() => setErrorsOnly(!errorsOnly)}
+                  >
+                    Errors only
+                  </button>
+                  <span className="muted small" role="status">
+                    Showing {routes.length} of {data.requests.routes.length}
+                  </span>
+                </div>
+                <div className="table-wrap">
+                  <table className="data-table">
+                    <caption className="visually-hidden">
+                      Requests per route since the last restart
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Route</th>
+                        <th scope="col" className="num">
+                          Requests
+                        </th>
+                        <th scope="col" className="num">
+                          Errors
+                        </th>
+                        <th scope="col" className="num">
+                          p95
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {routes.map((r) => (
+                        <tr key={r.route}>
+                          <td className="route">{r.route}</td>
+                          <td className="num">{r.requests}</td>
+                          <td className="num">{r.errors}</td>
+                          <td className="num">{ms(r.p95_ms)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </Panel>
           <FeedbackPanel />
