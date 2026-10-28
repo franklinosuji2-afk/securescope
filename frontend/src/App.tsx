@@ -26,6 +26,7 @@ const Health = lazyPage(() => import("./pages/Health"));
 const Audit = lazyPage(() => import("./pages/Audit"));
 const History = lazyPage(() => import("./pages/History"));
 import NotFound from "./pages/NotFound";
+import ErrorBoundary from "./components/ErrorBoundary";
 const Account = lazyPage(() => import("./pages/Account"));
 import Overview from "./pages/Overview";
 import Landing from "./pages/Landing";
@@ -172,7 +173,7 @@ export default function App() {
   if (!user && route.page === "overview") return <Landing />;
   if (!user && !isPublic) {
     return (
-      <div className="auth-wrap">
+      <main className="auth-wrap" id="main">
         <CornerThemeToggle />
         <div className="card auth-card">
           <h1>Sign in required</h1>
@@ -185,7 +186,7 @@ export default function App() {
             Sign in
           </a>
         </div>
-      </div>
+      </main>
     );
   }
   if (!user || isPublic) {
@@ -315,35 +316,39 @@ export default function App() {
         tabIndex={-1}
         key={organization?.id ?? "none"}
       >
-        {route.page === "overview" && (
-          <Overview
-            route={route}
-            onStarted={(id) => navigate("overview", id)}
-          />
-        )}
-        {route.page === "not-found" && <NotFound />}
-        <PageLoader>
-          {route.page === "targets" && <Targets />}
-          {route.page === "integrations" && <Integrations />}
-          {route.page === "clients" && agency === true && <Clients />}
-          {route.page === "app-scanning" && appScanning === true && (
-            <AppScanning
-              canCreate={organization ? organization.role !== "VIEWER" : false}
+        <ErrorBoundary scope="page" key={route.page}>
+          {route.page === "overview" && (
+            <Overview
+              route={route}
+              onStarted={(id) => navigate("overview", id)}
             />
           )}
-          {route.page === "findings" && <Findings route={route} />}
-          {route.page === "history" && (
-            <History onOpen={(id) => navigate("findings", id)} />
-          )}
-          {route.page === "compare" && <Compare route={route} />}
-          {route.page === "team" && <Team />}
-          {route.page === "account" && <Account />}
-          {route.page === "audit" && <Audit />}
-          {route.page === "analytics" && user.is_admin === true && (
-            <Analytics />
-          )}
-          {route.page === "health" && user.is_admin === true && <Health />}
-        </PageLoader>
+          {route.page === "not-found" && <NotFound />}
+          <PageLoader>
+            {route.page === "targets" && <Targets />}
+            {route.page === "integrations" && <Integrations />}
+            {route.page === "clients" && agency === true && <Clients />}
+            {route.page === "app-scanning" && appScanning === true && (
+              <AppScanning
+                canCreate={
+                  organization ? organization.role !== "VIEWER" : false
+                }
+              />
+            )}
+            {route.page === "findings" && <Findings route={route} />}
+            {route.page === "history" && (
+              <History onOpen={(id) => navigate("findings", id)} />
+            )}
+            {route.page === "compare" && <Compare route={route} />}
+            {route.page === "team" && <Team />}
+            {route.page === "account" && <Account />}
+            {route.page === "audit" && <Audit />}
+            {route.page === "analytics" && user.is_admin === true && (
+              <Analytics />
+            )}
+            {route.page === "health" && user.is_admin === true && <Health />}
+          </PageLoader>
+        </ErrorBoundary>
       </main>
     </div>
   );

@@ -104,3 +104,26 @@ test("keyboard users get a skip link and visible focus", async ({ page }) => {
     page.getByRole("link", { name: "Skip to content" }),
   ).toBeFocused();
 });
+
+for (const scheme of ["dark", "light"] as const) {
+  test(`a download link styled as an outline button is readable on its card (${scheme} theme)`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await register(page, uniqueEmail(`ghost-${scheme}`));
+    await page.goto("/#/account");
+    const link = page.getByRole("link", { name: "Download my data (JSON)" });
+    await expect(link).toBeVisible();
+    // It sits on the page surface, so it must use the page text colour, not the accent button's text colour.
+    const colours = await page.evaluate(() => {
+      const a = document.querySelector('a[href$="/account/export"]');
+      const h = document.querySelector("h1");
+      return {
+        link: a ? getComputedStyle(a).color : null,
+        heading: h ? getComputedStyle(h).color : null,
+      };
+    });
+    expect(colours.link).not.toBeNull();
+    expect(colours.link).toBe(colours.heading);
+  });
+}

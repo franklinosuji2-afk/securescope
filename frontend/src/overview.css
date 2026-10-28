@@ -1,0 +1,492 @@
+/* Overview. One page, read top to bottom: what to do (scan), where you stand (the strip), what to fix first,
+   then the sites as ruled rows. Everything is scoped under .ov so other pages keep their own look.
+   Cards are used once, for the thing that matters most (Fix this first); the rest is ruled, as on the home page. */
+.ov {
+  --ov-serif: var(
+    --serif,
+    "Newsreader Variable",
+    "Iowan Old Style",
+    Georgia,
+    serif
+  );
+  --ov-code: var(
+    --code,
+    "JetBrains Mono Variable",
+    ui-monospace,
+    "SFMono-Regular",
+    Menlo,
+    monospace
+  );
+  gap: clamp(20px, 2.4vw, 32px);
+}
+.ov > * {
+  min-width: 0;
+}
+
+/* Header */
+.ov .page-head {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 12px;
+}
+.ov .page-head h1 {
+  margin: 0;
+  font-family: var(--ov-serif);
+  font-size: clamp(2.2rem, 1.4rem + 2.6vw, 3.4rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.ov .page-head p {
+  max-width: 68ch;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+/* Serif section titles, sentence case */
+.ov .ov-h2,
+.ov .bento-title,
+.ov .scan-form > h2,
+.ov .fix-first > h2 {
+  margin: 0;
+  font-family: var(--ov-serif);
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  text-transform: none;
+  color: var(--text);
+}
+
+/* Start a scan: a band, title at the left, the form at the right */
+.ov .scan-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px 40px;
+  padding: 20px 24px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  box-shadow: none;
+  background: var(--surface);
+}
+.ov .scan-form > * {
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .ov .scan-form {
+    grid-template-columns: minmax(150px, 12rem) minmax(0, 1fr);
+    align-items: start;
+  }
+  .ov .scan-form > h2 {
+    grid-row: 1 / span 4;
+    padding-top: 2px;
+  }
+  .ov .scan-form > :not(h2) {
+    grid-column: 2;
+  }
+}
+.ov .scan-form .input-row {
+  display: flex;
+  gap: 8px;
+}
+.ov .scan-form .input-row .input {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+}
+.ov .scan-form .input-row .btn {
+  flex: none;
+}
+@media (max-width: 420px) {
+  .ov .scan-form {
+    padding: 18px;
+  }
+  .ov .scan-form .input-row {
+    flex-direction: column;
+  }
+  .ov .scan-form .input-row .input {
+    flex: none;
+    width: 100%;
+  }
+}
+
+/* Summary: one ruled strip, not four cards */
+.ov .summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.ov .summary-card,
+.ov .summary-card:hover {
+  gap: 2px;
+  padding: 18px 22px 20px;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.ov .summary-card::after {
+  display: none;
+}
+.ov .summary-card:first-child {
+  border-left: 0;
+}
+.ov .summary-card .stat-label {
+  font-size: 0.875rem;
+}
+.ov .summary-card .stat-value {
+  margin: 2px 0 4px;
+  font-family: var(--ov-serif);
+  font-size: clamp(2.3rem, 1.6rem + 1.6vw, 3rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.ov .summary-card .muted {
+  line-height: 1.45;
+}
+@media (max-width: 1000px) {
+  .ov .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ov .summary-card:nth-child(odd) {
+    border-left: 0;
+  }
+  .ov .summary-card:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+}
+@media (max-width: 560px) {
+  .ov .summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ov .summary-card,
+  .ov .summary-card:hover {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 16px;
+    align-items: center;
+    padding: 14px 18px;
+    border-left: 0;
+  }
+  .ov .summary-card + .summary-card {
+    border-top: 1px solid var(--border);
+  }
+  .ov .summary-card .stat-label,
+  .ov .summary-card .muted {
+    grid-column: 1;
+  }
+  .ov .summary-card .stat-value {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin: 0;
+    font-size: 2.3rem;
+  }
+}
+
+/* The dashboard: what to do on the left, where you stand on the right */
+.ov .bento {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(20px, 2.4vw, 32px);
+  align-items: start;
+}
+.ov .bento-main,
+.ov .bento-side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(20px, 2.4vw, 32px);
+  min-width: 0;
+}
+@container (min-width: 58rem) {
+  .ov .bento {
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
+  }
+}
+/* Activity and inventory sit side by side under the three main sections */
+@container (min-width: 44rem) {
+  .ov .bento-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(20px, 2.4vw, 32px);
+  }
+  .ov .bento-main > .bento-cell,
+  .ov .bento-main > .bento-issues,
+  .ov .bento-main > .bento-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The old 12-column spans do not apply inside the two columns */
+.ov .bento-card,
+.ov .bento-cell {
+  grid-column: auto;
+  grid-row: auto;
+}
+
+/* Sections are ruled, not boxed */
+.ov .bento-card,
+.ov .bento-card:hover,
+.ov .bento-card:focus-within {
+  gap: 14px;
+  padding: 18px 0 0;
+  border: 0;
+  border-top: 1px solid var(--border-strong);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.ov .bento-card::after {
+  display: none;
+}
+.ov .bento-score::before {
+  display: none;
+}
+
+/* Fix this first: the one card on the page */
+.ov .bento-cell > .card {
+  gap: 12px;
+  padding: 24px 26px;
+  border: 1px solid var(--border-strong);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: none;
+  transition:
+    transform var(--dur) var(--ease-out, ease),
+    border-color var(--dur) var(--ease-out, ease);
+}
+.ov .fix-first > h2 {
+  font-size: 1.6rem;
+}
+.ov .fix-head {
+  gap: 8px 12px;
+}
+.ov .fix-head strong {
+  font-size: 1.1875rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+.ov .fix-first p {
+  margin: 0;
+  max-width: 66ch;
+  line-height: 1.6;
+}
+.ov .fix-first .row {
+  gap: 10px 18px;
+  align-items: center;
+  margin-top: 4px;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .ov .bento-cell > .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--control);
+  }
+}
+
+/* Lists: ruled rows */
+.ov .bento-list {
+  gap: 0;
+  border-top: 1px solid var(--border);
+}
+.ov .bento-row,
+.ov .bento-row:hover {
+  min-height: 52px;
+  padding: 12px 6px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+}
+.ov .bento-row:hover {
+  background: var(--hover);
+}
+.ov .bento-row-title {
+  font-weight: 600;
+  line-height: 1.4;
+}
+.ov .bento-inv {
+  padding: 12px 0;
+}
+.ov .bento-inv code,
+.ov .bento-host code {
+  font-family: var(--ov-code);
+  font-size: 0.875rem;
+}
+.ov .bento-card > p.muted.small {
+  line-height: 1.55;
+}
+.ov .bento-card > .btn-ghost {
+  align-self: flex-start;
+}
+
+/* The right-hand column is one panel with ruled sections */
+.ov .bento-side {
+  gap: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.ov .bento-side .bento-card,
+.ov .bento-side .bento-card:hover,
+.ov .bento-side .bento-card:focus-within {
+  padding: 20px 22px 22px;
+  border-top: 1px solid var(--border);
+}
+.ov .bento-side .bento-card:first-child,
+.ov .bento-side .bento-card:first-child:hover {
+  border-top: 0;
+}
+.ov .bento-big {
+  font-family: var(--ov-serif);
+  font-size: 1.6rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.ov .bento-score-body {
+  gap: 18px;
+}
+.ov .bento-chip {
+  position: static;
+}
+
+/* Reports: a site picker and the downloads, side by side */
+.ov .bento-select {
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.ov .bento-select select {
+  appearance: none;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 40px 0 12px;
+  border: 1px solid var(--control);
+  border-radius: 6px;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) 50%,
+    calc(100% - 14px) 50%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+}
+.ov .bento-exports .row {
+  gap: 8px;
+}
+
+/* Your sites: ruled rows, each one a line you can read across */
+.ov-sites {
+  display: grid;
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-strong);
+}
+.ov .site-grid {
+  display: block;
+  border-top: 1px solid var(--border);
+}
+.ov .site-card,
+.ov .site-card:hover {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px 28px;
+  align-items: center;
+  padding: 18px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.ov .site-head {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: auto;
+}
+.ov .site-head h3 {
+  margin: 0;
+  font-family: var(--ov-code);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.ov .site-score {
+  margin: 0;
+  font-family: var(--ov-serif);
+  font-size: 2.6rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.ov .site-score .grade {
+  font-family: inherit;
+}
+.ov .site-card p {
+  margin: 0;
+}
+.ov .site-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ov .site-card .trend {
+  gap: 2px;
+}
+@media (min-width: 900px) {
+  .ov .site-card,
+  .ov .site-card:hover {
+    grid-template-columns:
+      minmax(0, 1.2fr) minmax(150px, 1fr) minmax(0, 1fr)
+      auto;
+    gap: 4px 32px;
+  }
+  .ov .site-head {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+  .ov .site-delta {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+  }
+  .ov .site-card .trend {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+  }
+  .ov .site-open {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: end;
+  }
+  .ov .site-last {
+    grid-column: 3;
+    grid-row: 2;
+    align-self: start;
+  }
+  .ov .site-actions {
+    grid-column: 4;
+    grid-row: 1 / span 2;
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+@media (max-width: 899px) {
+  .ov .site-actions {
+    margin-top: 6px;
+  }
+}

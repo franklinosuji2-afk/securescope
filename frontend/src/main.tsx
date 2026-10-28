@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { AuthProvider } from "./auth";
+import ErrorBoundary from "./components/ErrorBoundary";
 import UpdateNotice from "./components/UpdateNotice";
 import { initFloatingCards } from "./floating";
 import "@fontsource-variable/inter/wght.css";
@@ -30,9 +31,11 @@ const container = document.getElementById("root");
 if (!container) throw new Error("Root element missing");
 createRoot(container).render(
   <StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <ErrorBoundary scope="app">
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </ErrorBoundary>
     {import.meta.env.PROD && <UpdateNotice />}
   </StrictMode>,
 );

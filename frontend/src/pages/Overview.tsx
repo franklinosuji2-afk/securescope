@@ -12,6 +12,8 @@ import { buildHash, type Route } from "../router";
 import { canManageTargets, canScan } from "../types";
 import { useOverviewData } from "../useOverviewData";
 import { useScan } from "../useScan";
+import "@fontsource-variable/newsreader/opsz.css";
+import "../overview.css";
 
 export default function Overview({
   route,
@@ -33,7 +35,7 @@ export default function Overview({
     .map((t) => t.hostname);
 
   return (
-    <div className="stack">
+    <div className="stack ov">
       <header className="page-head">
         <h1>Overview</h1>
         {role === "VIEWER" ? (
@@ -64,6 +66,14 @@ export default function Overview({
           )}
         />
       )}
+      {allowed ? (
+        <ScanForm onStarted={onStarted} verifiedHosts={verifiedHosts} />
+      ) : (
+        <div className="notice notice-info" role="note">
+          Your role ({role ?? "none"}) can view scans and export reports but
+          cannot start scans.
+        </div>
+      )}
       {scanned && (
         <SummaryCards overview={data.overview} targets={data.targets} />
       )}
@@ -77,23 +87,18 @@ export default function Overview({
           organizationId={organization?.id ?? null}
         />
       )}
-      <div className={scanned ? "overview-grid" : "stack"}>
-        {scanned && (
+      {scanned && (
+        <section className="ov-sites" aria-labelledby="ov-sites-title">
+          <h2 id="ov-sites-title" className="ov-h2">
+            Your sites
+          </h2>
           <Posture
             overview={data.overview}
             onScanAgain={allowed ? onStarted : undefined}
             showFixFirst={false}
           />
-        )}
-        {allowed ? (
-          <ScanForm onStarted={onStarted} verifiedHosts={verifiedHosts} />
-        ) : (
-          <div className="notice notice-info" role="note">
-            Your role ({role ?? "none"}) can view scans and export reports but
-            cannot start scans.
-          </div>
-        )}
-      </div>
+        </section>
+      )}
       {error && <ErrorNotice message={error} />}
       {loading && !scan && <Loading label="Loading scan…" />}
       {scan && (
