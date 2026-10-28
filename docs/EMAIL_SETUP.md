@@ -59,7 +59,7 @@ Rules to keep:
 1. Send a test message from an outside mailbox to each public address and confirm it arrives (check spam as well). Cloudflare, Email Routing, Activity log shows one entry per address.
 2. Register a new account and confirm that the verification email arrives and the link works.
 3. In the received service email, open "Show original" and confirm SPF, DKIM and DMARC show PASS.
-4. Platform Health (signed in as the operator) shows the mail provider, the sent and failed counts and the last success.
+4. Platform health (signed in as the operator) shows the mail provider, the sent and failed counts and the last success.
 
 ## Limitations
 

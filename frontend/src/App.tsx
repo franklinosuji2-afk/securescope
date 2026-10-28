@@ -41,6 +41,7 @@ const AppScanning = lazyPage(() => import("./pages/AppScanning"));
 import { forgetInvite, pendingInvite } from "./pendingInvite";
 import { canReadAudit, canReadClients } from "./types";
 import { trackPageView, trackedPageName } from "./tracking";
+import { titleFor } from "./pageTitle";
 
 const NAV: { page: Page; label: string }[] = [
   { page: "overview", label: "Overview" },
@@ -49,12 +50,12 @@ const NAV: { page: Page; label: string }[] = [
   { page: "clients", label: "Clients" },
   { page: "app-scanning", label: "App Scanning" },
   { page: "findings", label: "Findings" },
-  { page: "history", label: "Scan History" },
+  { page: "history", label: "Scan history" },
   { page: "team", label: "Team" },
   { page: "account", label: "Account" },
   { page: "audit", label: "Audit log" },
   { page: "analytics", label: "Analytics" },
-  { page: "health", label: "Platform Health" },
+  { page: "health", label: "Platform health" },
 ];
 
 export default function App() {
@@ -94,6 +95,13 @@ export default function App() {
       document.removeEventListener("pointerdown", onPointer);
     };
   }, [menuOpen]);
+
+  // The browser tab names the page the person is on.
+  const signedIn = !!user;
+  useEffect(() => {
+    const title = titleFor(route.page, signedIn);
+    if (title) document.title = title;
+  }, [route.page, signedIn]);
 
   // A signed-in person has no use for the sign-in or registration forms: send them to the app.
   const signedInOnAuthForm =

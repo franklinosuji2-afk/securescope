@@ -149,7 +149,7 @@ describe("platform health page", () => {
       </AuthProvider>,
     );
     await screen.findByRole("navigation", { name: "Primary" });
-    expect(screen.queryByRole("link", { name: "Platform Health" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Platform health" })).toBeNull();
   });
 
   it("offers the page to the operator", async () => {
@@ -160,7 +160,7 @@ describe("platform health page", () => {
       </AuthProvider>,
     );
     expect(
-      await screen.findByRole("link", { name: "Platform Health" }),
+      await screen.findByRole("link", { name: "Platform health" }),
     ).toBeInTheDocument();
   });
 });

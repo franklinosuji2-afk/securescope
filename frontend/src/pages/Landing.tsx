@@ -58,12 +58,12 @@ const PROBLEMS = [
   {
     icon: "eye",
     title: "Easy to overlook",
-    text: "A missing header, a cookie anyone’s script can read, a forgotten .env file. None of it looks broken, so nobody notices until someone else does.",
+    text: "A missing header, a cookie anyone's script can read, a forgotten .env file. None of it looks broken, so nobody notices until someone else does.",
   },
   {
     icon: "file",
     title: "Hard to read",
-    text: "Big scanners can bury the two real problems under pages of jargon. You close the tab and promise yourself you’ll come back.",
+    text: "Big scanners can bury the two real problems under pages of jargon. You close the tab and promise yourself you'll come back.",
   },
   {
     icon: "users",
@@ -795,7 +795,7 @@ export default function Landing() {
             <PlanComparison />
             <p className="muted small">
               Prices are planned and may change before launch. If you reach a
-              limit, nothing is deleted; you just can’t add more until the month
+              limit, nothing is deleted; you just can't add more until the month
               renews.
             </p>
           </section>

@@ -211,7 +211,7 @@ export function HomeHero({
         <p className="hx-lead">
           SecureScope reads what your website sends to every visitor and tells
           you what is missing, with the evidence and the fix. App Scanning, for
-          known vulnerabilities in your application’s dependencies, is in
+          known vulnerabilities in your application's dependencies, is in
           development.
         </p>
         <div className="hx-actions">

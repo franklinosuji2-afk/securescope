@@ -3,8 +3,8 @@
 Operator-only. Everything is measured by the API process itself; nothing is estimated or sampled from
 another system.
 
-## Platform Health page
-Left menu, **Platform Health** (same operator account as Analytics: confirmed email equal to
+## Platform health page
+Left menu, **Platform health** (same operator account as Analytics: confirmed email equal to
 `SECURESCOPE_ADMIN_EMAIL`; everyone else gets `404`). Data comes from `GET /api/v1/platform/health`.
 
 | Section | Source |

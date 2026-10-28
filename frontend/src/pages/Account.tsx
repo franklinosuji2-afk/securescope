@@ -414,7 +414,7 @@ function PlanCard() {
           </dl>
           <p className="muted small">
             If you reach a limit, everything you already have stays. You just
-            can’t add more until the month renews or the plan changes.
+            can't add more until the month renews or the plan changes.
           </p>
         </>
       )}

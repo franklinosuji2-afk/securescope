@@ -115,7 +115,7 @@ export default function SampleReport() {
       <div className="sample-notice" role="note">
         <strong>Sample report.</strong> This is a demonstration. It is not a
         scan of a real website. <code>example.com</code> is a domain reserved
-        for documentation, and the findings were produced by SecureScope’s own
+        for documentation, and the findings were produced by SecureScope's own
         checks against a described test site.{" "}
         <a href="/sample-report.pdf" download="SecureScope-sample-report.pdf">
           Download this sample as a PDF.
@@ -349,7 +349,7 @@ export default function SampleReport() {
               <li>
                 It reads the home page, five fixed paths and, for a main domain,
                 its public DNS records. It does not crawl the whole site or test
-                your application’s logic.
+                your application's logic.
               </li>
               <li>
                 A clean report does not mean a site is secure. It means these

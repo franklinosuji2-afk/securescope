@@ -107,7 +107,7 @@ Every patch: targeted tests first, then the full backend suite on PostgreSQL, ru
 **Controlled external pilot (free plans)** can start when all of these hold:
 1. A fresh sign-up, email confirmation, site verification and first scan have been done on the live site by someone other than a developer, and the problems found are fixed or written down.
 2. A backup is taken weekly (the scheduled task, check its log) and before every migration (by hand), and the latest one has been restored at least once (done on 25 Oct).
-3. The owner looks at Platform Health after each release (mail failures and server errors are shown there but nothing alerts).
+3. The owner looks at Platform health after each release (mail failures and server errors are shown there but nothing alerts).
 4. Pilot users are told that this is a pilot, that paid plans do not exist yet, and how to reach support and report a security issue (the home page now shows both).
 5. The owner accepts, knowingly, that the lawyer review and the VAT answer are still open for a free pilot.
 

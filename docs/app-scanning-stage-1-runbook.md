@@ -167,7 +167,7 @@ Only after sections 1 to 3 are signed off **and** the owner gives a separate dep
 | S9 | Free test account: create an API token | 403 (as before) | |
 | S10 | Cross-customer check with two test accounts (existing guard) | Second account cannot see the first account's targets or scans | |
 | S11 | Account deletion on a throwaway account | Works | |
-| S12 | Platform Health page (operator) | Database reachable; no new errors | |
+| S12 | Platform health page (operator) | Database reachable; no new errors | |
 | S13 | Render logs for 15 minutes | No `app scan` lines other than possibly a start-up warning `could not clean up unfinished app scans at start-up` (which would mean the table is missing: investigate); no outbound-request errors; no mail sent that you did not trigger | |
 | S14 | Neon dashboard / query: the three `app_*` tables | Exist, zero rows | |
 
@@ -215,7 +215,7 @@ If the migration succeeded and only the application misbehaves, the database is 
 
 ### 8.4 After any rollback
 
-Rescan a verified site, check Platform Health, record what happened, and write the incident down (use `docs/INCIDENT_TEMPLATE.md`).
+Rescan a verified site, check Platform health, record what happened, and write the incident down (use `docs/INCIDENT_TEMPLATE.md`).
 
 ### 8.5 What was and was not proven about rollback
 
