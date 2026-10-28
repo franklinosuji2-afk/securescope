@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import { AuthProvider } from "../auth";
@@ -119,7 +119,9 @@ describe("platform health page", () => {
     );
     expect(await screen.findByText("No problems detected")).toBeInTheDocument();
     expect(screen.getByText("Reachable")).toBeInTheDocument();
-    expect(screen.getByText("180 ms")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("list", { name: /Latency/ })).getByText("180 ms"),
+    ).toBeInTheDocument();
     expect(screen.getByText("/api/v1/scans")).toBeInTheDocument();
     expect(screen.getByText("4.2 s")).toBeInTheDocument();
   });
