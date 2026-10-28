@@ -66,7 +66,7 @@ function NoScanSelected() {
       Your latest scan is of <strong>{latest.host}</strong>, started{" "}
       {formatDate(latest.created_at)}.{" "}
       <a href={buildHash("findings", latest.id)}>Open its findings</a>, or pick
-      another from <a href={buildHash("history", null)}>Scan History</a>.
+      another from <a href={buildHash("history", null)}>Scan history</a>.
     </EmptyState>
   );
 }
@@ -265,8 +265,8 @@ export default function Findings({ route }: { route: Route }) {
           )}
           {scan.status === "completed" && findings.length === 0 && (
             <EmptyState title="No findings from these checks">
-              That is not proof the site is secure – these checks are limited
-              and passive.
+              That is not proof the site is secure. These checks are limited and
+              passive.
             </EmptyState>
           )}
           {findings.length > 0 && shown.length === 0 && (

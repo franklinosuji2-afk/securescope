@@ -151,9 +151,16 @@ def start_scan(client: TestClient, mock_server: str):  # type: ignore[no-untyped
 def test_a_free_workspace_gets_three_scans_a_month_and_the_fourth_is_refused(
     alice: TestClient, mock_server: str
 ) -> None:
+    # The three earlier scans are created directly and stay queued. Starting them over HTTP made this
+    # test depend on timing: a scan that failed in the background (for example a slow CI runner hitting
+    # the request timeout) stops counting towards the allowance, which let the fourth request through.
     trust_host(alice, "127.0.0.1")
+    state = state_of(alice)
+    org = org_of(alice)
+    user = alice.get(f"{API}/auth/me").json()["id"]
+    start, _ = current_period(datetime.now(UTC))
     for _ in range(3):
-        assert start_scan(alice, mock_server).status_code == 202
+        state.repo.create_scan(org, user, f"{mock_server}/plain", "127.0.0.1", None, 3, start)
     fourth = start_scan(alice, mock_server)
     assert fourth.status_code == 403
     assert "3 scans per month" in fourth.json()["detail"]

@@ -85,7 +85,7 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
       <header className="page-head">
         <h1>Scan history</h1>
         <p>
-          Saved scans include the target, score and finding details – never page
+          Saved scans include the target, score and finding details, never page
           bodies.
         </p>
       </header>

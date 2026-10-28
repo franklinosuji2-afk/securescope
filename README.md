@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/franklinosuji2-afk/securescope/actions/workflows/ci.yml/badge.svg)](https://github.com/franklinosuji2-afk/securescope/actions/workflows/ci.yml)
 
-> **Status: v0.7.** Accounts, organizations, roles, tenant isolation and domain-ownership verification (DNS TXT / HTTP file) are implemented; scans only run against verified domains. Findings have a lifecycle (open, accepted risk, false positive, resolved) and the dashboard leads with what to fix first. Real email is **not** sent, so do not expose it publicly yet. See `docs/IMPLEMENTATION_PLAN.md`.
+> **Status: v0.11.** Accounts, organizations, roles, tenant isolation and domain-ownership verification (DNS TXT / HTTP file) are implemented; scans only run against verified domains. Findings have a lifecycle (open, accepted risk, false positive, resolved) and the dashboard leads with what to fix first. Service email (confirmation links, password resets, invitations) is sent through Brevo or Resend when one is configured; the default `log` mailer only writes to the server log. The public launch is not done yet: see `docs/securescope-prelaunch-checklist.md` and `docs/IMPLEMENTATION_PLAN.md`.
 
 A passive web-application security **posture** scanner for sites you own or are authorized to test. It checks a handful of safe, non-exploitative signals, explains each finding with evidence and a fix, keeps scan history, and exports reports.
 
@@ -52,17 +52,17 @@ Captured from the running app against a real scan history of my own portfolio si
 | Report export: PDF, HTML, Markdown, JSON                                                                                                                                                                                   | Implemented                                                                                                                |
 | Scan control: cancel a queued or running scan, scan any finished site again with one click (ownership and rate limits are checked again)                                                                                   | Implemented                                                                                                                |
 | Audit log for owners and admins: API and page with filter and paging                                                                                                                                                       | Implemented                                                                                                                |
-| Dashboard: Overview (guided setup, "fix this first", per-site posture and score history), Targets, Findings (filters, detail page with impact, evidence and fix), Scan History, Team, Audit log                            | Implemented                                                                                                                |
+| Dashboard: Overview (guided setup, "fix this first", per-site posture and score history), Targets, Findings (filters, detail page with impact, evidence and fix), Scan history, Team, Audit log                            | Implemented                                                                                                                |
 | Accessibility: light and dark themes, severity never shown by colour alone, keyboard-operable, automated axe checks in CI, mobile navigation menu                                                                          | Implemented. No manual screen-reader testing yet                                                                           |
 | Domain targets with DNS TXT / HTTP-file ownership verification; scans refused for unverified hosts                                                                                                                         | Implemented. HTTP-file verification confirmed once end to end on a real domain; the DNS TXT path is tested with mocks only |
 | Registration, login, logout, sessions (HttpOnly cookies + CSRF), Argon2id passwords                                                                                                                                        | Implemented                                                                                                                |
 | Organizations, 5 roles enforced server-side, tenant-isolated scans, audit events                                                                                                                                           | Implemented                                                                                                                |
-| Email verification / password reset flows                                                                                                                                                                                  | Implemented, but mail goes to the server log only                                                                          |
+| Email verification / password reset flows                                                                                                                                                                                  | Implemented. Mail is sent only when a provider is configured; otherwise it goes to the server log                         |
 
 ## Roadmap (not implemented)
 
 - Periodic re-verification of target ownership
-- Real email delivery, session management UI
+- Session management UI
 - Scheduled rescans
 - Outdated-software detection, full TLS configuration testing (cipher/protocol enumeration), optional OWASP ZAP integration
 - Egress proxy for production DNS-rebinding defence

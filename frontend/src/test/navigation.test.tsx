@@ -67,6 +67,19 @@ describe("routing", () => {
   });
 });
 
+describe("the browser tab", () => {
+  it("names the page the person is on and changes with the page", async () => {
+    stub([]);
+    window.location.hash = "#/history";
+    renderApp();
+    await screen.findByRole("heading", { name: "Scan history" });
+    expect(document.title).toBe("Scan history – SecureScope");
+    window.location.hash = "#/nope";
+    await screen.findByRole("heading", { name: "Page not found" });
+    expect(document.title).toBe("Page not found – SecureScope");
+  });
+});
+
 describe("Findings without a scan chosen", () => {
   it("offers the latest scan instead of a dead end", async () => {
     stub([

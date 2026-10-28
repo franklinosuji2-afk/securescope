@@ -86,7 +86,7 @@
 | 55 | Rollbacks | Partially implemented | Medium | `docs/OPERATIONS.md` section 4 | Procedure written down (git revert, provider redeploy, restore for migrations). It has not been rehearsed. |
 | 56 | Health Checks | Implemented and verified | High | `api/v1/__init__.py` `/health` and `/ready`; `tests/test_api.py::test_ready_reports_database_state`; Render `healthCheckPath`; Docker `HEALTHCHECK` | Present and tested. |
 | 57 | Liveness & Readiness Probes | Partially implemented | Medium | `/health` (liveness) and `/ready` (database check) | The two endpoints exist and map to the concepts, but there are no Kubernetes-style probe definitions. |
-| 58 | Monitoring | Implemented and verified | Medium | Platform Health page and `api/v1/monitoring.py`; `tests/test_platform_health.py`; `docs/MONITORING.md` | In-app view for one process; resets on restart (documented). |
+| 58 | Monitoring | Implemented and verified | Medium | Platform health page and `api/v1/monitoring.py`; `tests/test_platform_health.py`; `docs/MONITORING.md` | In-app view for one process; resets on restart (documented). |
 | 59 | Logging | Implemented and verified | High | `core/logging.py` (JSON to stdout, request IDs in `main.py`) | Structured logs with a request ID. `tests/test_log_secrets.py` checks that passwords, session and CSRF values, reset and API tokens, the mail key and recipients never reach the log. There is no log retention or shipping setup. |
 | 60 | Distributed Tracing | Not implemented | Low | Only an `X-Request-ID` correlation header (`main.py`) | No spans or trace export. Not needed for a single service. |
 | 61 | Metrics | Implemented and verified | Medium | `observability/metrics.py`; optional Prometheus `/metrics` behind a bearer token; `tests/test_platform_health.py` | In-memory, one process. |
@@ -94,7 +94,7 @@
 | 63 | SLOs | Not implemented | Low | None | No targets defined. |
 | 64 | SLIs | Partially implemented | Low | Request counts, error rates and p95 latency exist in `observability/metrics.py` | The raw measurements exist; no SLI has been formally defined from them. |
 | 65 | Error Budgets | Not implemented | Low | None | Depends on SLOs. |
-| 66 | Observability | Partially implemented | Medium | Logs + metrics + request IDs + Platform Health page | Logs and metrics exist; no tracing and no persistent history. |
+| 66 | Observability | Partially implemented | Medium | Logs + metrics + request IDs + Platform health page | Logs and metrics exist; no tracing and no persistent history. |
 | 67 | Secrets Management | Implemented | High | Secrets as `SecretStr` settings (`core/config.py`), `sync: false` in `render.yaml`, `.env.example` placeholders; Trivy secret scan in CI | Secrets stay out of git and are loaded from the environment. A written rotation and leak procedure is in `OPERATIONS.md` section 5. No secret manager. |
 | 68 | IAM | Partially implemented | Medium | Application roles and permissions: `security/permissions.py` (five roles), `tests/test_tenancy.py`, `tests/test_targets.py` | Application-level access control is enforced server-side and tested. Cloud IAM (Cloudflare, Render, Neon accounts) is outside the repo. |
 | 69 | OAuth | Not implemented | Low | None | Email and password only. Social login is optional future work. |
@@ -119,8 +119,8 @@
 | 88 | Cost Optimization | Partially implemented | Medium | Free-tier architecture documented in `docs/DEPLOY_FREE.md` | Designed for about zero cost. No cost monitoring. |
 | 89 | Cold Starts | Partially implemented | Medium | Documented in `observability/metrics.py` and MONITORING.md (free instance sleeps) | Known and documented; no mitigation such as a keep-alive. |
 | 90 | Serverless Limits | Partially implemented | Low | Cloudflare Worker is used only as a thin proxy; free-tier limits noted in DEPLOY_FREE.md | Limits are noted, not monitored. |
-| 91 | Latency | Partially implemented | Medium | `response_time_ms` per scan; request latency in Platform Health | Measured in the app; no latency targets. |
-| 92 | Throughput | Partially implemented | Low | Request counts in Platform Health | Counted, not load-tested. |
+| 91 | Latency | Partially implemented | Medium | `response_time_ms` per scan; request latency in Platform health | Measured in the app; no latency targets. |
+| 92 | Throughput | Partially implemented | Low | Request counts in Platform health | Counted, not load-tested. |
 | 93 | P99 Latency | Not implemented | Low | Only p95 is computed (`observability/metrics.py`) | No p99. |
 | 94 | Tail Latency | Not implemented | Low | None | Not analysed. |
 | 95 | Network Partitions | Not applicable | None | None | No distributed state. |

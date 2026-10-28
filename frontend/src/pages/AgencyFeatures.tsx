@@ -11,7 +11,7 @@ const FOR_CLIENTS: Feature[] = [
   },
   {
     title: "An agency dashboard from real scans",
-    text: "One row per client with each site’s latest score, open findings by severity and last scan date. A site that has not been scanned says so. Nothing is estimated.",
+    text: "One row per client with each site's latest score, open findings by severity and last scan date. A site that has not been scanned says so. Nothing is estimated.",
   },
   {
     title: "Reports with your name on them",
