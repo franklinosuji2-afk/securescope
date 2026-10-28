@@ -1,0 +1,148 @@
+/* Scan history: a ruled table, no box. On a phone each scan becomes a short ruled block with its labels. */
+.hist {
+  --h-serif: var(
+    --serif,
+    "Newsreader Variable",
+    "Iowan Old Style",
+    Georgia,
+    serif
+  );
+  --h-code: var(
+    --code,
+    "JetBrains Mono Variable",
+    ui-monospace,
+    "SFMono-Regular",
+    Menlo,
+    monospace
+  );
+  gap: clamp(20px, 2.4vw, 32px);
+}
+.hist .page-head {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 12px;
+}
+.hist .page-head h1 {
+  margin: 0;
+  font-family: var(--h-serif);
+  font-size: clamp(2.2rem, 1.4rem + 2.6vw, 3.4rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.hist .page-head p {
+  max-width: 68ch;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+.hist .hist-table {
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--border-strong);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.hist table {
+  font-size: 0.9375rem;
+}
+.hist th {
+  padding: 14px 16px 12px;
+  font-size: 0.875rem;
+  letter-spacing: 0;
+  text-transform: none;
+  border-bottom: 1px solid var(--border);
+}
+.hist td {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.hist tbody tr:last-child td {
+  border-bottom: 1px solid var(--border);
+}
+.hist th:first-child,
+.hist td:first-child {
+  padding-left: 0;
+}
+.hist .hist-host {
+  font-family: var(--h-code);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+.hist .hist-score {
+  font-family: var(--h-serif);
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.hist .hist-count {
+  font-size: 1.0625rem;
+  font-variant-numeric: tabular-nums;
+}
+.hist td .row {
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+@media (max-width: 720px) {
+  .hist .hist-table {
+    overflow: visible;
+  }
+  .hist .hist-table > table {
+    min-width: 0;
+  }
+  .hist table,
+  .hist tbody,
+  .hist tr,
+  .hist td {
+    display: block;
+  }
+  .hist thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .hist tbody tr {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .hist tbody tr:hover {
+    background: transparent;
+  }
+  .hist td,
+  .hist tbody tr:last-child td {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: 12px;
+    align-items: baseline;
+    padding: 5px 0;
+    border: 0;
+  }
+  .hist td[data-label]::before {
+    content: attr(data-label);
+    font-family: var(--font);
+    color: var(--muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+  .hist .hist-host {
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  .hist td > .pill {
+    justify-self: start;
+  }
+  .hist td:last-child,
+  .hist tbody tr:last-child td:last-child {
+    display: block;
+    padding-top: 10px;
+  }
+  .hist td .row {
+    flex-wrap: wrap;
+  }
+  .hist .hist-score {
+    font-size: 1.25rem;
+  }
+}

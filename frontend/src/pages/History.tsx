@@ -6,6 +6,9 @@ import { formatDate } from "../format";
 import type { ScanSummary } from "../types";
 import { rescanLabel } from "../components/RescanButton";
 import { canScan, isActive } from "../types";
+import "@fontsource-variable/newsreader/opsz.css";
+import "@fontsource-variable/jetbrains-mono/wght.css";
+import "../history.css";
 
 const PAGE = 25;
 
@@ -78,7 +81,7 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
   }, [refresh]);
 
   return (
-    <div className="stack">
+    <div className="stack hist">
       <header className="page-head">
         <h1>Scan history</h1>
         <p>
@@ -95,7 +98,7 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
       )}
       {items.length > 0 && (
         <div
-          className="card table-wrap"
+          className="table-wrap hist-table"
           role="region"
           tabIndex={0}
           aria-label="Scan history (scrolls sideways on small screens)"
@@ -116,15 +119,19 @@ export default function History({ onOpen }: { onOpen: (id: string) => void }) {
             <tbody>
               {items.map((s) => (
                 <tr key={s.id}>
-                  <td style={{ overflowWrap: "anywhere" }}>{s.host}</td>
-                  <td>
+                  <td className="hist-host" data-label="Target">
+                    {s.host}
+                  </td>
+                  <td data-label="Status">
                     <StatusPill status={s.status} />
                   </td>
-                  <td>{s.score != null ? `${s.score} (${s.grade})` : "–"}</td>
-                  <td>
+                  <td className="hist-score" data-label="Score">
+                    {s.score != null ? `${s.score} (${s.grade})` : "–"}
+                  </td>
+                  <td className="hist-count" data-label="Findings">
                     {Object.values(s.counts).reduce((a, b) => a + (b ?? 0), 0)}
                   </td>
-                  <td>{formatDate(s.created_at)}</td>
+                  <td data-label="Started">{formatDate(s.created_at)}</td>
                   <td>
                     <div className="row">
                       <button
