@@ -8,6 +8,7 @@ import WebhookAlerts from "../components/WebhookAlerts";
 import { ErrorNotice, Loading } from "../components/ui";
 import type { Target } from "../types";
 import { canManageMembers, canManageTargets } from "../types";
+import "../integrations.css";
 
 /** Alerts, badges and API access, kept apart from the list of domains on the Targets page. */
 export default function Integrations() {
@@ -39,7 +40,7 @@ export default function Integrations() {
   const hasVerified = !!targets && targets.some((t) => t.status === "verified");
 
   return (
-    <div className="stack">
+    <div className="stack ig">
       <header className="page-head">
         <h1>Integrations</h1>
         <p>
