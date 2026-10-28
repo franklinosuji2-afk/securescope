@@ -35,3 +35,12 @@ export default function ThemeToggle() {
     </button>
   );
 }
+
+/** The toggle pinned to the top-right corner, for pages without a header (sign-in, legal, not found). */
+export function CornerThemeToggle() {
+  return (
+    <div className="corner-theme">
+      <ThemeToggle />
+    </div>
+  );
+}

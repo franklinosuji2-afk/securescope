@@ -42,9 +42,8 @@
 }
 .sample-meta dt {
   color: var(--muted);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 .sample-meta dd {
   margin: 6px 0 0;
@@ -63,9 +62,7 @@
 }
 .sample-toc h2 {
   margin: 0 0 14px;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 0.95rem;
   color: var(--muted);
 }
 .sample-toc ol {
@@ -182,9 +179,8 @@
 .sample-finding dt {
   margin-top: 16px;
   color: var(--muted);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 .sample-finding dd {
   margin: 4px 0 0;

@@ -17,6 +17,46 @@
     0 20px 40px -22px rgba(15, 23, 42, 0.28);
 }
 
+/* The sun/moon toggle: same size everywhere, and the icon turns when the theme changes. */
+.theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 42px;
+  height: 42px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 12px;
+  color: var(--text);
+  line-height: 0;
+}
+.theme-toggle svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  transition: transform 400ms var(--ease-out);
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .theme-toggle:hover svg {
+    transform: rotate(24deg) scale(1.08);
+  }
+}
+
+/* While the theme changes, every colour fades together (theme.ts adds this class for a moment). */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition:
+    background-color 300ms ease,
+    border-color 300ms ease,
+    color 300ms ease,
+    fill 300ms ease,
+    stroke 300ms ease,
+    box-shadow 300ms ease !important;
+}
+
 /* Smooth colour changes everywhere it matters, including the theme switch. */
 body {
   transition:
@@ -118,14 +158,55 @@ textarea:focus-visible {
     transform: translateY(-1px);
   }
 
-  /* Floating cards: every card on the public pages, plus the app's summary cards. Forms and other plain
-     cards in the signed-in app stay still on purpose. */
+  /* Floating cards: every card on the public pages, plus the app's summary and overview cards. They rise,
+     lean a few degrees toward the pointer (floating.ts sets --rx and --ry) and show a soft light under it.
+     Forms and other plain cards in the signed-in app stay still on purpose. */
+  .landing .card:not(.landing-final):not(.landing-sample),
+  .landing .sample-notice,
+  .landing-numbers > div,
+  .landing-steps > li,
+  .summary-card,
+  .bento-card {
+    position: relative;
+    transform-style: preserve-3d;
+  }
+  .landing .card:not(.landing-final):not(.landing-sample)::after,
+  .landing .sample-notice::after,
+  .landing-numbers > div::after,
+  .landing-steps > li::after,
+  .summary-card::after,
+  .bento-card::after,
+  .landing-sample::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      320px circle at var(--px, 50%) var(--py, 0%),
+      color-mix(in srgb, var(--accent-soft) 16%, transparent),
+      transparent 70%
+    );
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur) var(--ease-out);
+  }
+  .landing .card:not(.landing-final):not(.landing-sample):hover::after,
+  .landing .sample-notice:hover::after,
+  .landing-numbers > div:hover::after,
+  .landing-steps > li:hover::after,
+  .summary-card:hover::after,
+  .bento-card:hover::after,
+  .landing-sample:hover::after {
+    opacity: 1;
+  }
   .landing .card:not(.landing-final):not(.landing-sample):hover,
   .landing .sample-notice:hover,
   .landing-numbers > div:hover,
   .landing-steps > li:hover,
-  .summary-card:hover {
-    transform: translateY(-4px);
+  .summary-card:hover,
+  .bento-card:hover {
+    transform: perspective(900px) translateY(-4px) rotateX(var(--ry, 0deg))
+      rotateY(var(--rx, 0deg));
     border-color: color-mix(in srgb, var(--accent-soft) 45%, var(--border));
     box-shadow: var(--lift-shadow);
   }
@@ -137,10 +218,9 @@ textarea:focus-visible {
     box-shadow: var(--lift-shadow);
   }
   .bento-card {
+    transition-property: transform, box-shadow, border-color, background-color;
+    transition-duration: var(--dur);
     transition-timing-function: var(--ease-out);
-  }
-  .bento-card:hover {
-    box-shadow: var(--lift-shadow);
   }
 
   /* Navigation and list rows lean toward the pointer. */
@@ -189,7 +269,8 @@ textarea:focus-visible {
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   .landing-sample:hover {
     animation-play-state: paused;
-    transform: translateY(-6px);
+    transform: perspective(900px) translateY(-6px) rotateX(var(--ry, 0deg))
+      rotateY(var(--rx, 0deg));
     border-color: color-mix(in srgb, var(--accent-soft) 55%, var(--border));
     box-shadow:
       var(--lift-shadow),

@@ -203,3 +203,19 @@ describe("signed-in visitors on the sign-in page", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("sign-in page layout", () => {
+  it("shows the short pitch beside the form, one heading and one theme toggle", async () => {
+    mockApi(null);
+    window.location.hash = "#/login";
+    renderApp();
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Sign in" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Passive checks only")).toBeInTheDocument();
+    expect(screen.getByText("Ownership verified first")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: /Switch to (light|dark) theme/ }),
+    ).toHaveLength(1);
+  });
+});

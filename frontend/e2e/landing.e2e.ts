@@ -207,11 +207,9 @@ test("the header never wraps or overflows between phone and desktop widths", asy
   }
 });
 
-test("the sample report card links to the full sample report", async ({
-  page,
-}) => {
+test("the home page hero links to the full sample report", async ({ page }) => {
   await page.goto("/#/");
-  await page.getByRole("link", { name: /Open the full sample report/ }).click();
+  await page.getByRole("link", { name: "View sample report" }).click();
   await expect(page).toHaveURL(/#\/sample-report/);
 });
 
@@ -259,15 +257,7 @@ test("the public pages never overflow between phone and desktop widths", async (
 test.describe("floating cards", () => {
   test.use({ reducedMotion: "no-preference" });
   const cases: [string, string[]][] = [
-    [
-      "",
-      [
-        ".landing-sample",
-        ".landing-card",
-        ".landing-numbers > div",
-        ".landing-final",
-      ],
-    ],
+    ["", [".landing-card", ".landing-numbers > div", ".landing-final"]],
     [
       "sample-report",
       [
@@ -343,7 +333,7 @@ test("the home page offers the sample report as a PDF that really downloads", as
 }) => {
   await page.goto("/#/");
   const links = page.getByRole("link", { name: /Download the sample PDF/ });
-  await expect(links).toHaveCount(2); // the hero card and the sample section
+  await expect(links).toHaveCount(1); // the sample section
   for (const link of await links.all())
     await expect(link).toHaveAttribute("href", "/sample-report.pdf");
   const response = await page.request.get("/sample-report.pdf");
