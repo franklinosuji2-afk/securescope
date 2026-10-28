@@ -6,15 +6,20 @@ export interface RecentScans {
   loading: boolean;
   error: string | null;
   items: ScanSummary[];
+  /** Loads the list again, for the "Try again" button after an error. */
+  retry: () => void;
 }
+
+type State = Omit<RecentScans, "retry">;
 
 /** The latest scans, loaded on their own so one failing request cannot blank the rest of the dashboard. */
 export function useRecentScans(refreshKey: string, limit = 6): RecentScans {
-  const [state, setState] = useState<RecentScans>({
+  const [state, setState] = useState<State>({
     loading: true,
     error: null,
     items: [],
   });
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -35,6 +40,10 @@ export function useRecentScans(refreshKey: string, limit = 6): RecentScans {
     return () => {
       cancelled = true;
     };
-  }, [refreshKey, limit]);
-  return state;
+  }, [refreshKey, limit, attempt]);
+  const retry = () => {
+    setState((s) => ({ ...s, loading: true, error: null }));
+    setAttempt((n) => n + 1);
+  };
+  return { ...state, retry };
 }

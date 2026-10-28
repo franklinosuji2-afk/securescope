@@ -6,26 +6,20 @@ import { chartPoints, deltaText, historySummary } from "../../overview";
 import { buildHash } from "../../router";
 import type { Overview, ReportFormat, Target } from "../../types";
 import { FixFirstPanel } from "../Posture";
-import { ErrorNotice, Loading, SeverityBadge, StatusPill } from "../ui";
+import { Loading, SeverityBadge } from "../ui";
 import {
   priorityActions,
-  scanOutcome,
   scannedHostSet,
   scanRecord,
   scoreScope,
+  TARGET_LABEL,
   topIssues,
   weakestSite,
   type ScanRecord,
 } from "./bentoLogic";
 import SecurityScoreGauge from "./SecurityScoreGauge";
+import { ScanActivityList, SiteInventoryList } from "./OverviewLists";
 import { useRecentScans } from "./useRecentScans";
-
-const TARGET_LABEL: Record<Target["status"], string> = {
-  verified: "Ownership verified",
-  pending: "Ownership not verified yet",
-  expired: "Verification expired",
-  reverify: "Needs re-verification",
-};
 
 /** Listed hosts show their score instead; the other labels say only what is known. */
 const SCAN_RECORD_LABEL: Record<ScanRecord, string> = {
@@ -219,30 +213,7 @@ export default function BentoGrid({
             title="Scan activity"
             className="bento-activity"
           >
-            {recent.loading && <Loading label="Loading scans…" />}
-            {recent.error && <ErrorNotice message={recent.error} />}
-            {!recent.loading && !recent.error && recent.items.length === 0 && (
-              <p className="muted">No scans yet.</p>
-            )}
-            {recent.items.length > 0 && (
-              <ul className="bento-list">
-                {recent.items.map((s) => (
-                  <li key={s.id}>
-                    <a className="bento-row" href={buildHash("history", s.id)}>
-                      <span className="bento-row-main">
-                        <span className="bento-row-title">
-                          <code>{s.host}</code>
-                        </span>
-                        <span className="muted small">
-                          {formatDate(s.created_at)} · {scanOutcome(s)}
-                        </span>
-                      </span>
-                      <StatusPill status={s.status} />
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <ScanActivityList recent={recent} />
             <a className="btn-ghost" href="#/history">
               All scans
             </a>
@@ -253,37 +224,16 @@ export default function BentoGrid({
             title="Site inventory"
             className="bento-targets"
           >
-            {targets.length === 0 ? (
-              <p className="muted">No sites added yet.</p>
-            ) : (
-              <ul className="bento-list">
-                {targets.slice(0, 6).map((t) => {
-                  const s = siteByHost.get(t.hostname);
-                  return (
-                    <li key={t.id} className="bento-inv">
-                      <code>{t.hostname}</code>
-                      <span className="muted small">
-                        {TARGET_LABEL[t.status]} ·{" "}
-                        {s
-                          ? `score ${s.score ?? "–"}, ${s.open_total} open`
-                          : SCAN_RECORD_LABEL[
-                              scanRecord(
-                                t.hostname,
-                                overview.sites,
-                                scannedHosts,
-                              )
-                            ]}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-            {targets.length > 6 && (
-              <p className="muted small">
-                Showing 6 of {targets.length} sites.
-              </p>
-            )}
+            <SiteInventoryList
+              targets={targets}
+              siteByHost={siteByHost}
+              describe={(t) =>
+                SCAN_RECORD_LABEL[
+                  scanRecord(t.hostname, overview.sites, scannedHosts)
+                ]
+              }
+              canManage={canManage}
+            />
             <a className="btn-ghost" href="#/targets">
               {canManage ? "Manage sites" : "View sites"}
             </a>

@@ -183,3 +183,25 @@ export function scanOutcome(scan: ScanSummary): string {
       return "In progress";
   }
 }
+
+/** What each ownership state means, in the words the Overview uses. */
+export const TARGET_LABEL: Record<Target["status"], string> = {
+  verified: "Ownership verified",
+  pending: "Ownership not verified yet",
+  expired: "Verification expired",
+  reverify: "Needs re-verification",
+};
+
+/** Sites by ownership state, for the one-line summary above the inventory. */
+export function inventoryCounts(targets: Target[]): {
+  total: number;
+  verified: number;
+  needAttention: number;
+} {
+  const verified = targets.filter((t) => t.status === "verified").length;
+  return {
+    total: targets.length,
+    verified,
+    needAttention: targets.length - verified,
+  };
+}
