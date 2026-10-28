@@ -1,0 +1,145 @@
+/* Team: members and invitations as ruled tables, the invite form as one band. */
+.tm {
+  --m-serif: var(
+    --serif,
+    "Newsreader Variable",
+    "Iowan Old Style",
+    Georgia,
+    serif
+  );
+  gap: clamp(24px, 3vw, 40px);
+}
+.tm > * {
+  min-width: 0;
+}
+.tm .page-head {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 12px;
+}
+.tm .page-head h1 {
+  margin: 0;
+  font-family: var(--m-serif);
+  font-size: clamp(2.2rem, 1.4rem + 2.6vw, 3.4rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.tm .page-head p {
+  max-width: 68ch;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+.tm h2 {
+  margin: 0;
+  font-family: var(--m-serif);
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+/* The tables: ruled, not boxed */
+.tm .table-wrap {
+  padding: 18px 0 0;
+  border: 0;
+  border-top: 1px solid var(--border-strong);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.tm .table-wrap > h2 {
+  margin-bottom: 14px;
+}
+.tm .table-wrap:hover {
+  transform: none;
+}
+.tm tbody tr:hover {
+  background: transparent;
+}
+.tm th {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.tm td .input {
+  min-height: 40px;
+  border-radius: 6px;
+  background-color: var(--bg);
+}
+@media (min-width: 641px) {
+  .tm th,
+  .tm td {
+    padding: 14px 16px 14px 0;
+  }
+  .tm th {
+    padding-top: 0;
+    border-bottom: 1px solid var(--border-strong);
+  }
+  .tm td:last-child,
+  .tm th:last-child {
+    padding-right: 0;
+    text-align: right;
+  }
+}
+
+/* Inviting someone, and the plan note */
+.tm form.scan-form,
+.tm section.card {
+  display: grid;
+  gap: 12px;
+  max-width: 44rem;
+  padding: 20px 24px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: none;
+}
+.tm form.scan-form > p,
+.tm section.card > p {
+  max-width: 62ch;
+  margin: 0;
+  line-height: 1.6;
+}
+.tm form.scan-form .input-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tm form.scan-form .input-row .input {
+  min-height: 44px;
+  border-radius: 6px;
+  background-color: var(--bg);
+}
+.tm form.scan-form .input-row input.input {
+  flex: 1 1 14rem;
+  width: 0;
+  min-width: 0;
+}
+.tm form.scan-form .input-row .btn {
+  flex: none;
+}
+.tm .notice {
+  border-radius: 6px;
+}
+@media (max-width: 420px) {
+  .tm form.scan-form,
+  .tm section.card {
+    padding: 18px;
+  }
+  .tm form.scan-form .input-row {
+    flex-direction: column;
+  }
+  .tm form.scan-form .input-row input.input {
+    flex: none;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .tm .stack-table .st-expires::before {
+    content: "Expires ";
+  }
+}

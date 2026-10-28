@@ -6,6 +6,7 @@ import { ErrorNotice, Loading } from "../components/ui";
 import { formatDate } from "../format";
 import type { Invitation, OrganizationDetail, PlanInfo, Role } from "../types";
 import { ROLES, canManageMembers, roleLabel } from "../types";
+import "../team.css";
 
 export default function Team() {
   const { organization, user } = useAuth();
@@ -109,7 +110,7 @@ export default function Team() {
   const manage = organization ? canManageMembers(organization.role) : false;
 
   return (
-    <div className="stack">
+    <div className="stack tm">
       <header className="page-head">
         <h1>Team</h1>
         <p>
@@ -210,7 +211,7 @@ export default function Team() {
           aria-label="Pending invitations (scrolls sideways on small screens)"
         >
           <h2>Pending invitations</h2>
-          <table>
+          <table className="stack-table">
             <thead>
               <tr>
                 <th scope="col">Email</th>
@@ -224,10 +225,14 @@ export default function Team() {
             <tbody>
               {invitations.map((i) => (
                 <tr key={i.id}>
-                  <td style={{ overflowWrap: "anywhere" }}>{i.email}</td>
+                  <td className="st-main" style={{ overflowWrap: "anywhere" }}>
+                    {i.email}
+                  </td>
                   <td>{roleLabel(i.role)}</td>
-                  <td>{formatDate(i.expires_at)}</td>
-                  <td>
+                  <td className="st-joined st-expires">
+                    {formatDate(i.expires_at)}
+                  </td>
+                  <td className="st-action">
                     <button
                       className="btn-ghost"
                       type="button"
