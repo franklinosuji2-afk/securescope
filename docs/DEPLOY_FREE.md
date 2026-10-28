@@ -52,7 +52,7 @@ Free instances sleep after 15 minutes without traffic and take about a minute to
 
 ## 4. Cloudflare (app and proxy)
 
-Cloudflare's "create application" flow builds this as a **Worker with static assets** (not a classic Pages project). `frontend/wrangler.jsonc` describes it: the built app in `dist` is served from Cloudflare's asset layer, single-page-app fallback is on, and only `/api/*` runs `frontend/worker/index.js`.
+Cloudflare's "create application" flow builds this as a **Worker with static assets** (not a classic Pages project). `frontend/wrangler.jsonc` describes it: the built app in `dist` is served from Cloudflare's asset layer, and only `/api/*` runs `frontend/worker/index.js`. Unknown paths answer `404.html` with a 404 status (`not_found_handling: "404-page"`); the app itself uses hash routes, and `npm run build` adds `reset-password.html`, `verify-email.html` and `accept-invite.html` (copies of `index.html`) because emails link to those three paths.
 
 1. Workers & Pages > Create > import the Git repository. Project/Worker name: `securescope`. Root directory: `frontend`. Build command: `npm run build`. Deploy command: `npx wrangler deploy`. Variable `NODE_VERSION` = `22`.
 2. Settings > Variables and Secrets (Production), as **secrets**:

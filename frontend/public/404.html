@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Page not found – SecureScope</title>
+    <style>
+      :root {
+        --bg: #050505;
+        --text: #f4f7f8;
+        --muted: #a7b2b8;
+        --accent: #19cdb5;
+        --border: #2a3236;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #eef2f6;
+          --text: #101820;
+          --muted: #4a5a66;
+          --accent: #0b5f58;
+          --border: #c5d0d8;
+        }
+      }
+      body {
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 24px;
+        box-sizing: border-box;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      main {
+        max-width: 34rem;
+        padding: 32px 0 0;
+        border-top: 1px solid var(--border);
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-family: "Iowan Old Style", Georgia, serif;
+        font-size: clamp(2rem, 6vw, 2.75rem);
+        font-weight: 400;
+        line-height: 1.15;
+      }
+      p {
+        margin: 0 0 20px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      a {
+        color: var(--accent);
+        font-weight: 600;
+      }
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Page not found</h1>
+      <p>
+        This address does not match any page on SecureScope. The link may be
+        mistyped or out of date.
+      </p>
+      <p><a href="/">Go to the SecureScope home page</a></p>
+    </main>
+  </body>
+</html>
