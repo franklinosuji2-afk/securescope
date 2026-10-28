@@ -1201,6 +1201,10 @@ pre.evidence {
 a.btn {
   color: var(--on-accent);
 }
+/* A link styled as an outline button sits on the page surface, so it keeps the page text colour. */
+a.btn.btn-ghost {
+  color: var(--text);
+}
 .guide {
   display: flex;
   flex-direction: column;
