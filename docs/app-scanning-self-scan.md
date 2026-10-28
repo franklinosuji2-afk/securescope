@@ -21,7 +21,8 @@ understood.
 ## One-time setup (owner)
 
 1. In SecureScope, App Scanning page: add a project, for example `securescope-repo`. Note its id.
-2. In SecureScope, Integrations: create an API token with scope **app** (Professional, Agency or Internal plan).
+2. Create an API token with scope **app** (Professional, Agency or Internal plan). The Integrations page can only
+   create web tokens, so an app token is created through the API (see "Creating an app token" below).
    Copy it once; it is not shown again. Tokens expire after 90 days (pilot value).
 3. In the GitHub repository, Settings, Secrets and variables, Actions:
    - Secret `SECURESCOPE_APP_TOKEN`: the token.
@@ -29,6 +30,31 @@ understood.
      With the GitHub CLI: `gh secret set SECURESCOPE_APP_TOKEN` (paste at the prompt) and
      `gh variable set SECURESCOPE_APP_PROJECT_ID --body <id>`.
 4. Run the workflow and read the Action's summary line (`scan-id`, `result`).
+
+## Creating an app token
+
+PowerShell, signed in with your own account. The password is typed into a prompt, never into the command line, and
+the token goes to the clipboard so it does not appear in the terminal:
+
+```powershell
+$base = "https://getsecurescope.com/api/v1"
+$cred = Get-Credential   # email as user name
+$body = @{ email = $cred.UserName; password = $cred.GetNetworkCredential().Password } | ConvertTo-Json
+Invoke-RestMethod "$base/auth/login" -Method Post -Body $body -ContentType "application/json" -SessionVariable s | Out-Null
+$csrf = ($s.Cookies.GetCookies($base) | Where-Object Name -eq "ss_csrf").Value
+$t = Invoke-RestMethod "$base/api-tokens" -Method Post -WebSession $s `
+  -Headers @{ "X-CSRF-Token" = $csrf } -ContentType "application/json" `
+  -Body (@{ name = "github-self-scan"; scope = "app" } | ConvertTo-Json)
+$t.token | Set-Clipboard   # paste it into the GitHub secret, then clear the clipboard
+```
+
+If the answer is 401 or 403, check the e-mail and password first. Do not paste the token into chat, tickets or logs.
+
+## If the Action is refused with 403
+
+The message now says what was refused. "Not from the SecureScope API (a firewall or proxy may have refused it)" means
+a firewall or bot protection in front of the API challenged the GitHub runner, not that the plan limit was reached.
+With Cloudflare, Bot Fight Mode on the Free plan challenges such requests and cannot be skipped by custom rules.
 
 ## Expected results and known noise
 
@@ -44,5 +70,5 @@ understood.
 
 ## Remove or revoke
 
-Delete the workflow file and the secret, and revoke the token in SecureScope (Integrations). The project and its
+Delete the workflow file and the secret, and revoke the token in SecureScope (Integrations lists it). The project and its
 runs can stay.

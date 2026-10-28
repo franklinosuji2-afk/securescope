@@ -21,7 +21,7 @@ switched on for your workspace, a plan that includes App Scanning CI, and an `ap
 
 ## Use
 
-1. In SecureScope create an App Scanning project and an API token with scope **app** (Integrations). Store the token
+1. In SecureScope create an App Scanning project and an API token with scope **app** (the Integrations page only creates web tokens, so create it through the API: see `docs/app-scanning-self-scan.md`). Store the token
    as the repository secret `SECURESCOPE_APP_TOKEN`. Tokens expire after 90 days (pilot value).
 2. Run your tools and write SARIF files, then call the action:
 
