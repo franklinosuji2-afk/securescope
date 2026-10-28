@@ -1,0 +1,165 @@
+/* Targets: the domains you may scan. Each one is a ruled row, not a card; the add form is one band. */
+.tg {
+  --t-serif: var(
+    --serif,
+    "Newsreader Variable",
+    "Iowan Old Style",
+    Georgia,
+    serif
+  );
+  --t-code: var(
+    --code,
+    "JetBrains Mono Variable",
+    ui-monospace,
+    "SFMono-Regular",
+    Menlo,
+    monospace
+  );
+  gap: clamp(20px, 2.4vw, 32px);
+}
+.tg > * {
+  min-width: 0;
+}
+.tg .page-head {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 12px;
+}
+.tg .page-head h1 {
+  margin: 0;
+  font-family: var(--t-serif);
+  font-size: clamp(2.2rem, 1.4rem + 2.6vw, 3.4rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.tg .page-head p {
+  max-width: 68ch;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+.tg h2,
+.tg .scan-form > h2 {
+  margin: 0;
+  font-family: var(--t-serif);
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+/* Add a domain */
+.tg .scan-form {
+  display: grid;
+  gap: 12px;
+  padding: 20px 24px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  box-shadow: none;
+  background: var(--surface);
+}
+.tg .scan-form .input-row {
+  display: flex;
+  gap: 8px;
+}
+.tg .scan-form .input-row .input {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+}
+.tg .scan-form .input-row .btn {
+  flex: none;
+}
+@media (max-width: 420px) {
+  .tg .scan-form {
+    padding: 18px;
+  }
+  .tg .scan-form .input-row {
+    flex-direction: column;
+  }
+  .tg .scan-form .input-row .input {
+    flex: none;
+    width: 100%;
+  }
+}
+
+/* The domains */
+.tg-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border-strong);
+}
+.tg .target,
+.tg .target:hover {
+  gap: 14px;
+  padding: 20px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.tg .target-head {
+  gap: 8px 16px;
+}
+.tg .target-head h3 {
+  font-family: var(--t-code);
+  font-size: 1.0625rem;
+  font-weight: 500;
+}
+.tg .target > p {
+  max-width: 68ch;
+  margin: 0;
+  line-height: 1.6;
+}
+.tg .target code,
+.tg .howto code {
+  font-family: var(--t-code);
+  font-size: 0.8125rem;
+}
+.tg .howto {
+  border-radius: 6px;
+  background: var(--surface);
+}
+.tg .howto dl {
+  font-size: 0.9375rem;
+}
+.tg .howto h4 {
+  margin: 14px 0 0;
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+/* Scheduled scans: the same ruled rows */
+.tg #h-schedules {
+  padding-top: 18px;
+  border-top: 1px solid var(--border-strong);
+}
+.tg [aria-labelledby="h-schedules"] {
+  gap: 14px;
+}
+.tg [aria-labelledby="h-schedules"] > p {
+  max-width: 68ch;
+  line-height: 1.6;
+}
+.tg [aria-labelledby="h-schedules"] .plain-list {
+  gap: 0;
+  border-top: 1px solid var(--border);
+}
+.tg [aria-labelledby="h-schedules"] .plain-list > li,
+.tg [aria-labelledby="h-schedules"] .plain-list > li + li {
+  padding: 18px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.tg [aria-labelledby="h-schedules"] .plain-list h3 {
+  font-family: var(--t-code);
+  font-size: 1rem;
+  font-weight: 500;
+}
