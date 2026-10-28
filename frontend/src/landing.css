@@ -11,29 +11,6 @@
   --land-max: 1200px;
   --land-gutter: clamp(16px, 4vw, 32px);
 }
-/* Premium dark surfaces for the public pages only. The signed-in app keeps its own tokens. */
-:root[data-theme="dark"] .landing-page {
-  --bg: #080b0c;
-  --surface: #101516;
-  --surface-2: #151c1d;
-  --border: #263234;
-  --text: #f4f7f8;
-  --muted: #a7b2b8;
-  --accent-soft: #19cdb5;
-  --bar: rgba(8, 11, 12, 0.9);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .landing-page {
-    --bg: #080b0c;
-    --surface: #101516;
-    --surface-2: #151c1d;
-    --border: #263234;
-    --text: #f4f7f8;
-    --muted: #a7b2b8;
-    --accent-soft: #19cdb5;
-    --bar: rgba(8, 11, 12, 0.9);
-  }
-}
 .landing-page {
   background: var(--bg);
   min-height: 100vh;
@@ -137,10 +114,8 @@
 .landing-eyebrow {
   margin: 0 0 12px;
   color: var(--accent-soft);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 :root[data-theme="light"] .landing-eyebrow {
   color: var(--accent);
@@ -151,12 +126,6 @@
   color: var(--text);
   font-size: clamp(2.25rem, 1.4rem + 3.2vw, 3.5rem);
   line-height: 1.08;
-}
-.landing-grad {
-  color: var(--accent-soft);
-}
-:root[data-theme="light"] .landing-grad {
-  color: var(--accent);
 }
 .landing-lead {
   max-width: 52ch;
@@ -225,20 +194,21 @@
 .landing-sample-tag {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
-  gap: 4px 12px;
-  margin: 0 0 20px;
-  color: var(--text);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.landing-sample-tag span {
+  gap: 8px 12px;
+  margin: 0 0 22px;
   color: var(--muted);
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
+  font-size: 0.8125rem;
+}
+.landing-sample-pill {
+  padding: 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-soft) 40%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-soft) 12%, transparent);
+  color: var(--text);
+  font-size: 0.8125rem;
+  font-weight: 600;
 }
 .landing-sample-head {
   display: flex;
@@ -246,9 +216,11 @@
   gap: 16px;
   margin-bottom: 16px;
 }
-.landing-sample-head strong {
+.landing-sample-site strong {
   display: block;
-  font-size: 1.0625rem;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.2;
 }
 /* The ring fills to the score (82 of 100). */
 .landing-grade {
@@ -295,11 +267,27 @@
   box-shadow: 0 0 14px -2px
     color-mix(in srgb, var(--accent-soft) 70%, transparent);
 }
-.landing-sample-summary {
-  display: flex;
-  flex-wrap: wrap;
+.landing-sample-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin: 0 0 16px;
+}
+.landing-sample-stats > div {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+}
+.landing-sample-stats dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.landing-sample-stats dd {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
 }
 .landing-sample-list {
   display: flex;
@@ -334,13 +322,16 @@
 .landing-sample-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 24px;
+  gap: 4px 24px;
+  margin-top: 16px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
 }
 .landing-sample-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 20px;
+  margin-top: 12px;
   color: var(--accent-soft);
   font-weight: 600;
   text-decoration: none;
@@ -572,10 +563,8 @@
   border: 1px solid currentColor;
   border-radius: 999px;
   color: var(--ok);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 600;
   vertical-align: middle;
 }
 .landing-badge.soon {
@@ -632,9 +621,8 @@
   margin: 0 0 4px;
   color: var(--muted);
   font-family: var(--font);
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 .landing-foot-col a,
 .landing-foot-col button {
@@ -839,11 +827,9 @@
 .cmp-table .cmp-group th {
   background: var(--surface-2);
   color: var(--accent-soft);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
   text-align: left;
-  text-transform: uppercase;
 }
 .cmp-yes {
   color: var(--ok);
@@ -891,9 +877,6 @@
   height: 20px;
   stroke: currentColor;
   transition: transform 360ms var(--ease-out, ease);
-}
-.theme-toggle:hover svg {
-  transform: rotate(24deg);
 }
 
 /* Sample PDF: the text beside a picture of the first page */
@@ -990,10 +973,8 @@
 }
 .landing-list-title {
   margin: 4px 0 0;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .landing-ticks,
 .landing-planned,

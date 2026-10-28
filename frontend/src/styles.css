@@ -1,21 +1,21 @@
 /* Design tokens. Every colour, space, radius and duration used below comes from here. */
 :root {
   color-scheme: dark;
-  --bg: #050505;
+  --bg: #080b0c;
   --glow: rgba(45, 212, 191, 0.045);
-  --rail: #0d0d0d;
-  --bar: rgba(16, 16, 16, 0.78);
-  --surface: #0d0d0d;
-  --surface-2: #161616;
-  --border: #262626;
-  --border-strong: #444444;
-  --control: #7a7a7a;
-  --text: #ededed;
-  --muted: #a1a1a1;
-  --accent: #0f766e;
-  --accent-hover: #0b5f58;
-  --accent-soft: #2dd4bf;
-  --on-accent: #ffffff;
+  --rail: #0a0e0f;
+  --bar: rgba(8, 11, 12, 0.78);
+  --surface: #101516;
+  --surface-2: #151c1d;
+  --border: #263234;
+  --border-strong: #35474a;
+  --control: #6b7a80;
+  --text: #f4f7f8;
+  --muted: #a7b2b8;
+  --accent: #19cdb5;
+  --accent-hover: #3ddcc6;
+  --accent-soft: #19cdb5;
+  --on-accent: #04201c;
   --ok: #34d399;
   --danger: #f87171;
   --danger-bg: #2b1620;
@@ -25,7 +25,7 @@
   --sev-high: #fb923c;
   --sev-medium: #fbbf24;
   --sev-low: #60a5fa;
-  --sev-info: #a1a1a1;
+  --sev-info: #8a979d;
   --hover: rgba(255, 255, 255, 0.07);
   --shadow-1:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
@@ -33,7 +33,7 @@
   --shadow-pop:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
     0 30px 70px -20px rgba(0, 0, 0, 0.7);
-  --focus-ring: 2px solid #2dd4bf;
+  --focus-ring: 2px solid #19cdb5;
   --radius-sm: 10px;
   --radius: 14px;
   --radius-lg: 22px;
@@ -65,8 +65,8 @@
   --control: #6b7a93;
   --text: #0f2233;
   --muted: #4a5f73;
-  --accent: #1f5c99;
-  --accent-hover: #174a7d;
+  --accent: #0f766e;
+  --accent-hover: #0b5f58;
   --accent-soft: #0b5f58;
   --on-accent: #ffffff;
   --ok: #047857;
@@ -102,8 +102,8 @@
     --control: #6b7a93;
     --text: #0f2233;
     --muted: #4a5f73;
-    --accent: #1f5c99;
-    --accent-hover: #174a7d;
+    --accent: #0f766e;
+    --accent-hover: #0b5f58;
     --accent-soft: #0b5f58;
     --on-accent: #ffffff;
     --ok: #047857;
@@ -161,7 +161,7 @@ h1 {
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.1;
-  color: var(--accent-soft);
+  color: var(--text);
 }
 h2 {
   font-size: 1.1rem;
@@ -284,10 +284,23 @@ code,
 
 /* Auth */
 .auth-wrap {
+  position: relative;
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 24px 16px;
+}
+/* The theme toggle on pages that have no header of their own. */
+.corner-theme {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 5;
+}
+.rail-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .auth-card {
   width: min(420px, 100%);
@@ -415,7 +428,7 @@ code,
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   box-shadow: var(--shadow-1);
   padding: 22px;
 }
@@ -476,6 +489,9 @@ code,
 .input::placeholder {
   color: var(--muted);
 }
+.input:focus {
+  border-color: var(--accent-soft);
+}
 .input[aria-invalid="true"] {
   border-color: var(--danger);
 }
@@ -514,8 +530,8 @@ code,
 .btn-ghost {
   background: transparent;
   color: var(--text);
-  border: 1px solid var(--control);
-  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
   padding: 8px 14px;
   font: inherit;
   font-weight: 500;
@@ -544,10 +560,8 @@ code,
 /* Stats */
 .stat-label {
   color: var(--muted);
-  font-size: 0.76rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.84rem;
+  font-weight: 500;
 }
 .stat-value {
   font-size: 2.1rem;
@@ -598,9 +612,7 @@ code,
   gap: 8px;
 }
 .sev {
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
 }
 .sev-critical {
   color: var(--sev-critical);
@@ -1511,4 +1523,22 @@ a.btn {
   outline: 2px solid var(--accent, #2dd4bf);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* The top bar holds the brand, the theme toggle and the Menu button; on a narrow phone it has to fit them all. */
+@media (max-width: 430px) {
+  .rail-top {
+    gap: 8px;
+    padding: 6px 6px 6px 14px;
+  }
+  .rail-top-actions {
+    gap: 6px;
+  }
+  .rail-top .theme-toggle {
+    width: 38px;
+    height: 38px;
+  }
+  .rail-top .menu-btn {
+    padding: 8px 12px;
+  }
 }

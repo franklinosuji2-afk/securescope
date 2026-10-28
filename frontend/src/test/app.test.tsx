@@ -414,7 +414,9 @@ describe("Theme", () => {
     window.location.hash = "#/";
     mockFetch(() => scan);
     renderApp();
-    const toggle = await screen.findByRole("button", {
+    // The loading screen has a toggle too, so wait for the app itself before picking the button.
+    await screen.findByRole("navigation", { name: "Primary" });
+    const toggle = screen.getByRole("button", {
       name: /Switch to (light|dark) theme/,
     });
     const before = document.documentElement.getAttribute("data-theme");

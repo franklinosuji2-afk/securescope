@@ -30,6 +30,18 @@ function apply(theme: Theme): void {
     ?.setAttribute("content", theme === "light" ? "#eef3f8" : "#050505");
 }
 
+/** Fades colours across the page for a moment so the switch is not a hard flash. Skipped for reduced motion. */
+function softSwitch(): void {
+  try {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  } catch {
+    return;
+  }
+  const root = document.documentElement;
+  root.classList.add("theme-switching");
+  window.setTimeout(() => root.classList.remove("theme-switching"), 360);
+}
+
 let current: Theme | null = null;
 const listeners = new Set<() => void>();
 
@@ -54,6 +66,7 @@ export function useTheme(): { theme: Theme; toggle: () => void } {
   const toggle = useCallback(() => {
     const next: Theme = read() === "dark" ? "light" : "dark";
     current = next;
+    softSwitch();
     apply(next);
     try {
       window.localStorage.setItem(KEY, next);

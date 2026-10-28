@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { AuthProvider } from "./auth";
 import UpdateNotice from "./components/UpdateNotice";
+import { initFloatingCards } from "./floating";
 import "@fontsource-variable/inter/wght.css";
 import "@fontsource-variable/plus-jakarta-sans/wght.css";
 import "./styles.css";
@@ -22,6 +23,8 @@ if (emailLink) {
     `/#/${emailLink[1]}?token=${encodeURIComponent(token)}`,
   );
 }
+
+initFloatingCards();
 
 const container = document.getElementById("root");
 if (!container) throw new Error("Root element missing");

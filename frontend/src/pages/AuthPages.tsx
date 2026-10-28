@@ -7,15 +7,44 @@ import { forgetInvite, rememberInvite } from "../pendingInvite";
 import { buildHash, parseOAuthError, type OAuthErrorCode } from "../router";
 import type { InvitationPreview, Role } from "../types";
 import { LegalLinks } from "./Legal";
+import { CornerThemeToggle } from "../components/ThemeToggle";
 import ProviderIcon from "../components/ProviderIcon";
+import BrandMark from "../components/BrandMark";
+import "../auth.css";
 
 function Shell({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="auth-wrap">
-      <div className="card auth-card">
-        <h1>{title}</h1>
-        {children}
-        <LegalLinks />
+    <div className="auth-wrap auth-split">
+      <CornerThemeToggle />
+      <aside className="auth-aside">
+        <a className="brand" href={buildHash("overview", null)}>
+          <BrandMark className="brand-mark" shield="var(--accent-soft)" />
+          SecureScope
+        </a>
+        <h2>Know what puts your digital assets at risk.</h2>
+        <p>
+          Clear findings and plain instructions for fixing them, for websites
+          you own.
+        </p>
+        <ul className="auth-points">
+          <li>Passive checks only</li>
+          <li>Ownership verified first</li>
+          <li>Free plan, no card</li>
+        </ul>
+        <div className="auth-peek" aria-hidden="true">
+          <span className="auth-peek-grade">B</span>
+          <div>
+            <strong>example.com</strong>
+            <span className="small">Illustrative result, not a real scan</span>
+          </div>
+        </div>
+      </aside>
+      <div className="auth-main">
+        <div className="card auth-card">
+          <h1>{title}</h1>
+          {children}
+          <LegalLinks />
+        </div>
       </div>
     </div>
   );

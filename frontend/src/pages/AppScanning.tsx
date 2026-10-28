@@ -8,6 +8,9 @@ import {
 } from "../components/ui";
 import { formatDate } from "../format";
 import { describeRun, describeUsage } from "../appScanning";
+import "@fontsource-variable/newsreader/opsz.css";
+import "@fontsource-variable/jetbrains-mono/wght.css";
+import "../appscan.css";
 
 const SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"] as const;
 
@@ -24,9 +27,11 @@ function newKey(): string {
 function Limitations({ items }: { items: string[] }) {
   if (items.length === 0) return null;
   return (
-    <section className="card" aria-labelledby="app-limits">
-      <h2 id="app-limits">What this scan does not cover</h2>
-      <ul>
+    <section className="as-block" aria-labelledby="app-limits">
+      <h2 id="app-limits" className="as-h2">
+        What this scan does not cover
+      </h2>
+      <ul className="as-plain as-quiet">
         {items.map((text) => (
           <li key={text}>{text}</li>
         ))}
@@ -39,15 +44,32 @@ function safeLink(url: string): boolean {
   return /^https:\/\//.test(url);
 }
 
+const VERDICT_LABEL: Partial<Record<api.AppResult, string>> = {
+  completed_findings: "Findings detected",
+  completed_no_findings: "Completed",
+};
+
+function formatSize(bytes: number): string {
+  if (bytes < 1000) return `${bytes} B`;
+  if (bytes < 1_000_000) return `${Math.round(bytes / 1000)} kB`;
+  return `${(bytes / 1_000_000).toFixed(1)} MB`;
+}
+
 function Result({ scan }: { scan: api.AppScan }) {
-  const tone =
+  const completed =
     scan.result === "completed_findings" ||
-    scan.result === "completed_no_findings"
-      ? "notice"
-      : "notice notice-error";
+    scan.result === "completed_no_findings";
+  const tone = completed ? "notice" : "notice notice-error";
+  const withFindings = SEVERITY_ORDER.some((k) => (scan.counts[k] ?? 0) > 0);
   return (
-    <div className="stack" aria-live="polite">
-      <div className={tone} role="status">
+    <div className="as-result stack" aria-live="polite">
+      <div
+        className={`${tone} as-verdict${completed ? " as-verdict-ok" : ""}`}
+        role="status"
+      >
+        <span className="as-verdict-label">
+          {VERDICT_LABEL[scan.result] ?? "Did not complete"}
+        </span>
         <strong>{scan.result_text}</strong>
         {scan.replayed && (
           <span className="muted">
@@ -56,17 +78,25 @@ function Result({ scan }: { scan: api.AppScan }) {
           </span>
         )}
       </div>
-      {SEVERITY_ORDER.some((k) => (scan.counts[k] ?? 0) > 0) && (
-        <p>
-          {SEVERITY_ORDER.filter((k) => (scan.counts[k] ?? 0) > 0)
-            .map((k) => `${scan.counts[k]} ${k}`)
-            .join(", ")}
-        </p>
+      {withFindings && (
+        <dl className="as-counts">
+          {SEVERITY_ORDER.map((k) => (
+            <div
+              key={k}
+              className={`as-count as-count-${k}${(scan.counts[k] ?? 0) === 0 ? " as-count-zero" : ""}`}
+            >
+              <dt>{k.charAt(0).toUpperCase() + k.slice(1)}</dt>
+              <dd>{scan.counts[k] ?? 0}</dd>
+            </div>
+          ))}
+        </dl>
       )}
       {scan.checks_skipped.length > 0 && (
-        <section className="card" aria-labelledby="app-skipped">
-          <h2 id="app-skipped">Not checked</h2>
-          <ul>
+        <section className="as-block" aria-labelledby="app-skipped">
+          <h2 id="app-skipped" className="as-h2">
+            Not checked
+          </h2>
+          <ul className="as-plain as-skipped">
             {scan.checks_skipped.map((c, i) => (
               <li key={i}>{c.reason ?? c.name ?? "Skipped"}</li>
             ))}
@@ -74,54 +104,48 @@ function Result({ scan }: { scan: api.AppScan }) {
         </section>
       )}
       {scan.findings.length > 0 && (
-        <div className="table-wrap">
-          <table className="table">
-            <caption className="sr-only">Dependency findings</caption>
-            <thead>
-              <tr>
-                <th scope="col">Severity</th>
-                <th scope="col">Package</th>
-                <th scope="col">Advisory</th>
-                <th scope="col">Fixed in</th>
-              </tr>
-            </thead>
-            <tbody>
-              {scan.findings.map((f, i) => (
-                <tr key={`${f.rule_id}-${i}`}>
-                  <td>
-                    <SeverityBadge severity={f.severity} />
-                  </td>
-                  <td>
+        <section className="as-block" aria-labelledby="app-findings">
+          <h2 id="app-findings" className="as-h2">
+            Dependency findings
+          </h2>
+          <ul className="as-findings">
+            {scan.findings.map((f, i) => (
+              <li
+                key={`${f.rule_id}-${i}`}
+                className={`as-finding as-finding-${f.severity}`}
+              >
+                <div className="as-finding-sev">
+                  <SeverityBadge severity={f.severity} />
+                </div>
+                <div className="as-finding-body">
+                  <div className="as-pkg">
                     {f.package_name} {f.package_version}
-                  </td>
-                  <td>
-                    <strong>{f.title}</strong>
-                    <div className="muted small">{f.description}</div>
-                    {f.references
-                      .filter(safeLink)
-                      .slice(0, 3)
-                      .map((url) => (
-                        <div key={url} className="small">
-                          <a
-                            href={url}
-                            rel="noreferrer noopener"
-                            target="_blank"
-                          >
-                            {url}
-                          </a>
-                        </div>
-                      ))}
-                  </td>
-                  <td>
+                  </div>
+                  <strong className="as-finding-title">{f.title}</strong>
+                  <div className="muted small">{f.description}</div>
+                  {f.references
+                    .filter(safeLink)
+                    .slice(0, 3)
+                    .map((url) => (
+                      <div key={url} className="small as-ref">
+                        <a href={url} rel="noreferrer noopener" target="_blank">
+                          {url}
+                        </a>
+                      </div>
+                    ))}
+                </div>
+                <div className="as-fix">
+                  <span className="as-fix-label">Fixed in</span>
+                  <span className="as-fix-value">
                     {f.fixed_versions.length
                       ? f.fixed_versions.join(", ")
                       : "No fixed version listed"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       <Limitations items={scan.limitations} />
     </div>
@@ -239,119 +263,164 @@ export default function AppScanning({ canCreate }: { canCreate: boolean }) {
   const usage = describeUsage(overview.plan, u);
 
   return (
-    <div className="stack">
-      <h1>App Scanning</h1>
-      <p className="muted">
-        Reads the exact package versions in your dependency files. The
-        vulnerability database is not connected yet, so a browser scan cannot
-        report vulnerabilities today and ends as failed, not as clean. Your
-        files are read in memory and are not stored.
-      </p>
-      {error && <ErrorNotice message={error} />}
-      {usage ? (
-        <p>
-          Runs this month: {usage.runs}. Projects: {usage.projects}.
-          {usage.resets ? ` Runs reset on ${usage.resets} (UTC).` : ""}
+    <div className="as-page">
+      <header className="as-head">
+        <h1 className="as-title">App Scanning</h1>
+        <p className="as-lead">
+          Reads the exact package versions in your dependency files. The
+          vulnerability database is not connected yet, so a browser scan cannot
+          report vulnerabilities today and ends as failed, not as clean. Your
+          files are read in memory and are not stored.
         </p>
-      ) : (
-        <div className="notice" role="status">
-          Your usage figures are unavailable right now. The server still
-          enforces your plan's limits.
-        </div>
-      )}
+      </header>
+      {error && <ErrorNotice message={error} />}
 
-      {!canCreate ? (
-        <div className="notice" role="status">
-          Your role can view App Scanning results but cannot start scans.
-        </div>
-      ) : (
-        <>
-          <form className="form-stack" onSubmit={(e) => void addProject(e)}>
-            <label className="toolbar-field">
-              <span className="field-label">New project name</span>
-              <input
-                className="input"
-                value={newName}
-                maxLength={80}
-                required
-                onChange={(e) => setNewName(e.target.value)}
-              />
-            </label>
-            <button className="btn" type="submit" disabled={busy}>
-              Add project
-            </button>
-          </form>
-
-          {projects.length === 0 ? (
-            <EmptyState title="No projects yet">
-              Add a project, then upload a package-lock.json, package.json or
-              requirements.txt to check it.
-            </EmptyState>
+      <div className="as-layout">
+        <div className="as-panel">
+          {!canCreate ? (
+            <div className="notice" role="status">
+              Your role can view App Scanning results but cannot start scans.
+            </div>
           ) : (
-            <form className="form-stack" onSubmit={(e) => void submit(e)}>
-              <label className="toolbar-field">
-                <span className="field-label">Project</span>
-                <select
-                  className="input"
-                  value={projectId}
-                  onChange={(e) => setProjectId(e.target.value)}
-                >
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="toolbar-field">
-                <span className="field-label">Dependency files</span>
-                <input
-                  className="input"
-                  type="file"
-                  multiple
-                  accept=".json,.txt"
-                  aria-describedby="app-files-hint"
-                  onChange={(e) => void chooseFiles(e.target.files)}
-                />
-                <span id="app-files-hint" className="muted small">
-                  Up to {overview.max_files} files:{" "}
-                  {overview.supported_files.join(", ")}.
-                </span>
-              </label>
-              <button
-                className="btn"
-                type="submit"
-                disabled={busy || files.length === 0 || !projectId}
+            <>
+              <h2 className="as-h2">Check a project</h2>
+              {projects.length === 0 ? (
+                <EmptyState title="No projects yet">
+                  Add a project, then upload a package-lock.json, package.json
+                  or requirements.txt to check it.
+                </EmptyState>
+              ) : (
+                <form className="as-form" onSubmit={(e) => void submit(e)}>
+                  <label className="toolbar-field">
+                    <span className="field-label">Project</span>
+                    <select
+                      className="input"
+                      value={projectId}
+                      onChange={(e) => setProjectId(e.target.value)}
+                    >
+                      {projects.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="as-drop">
+                    <span className="field-label">Dependency files</span>
+                    <input
+                      className="as-file"
+                      type="file"
+                      multiple
+                      accept=".json,.txt"
+                      aria-describedby="app-files-hint"
+                      onChange={(e) => void chooseFiles(e.target.files)}
+                    />
+                    <span id="app-files-hint" className="muted small">
+                      Up to {overview.max_files} files:{" "}
+                      {overview.supported_files.join(", ")}.
+                    </span>
+                  </label>
+                  {files.length > 0 && (
+                    <ul className="as-picked" aria-label="Selected files">
+                      {files.map((f) => (
+                        <li key={f.name}>
+                          <span className="as-pkg">{f.name}</span>
+                          <span className="muted small">
+                            {formatSize(new Blob([f.content]).size)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <button
+                    className="btn as-run"
+                    type="submit"
+                    disabled={busy || files.length === 0 || !projectId}
+                  >
+                    {busy ? "Checking…" : "Check dependencies"}
+                  </button>
+                </form>
+              )}
+              <form
+                className="as-newproject"
+                onSubmit={(e) => void addProject(e)}
               >
-                {busy ? "Checking…" : "Check dependencies"}
-              </button>
-            </form>
+                <label className="field-label" htmlFor="app-new-project">
+                  New project name
+                </label>
+                <span className="as-inline">
+                  <input
+                    id="app-new-project"
+                    className="input"
+                    value={newName}
+                    maxLength={80}
+                    required
+                    onChange={(e) => setNewName(e.target.value)}
+                  />
+                  <button
+                    className="btn btn-ghost"
+                    type="submit"
+                    disabled={busy}
+                  >
+                    Add project
+                  </button>
+                </span>
+              </form>
+            </>
           )}
-        </>
-      )}
+          {usage ? (
+            <p className="as-usage">
+              Runs this month: {usage.runs}. Projects: {usage.projects}.
+              {usage.resets ? ` Runs reset on ${usage.resets} (UTC).` : ""}
+            </p>
+          ) : (
+            <div className="notice" role="status">
+              Your usage figures are unavailable right now. The server still
+              enforces your plan's limits.
+            </div>
+          )}
+        </div>
 
-      {result && <Result scan={result} />}
-      {!result && <Limitations items={overview.limitations} />}
+        <div className="as-main stack">
+          {result && <Result scan={result} />}
+          {!result && <Limitations items={overview.limitations} />}
 
-      <section aria-labelledby="app-history">
-        <h2 id="app-history">Recent runs</h2>
-        {history.length === 0 ? (
-          <p className="muted">No runs yet.</p>
-        ) : (
-          <ul>
-            {history.slice(0, 20).map((h) => {
-              const run = describeRun(h);
-              return (
-                <li key={h.id}>
-                  {formatDate(h.created_at)} ({run.origin}
-                  {run.ref ? `, ${run.ref}` : ""}): {h.result_text}
-                  {run.findings ? ` ${run.findings}.` : ""}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+          <section className="as-block" aria-labelledby="app-history">
+            <h2 id="app-history" className="as-h2">
+              Recent runs
+            </h2>
+            {history.length === 0 ? (
+              <p className="muted">No runs yet.</p>
+            ) : (
+              <ul className="as-runs">
+                {history.slice(0, 20).map((h) => {
+                  const run = describeRun(h);
+                  return (
+                    <li key={h.id} className="as-run-row">
+                      <span className="as-run-date">
+                        {formatDate(h.created_at)}
+                      </span>{" "}
+                      <span className="as-run-src">
+                        <span className="visually-hidden">(</span>
+                        {run.origin}
+                        {run.ref ? `, ${run.ref}` : ""}
+                        <span className="visually-hidden">)</span>
+                      </span>
+                      <span className="visually-hidden">: </span>
+                      <span className="as-run-text">
+                        {h.result_text}
+                        {run.findings ? (
+                          <strong className="as-run-count">{` ${run.findings}.`}</strong>
+                        ) : null}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </div>
+      </div>
     </div>
   );
 }

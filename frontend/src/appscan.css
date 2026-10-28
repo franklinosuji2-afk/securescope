@@ -1,0 +1,400 @@
+/* App Scanning. A workbench on the left (what to check), the reading on the right (what came back).
+   The right side is ruled rows, as on the home page: package names in a monospace, text in the app's sans. */
+.as-page {
+  --as-serif: var(
+    --serif,
+    "Newsreader Variable",
+    "Iowan Old Style",
+    Georgia,
+    serif
+  );
+  --as-code: var(
+    --code,
+    "JetBrains Mono Variable",
+    ui-monospace,
+    "SFMono-Regular",
+    Menlo,
+    monospace
+  );
+  display: grid;
+  gap: clamp(24px, 3vw, 40px);
+}
+.as-head {
+  display: grid;
+  gap: 14px;
+  max-width: 72ch;
+}
+.as-title {
+  margin: 0;
+  font-family: var(--as-serif);
+  font-size: clamp(2.2rem, 1.4rem + 2.6vw, 3.4rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.as-lead {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+.as-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(28px, 3vw, 48px);
+  align-items: start;
+}
+@media (min-width: 960px) {
+  .as-layout {
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  }
+  .as-panel {
+    position: sticky;
+    top: 24px;
+  }
+}
+
+.as-h2 {
+  margin: 0 0 12px;
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+}
+
+/* Workbench */
+.as-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  padding: 22px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.as-panel .as-h2 {
+  margin: 0;
+}
+.as-panel > *,
+.as-form > *,
+.as-newproject > * {
+  min-width: 0;
+}
+.as-panel select.input,
+.as-panel .input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.as-panel .as-inline .input {
+  flex: 1 1 0;
+  width: 0;
+}
+.as-form,
+.as-newproject {
+  display: grid;
+  gap: 16px;
+}
+.as-newproject {
+  gap: 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.as-panel .toolbar-field {
+  display: grid;
+  gap: 8px;
+}
+.as-inline {
+  display: flex;
+  gap: 8px;
+}
+.as-inline .input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.as-inline .btn {
+  flex: none;
+}
+.as-drop {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px dashed var(--control);
+  border-radius: 6px;
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease-out, ease);
+}
+.as-drop:hover,
+.as-drop:focus-within {
+  border-color: var(--accent);
+}
+.as-file {
+  max-width: 100%;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.as-file::file-selector-button {
+  margin-right: 12px;
+  padding: 7px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.as-picked {
+  margin: -4px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+.as-picked li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.as-run {
+  width: 100%;
+}
+.as-usage {
+  margin: 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* Reading */
+.as-main {
+  min-width: 0;
+}
+.as-block {
+  display: block;
+  margin-top: 8px;
+}
+.as-quiet li {
+  padding: 8px 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.as-plain {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+.as-plain li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.55;
+}
+.as-skipped li {
+  padding-left: 18px;
+  position: relative;
+}
+.as-skipped li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 1.15em;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--sev-medium);
+  border-radius: 50%;
+}
+
+/* The verdict is the first thing in the result. Not completing is shown as a problem, never as success. */
+.as-verdict {
+  display: grid;
+  gap: 6px;
+  padding: 18px 20px;
+  border-radius: 6px;
+  border-width: 1px;
+  border-left-width: 4px;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+.as-verdict-label {
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.as-verdict-ok {
+  border-left-color: var(--accent);
+}
+.as-verdict.notice-error {
+  border-left-color: var(--danger);
+}
+.as-verdict.notice-error .as-verdict-label {
+  color: var(--danger-text);
+}
+
+.as-counts {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.as-count {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border-left: 1px solid var(--border);
+}
+.as-count:first-child {
+  border-left: 0;
+}
+.as-count dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.as-count dd {
+  margin: 0;
+  font-family: var(--as-serif);
+  font-size: 1.9rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.as-count-zero dd {
+  color: var(--muted);
+}
+.as-count-critical:not(.as-count-zero) dd {
+  color: var(--sev-critical);
+}
+.as-count-high:not(.as-count-zero) dd {
+  color: var(--sev-high);
+}
+.as-count-medium:not(.as-count-zero) dd {
+  color: var(--sev-medium);
+}
+.as-count-low:not(.as-count-zero) dd {
+  color: var(--sev-low);
+}
+
+.as-findings,
+.as-runs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+.as-finding {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) minmax(120px, 170px);
+  gap: 8px 20px;
+  padding: 16px 0 16px 14px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--sev-info);
+}
+.as-finding-critical {
+  border-left-color: var(--sev-critical);
+}
+.as-finding-high {
+  border-left-color: var(--sev-high);
+}
+.as-finding-medium {
+  border-left-color: var(--sev-medium);
+}
+.as-finding-low {
+  border-left-color: var(--sev-low);
+}
+.as-finding-body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.as-pkg {
+  font-family: var(--as-code);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+.as-finding-title {
+  font-size: 1.0625rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.as-ref {
+  overflow-wrap: anywhere;
+}
+.as-fix {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+}
+.as-fix-label {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.as-fix-value {
+  font-family: var(--as-code);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.as-run-row {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 2px 20px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.5;
+}
+.as-run-date {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.as-run-src {
+  grid-column: 1;
+  font-size: 0.9rem;
+}
+.as-run-text {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-width: 0;
+}
+.as-run-count {
+  font-weight: 650;
+}
+
+@media (max-width: 720px) {
+  .as-panel {
+    padding: 18px;
+  }
+  .as-counts {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .as-count {
+    padding: 10px 8px;
+  }
+  .as-count dt {
+    font-size: 0.75rem;
+  }
+  .as-count dd {
+    font-size: 1.5rem;
+  }
+  .as-finding {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .as-run-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .as-run-text {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+@media (max-width: 380px) {
+  .as-inline {
+    flex-direction: column;
+  }
+}

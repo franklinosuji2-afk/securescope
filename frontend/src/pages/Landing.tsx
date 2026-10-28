@@ -1,8 +1,8 @@
 import BrandMark from "../components/BrandMark";
 import ThemeToggle from "../components/ThemeToggle";
 import PlanComparison from "../components/PlanComparison";
+import { HomeHero, HomeProducts } from "../components/HomeHero";
 import { useEffect, useRef, useState } from "react";
-import sample from "../sample/sampleReport.json";
 import { buildHash } from "../router";
 import "../landing.css";
 
@@ -405,173 +405,17 @@ export default function Landing() {
 
       <div className="landing">
         <main id="landing-main">
-          <section className="landing-hero">
-            <div>
-              <p className="landing-eyebrow">
-                Website &amp; application security
-              </p>
-              <h1>
-                Know what puts your{" "}
-                <span className="landing-grad">digital assets at risk.</span>
-              </h1>
-              <p className="landing-lead">
-                Check the security basics of a website you own today: HTTPS,
-                headers, cookies, certificates and exposed files. App Scanning,
-                for known vulnerabilities in your application’s dependencies, is
-                in development. Either way you get clear findings and plain
-                instructions for fixing them.
-              </p>
-              <div className="landing-cta">
-                <a className="btn" href={register}>
-                  Scan your website
-                </a>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => scrollTo("app-scanning")}
-                >
-                  Explore App Scanning
-                </button>
-                <a className="btn-ghost" href="#/sample-report">
-                  View sample report
-                </a>
-              </div>
-              <p className="landing-cta-note muted small">
-                Clear findings. Actionable guidance. Security visibility without
-                unnecessary complexity.
-              </p>
-              <ul className="landing-chips" aria-label="Highlights">
-                <li>Passive checks only</li>
-                <li>Ownership verified first</li>
-                <li>Free plan, no card</li>
-              </ul>
-            </div>
-            <figure className="landing-sample card">
-              <figcaption className="landing-sample-tag">
-                Sample report
-                <span>Illustrative data, not a real scan</span>
-              </figcaption>
-              <div className="landing-sample-head">
-                <span
-                  className="landing-grade"
-                  aria-label={`Grade ${sample.grade}`}
-                >
-                  {sample.grade}
-                </span>
-                <div>
-                  <strong>example.com</strong>
-                  <span className="muted small">
-                    {sample.findings.length} findings ·{" "}
-                    {sample.checks_passed.length} checks passed
-                  </span>
-                </div>
-              </div>
-              <div className="landing-bar-track" aria-hidden="true">
-                <span style={{ width: `${sample.score}%` }} />
-              </div>
-              <p className="landing-sample-summary">
-                <span className="sev sev-medium">1 Medium</span>
-                <span className="sev sev-low">2 Low</span>
-                <span className="sev sev-info">1 Info</span>
-              </p>
-              <ul className="landing-sample-list">
-                <li>
-                  <span className="sev sev-medium">Medium</span>
-                  <span>Content-Security-Policy header is missing</span>
-                </li>
-                <li>
-                  <span className="sev sev-low">Low</span>
-                  <span>Cookies set without the HttpOnly attribute</span>
-                </li>
-                <li>
-                  <span className="sev sev-low">Low</span>
-                  <span>Strict-Transport-Security max-age is short</span>
-                </li>
-                <li>
-                  <span className="sev sev-info">Info</span>
-                  <span>No security.txt contact file</span>
-                </li>
-              </ul>
-              <div className="landing-sample-app">
-                <p className="landing-sample-app-title">
-                  App Scanning
-                  <span className="landing-status">In development</span>
-                </p>
-                <p className="muted small">
-                  Illustrative: when the vulnerability source is unavailable the
-                  run is reported as <strong>Incomplete</strong>, never as
-                  clean.
-                </p>
-              </div>
-              <div className="landing-sample-links">
-                <a className="landing-sample-link" href="#/sample-report">
-                  Open the full sample report <span aria-hidden="true">→</span>
-                </a>
-                <a
-                  className="landing-sample-link"
-                  href="/sample-report.pdf"
-                  download="SecureScope-sample-report.pdf"
-                >
-                  Download the sample PDF <span aria-hidden="true">↓</span>
-                </a>
-              </div>
-            </figure>
-          </section>
+          <HomeHero
+            register={register}
+            onApp={() => scrollTo("app-scanning")}
+          />
 
-          <section
-            id="products"
-            className="landing-section"
-            aria-labelledby="h-products"
-          >
-            <p className="landing-eyebrow">Platform</p>
-            <h2 id="h-products">Two products, one place to look</h2>
-            <div className="landing-products">
-              <article className="card landing-product">
-                <p className="landing-status landing-status-live">Available</p>
-                <h3>Website Scanning</h3>
-                <p className="muted">
-                  Assess the security configuration of a website you have
-                  verified you own, and review each finding with the evidence
-                  and a fix.
-                </p>
-                <ul className="landing-ticks">
-                  <li>HTTPS, headers, cookies and TLS certificates</li>
-                  <li>Exposed files and information leaks</li>
-                  <li>Findings ranked by severity, with a PDF report</li>
-                </ul>
-                <a className="btn" href={register}>
-                  Scan your website
-                </a>
-              </article>
-              <article className="card landing-product">
-                <p className="landing-status">In development</p>
-                <h3>App Scanning</h3>
-                <p className="muted">
-                  Assess supported dependency manifests for known
-                  vulnerabilities. Not open to the public yet.
-                </p>
-                <p className="landing-list-title">Built so far</p>
-                <ul className="landing-ticks">
-                  {APP_WORKS.map((t) => (
-                    <li key={t}>{t}</li>
-                  ))}
-                </ul>
-                <p className="landing-list-title">Planned, not available</p>
-                <ul className="landing-planned">
-                  {APP_PLANNED.map((t) => (
-                    <li key={t}>{t}</li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => scrollTo("app-scanning")}
-                >
-                  Read about App Scanning
-                </button>
-              </article>
-            </div>
-          </section>
+          <HomeProducts
+            register={register}
+            onApp={() => scrollTo("app-scanning")}
+            planned={APP_PLANNED}
+            works={APP_WORKS}
+          />
 
           <section
             id="problem"

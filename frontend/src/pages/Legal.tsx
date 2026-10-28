@@ -1,4 +1,5 @@
 import BrandMark from "../components/BrandMark";
+import { CornerThemeToggle } from "../components/ThemeToggle";
 import type { ReactNode } from "react";
 import type { Page } from "../router";
 import { useAuth } from "../auth";
@@ -34,6 +35,7 @@ function Doc({
   const home = user ? buildHash("overview", null) : buildHash("login", null);
   return (
     <div className="auth-wrap legal-wrap">
+      <CornerThemeToggle />
       <div className="legal-shell">
         <header className="legal-head">
           <a className="legal-brand" href={home}>

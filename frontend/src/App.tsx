@@ -4,6 +4,7 @@ import { PageLoader, lazyPage } from "./lazyPage";
 import { useAuth } from "./auth";
 import { useTheme } from "./theme";
 import { Loading } from "./components/ui";
+import ThemeToggle, { CornerThemeToggle } from "./components/ThemeToggle";
 import type { Page } from "./router";
 import { LEGAL_PAGES, PUBLIC_PAGES, buildHash, useRoute } from "./router";
 import {
@@ -58,7 +59,7 @@ const NAV: { page: Page; label: string }[] = [
 export default function App() {
   const [route, navigate] = useRoute();
   const { user, loading, organization, setOrganizationId, signOut } = useAuth();
-  const { theme, toggle } = useTheme();
+  useTheme(); // applies the saved or system theme as soon as the app starts
   // The navigation is a Menu button at every width. It is open only for the page it was opened on, so choosing
   // any page closes it without an effect; Escape closes it and returns focus to the button.
   const routeKey = `${route.page}|${route.scanId ?? ""}`;
@@ -160,6 +161,7 @@ export default function App() {
   if (loading) {
     return (
       <div className="auth-wrap">
+        <CornerThemeToggle />
         <Loading label="Loading…" />
       </div>
     );
@@ -171,6 +173,7 @@ export default function App() {
   if (!user && !isPublic) {
     return (
       <div className="auth-wrap">
+        <CornerThemeToggle />
         <div className="card auth-card">
           <h1>Sign in required</h1>
           <p className="muted">Please sign in to use SecureScope.</p>
@@ -227,16 +230,19 @@ export default function App() {
             <BrandMark className="brand-mark" shield="var(--accent-soft)" />
             SecureScope
           </div>
-          <button
-            ref={menuButton}
-            type="button"
-            className="btn-ghost menu-btn"
-            aria-expanded={menuOpen}
-            aria-controls="rail-menu"
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            {menuOpen ? "Close menu" : "Menu"}
-          </button>
+          <div className="rail-top-actions">
+            <ThemeToggle />
+            <button
+              ref={menuButton}
+              type="button"
+              className="btn-ghost menu-btn"
+              aria-expanded={menuOpen}
+              aria-controls="rail-menu"
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              {menuOpen ? "Close menu" : "Menu"}
+            </button>
+          </div>
         </div>
         <div className="rail-menu" id="rail-menu">
           <nav className="nav" aria-label="Primary">
@@ -287,14 +293,6 @@ export default function App() {
               {user.email}
               {organization ? ` · ${organization.role}` : ""}
             </div>
-            <button
-              className="btn-ghost"
-              type="button"
-              onClick={toggle}
-              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-            >
-              {theme === "dark" ? "Light theme" : "Dark theme"}
-            </button>
             <button
               className="btn-ghost"
               type="button"
