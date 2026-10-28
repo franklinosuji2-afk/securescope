@@ -83,12 +83,14 @@ export function SiteCard({
           )}
         </span>
       </div>
-      <p className={`small ${trendClass}`}>{deltaText(site.score_change)}</p>
+      <p className={`small site-delta ${trendClass}`}>
+        {deltaText(site.score_change)}
+      </p>
       <ScoreTrend history={site.history} />
       {site.open_total === 0 ? (
-        <p className="small">No open findings.</p>
+        <p className="small site-open">No open findings.</p>
       ) : (
-        <p className="small">
+        <p className="small site-open">
           <strong>{site.open_total} open</strong>:{" "}
           {SEVERITIES.filter((s) => site.open_counts[s]).map((s, i, a) => (
             <span key={s}>
@@ -100,21 +102,25 @@ export function SiteCard({
           ))}
         </p>
       )}
-      <p className="muted small">Last scanned {formatDate(site.scanned_at)}</p>
-      <a
-        className="btn-ghost"
-        href={buildHash("findings", site.latest_scan_id)}
-      >
-        View findings
-      </a>
-      {onScanAgain && (
-        <RescanButton
-          scanId={site.latest_scan_id}
-          host={site.host}
-          status="completed"
-          onStarted={onScanAgain}
-        />
-      )}
+      <p className="muted small site-last">
+        Last scanned {formatDate(site.scanned_at)}
+      </p>
+      <div className="site-actions">
+        <a
+          className="btn-ghost"
+          href={buildHash("findings", site.latest_scan_id)}
+        >
+          View findings
+        </a>
+        {onScanAgain && (
+          <RescanButton
+            scanId={site.latest_scan_id}
+            host={site.host}
+            status="completed"
+            onStarted={onScanAgain}
+          />
+        )}
+      </div>
     </li>
   );
 }
