@@ -58,3 +58,24 @@ export function describeUsage(
     end && !Number.isNaN(end.getTime()) ? end.toISOString().slice(0, 10) : null;
   return { runs, projects, resets };
 }
+
+const SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"] as const;
+
+/** One line for the runs list: where the run came from, the branch or commit label a pipeline sent, and how many
+ * findings of each level it has. Counts are shown as numbers only; nothing is scored or graded. */
+export function describeRun(run: {
+  origin: "ci" | "upload";
+  ref: string | null;
+  counts: Record<string, number>;
+}): { origin: string; ref: string | null; findings: string | null } {
+  const parts = SEVERITY_ORDER.flatMap((level) => {
+    const n = run.counts[level] ?? 0;
+    return Number.isInteger(n) && n > 0 ? [`${n} ${level}`] : [];
+  });
+  const ref = run.ref ? run.ref.trim().slice(0, 120) : "";
+  return {
+    origin: run.origin === "ci" ? "CI pipeline" : "Browser upload",
+    ref: ref || null,
+    findings: parts.length ? parts.join(", ") : null,
+  };
+}

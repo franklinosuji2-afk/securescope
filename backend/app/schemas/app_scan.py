@@ -80,6 +80,8 @@ class AppInputOut(BaseModel):
 class AppScanOut(BaseModel):
     id: str
     project_id: str
+    origin: Literal["ci", "upload"]
+    ref: str | None = None
     status: str
     result: ResultLabel
     result_text: str
@@ -101,6 +103,10 @@ class AppScanOut(BaseModel):
 class AppScanSummary(BaseModel):
     id: str
     project_id: str
+    # "ci" for a run submitted by the GitHub Action or another pipeline, "upload" for a browser upload.
+    origin: Literal["ci", "upload"]
+    # The branch or commit label a pipeline sent with the run, if any (text, at most 120 characters).
+    ref: str | None = None
     status: str
     result: ResultLabel
     result_text: str

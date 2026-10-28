@@ -36,6 +36,8 @@ const overview = (extra: Partial<AppOverview> = {}): AppOverview => ({
 const scan = (extra: Partial<AppScan> = {}): AppScan => ({
   id: "s1",
   project_id: "p1",
+  origin: "upload",
+  ref: null,
   status: "completed",
   result: "completed_no_findings",
   result_text: "Completed. No findings were detected by the selected checks.",
@@ -103,6 +105,27 @@ describe("App Scanning page", () => {
     expect(await screen.findByText(/selected checks/)).toBeTruthy();
     expect(screen.queryByText(/\bsecure\b/i)).toBeNull();
     expect(screen.queryByText(/score|grade/i)).toBeNull();
+  });
+
+  it("the runs list says where each run came from and how many findings it has, without a score", async () => {
+    vi.mocked(api.listAppScans).mockResolvedValue([
+      {
+        ...scan({ id: "s2" }),
+        origin: "ci",
+        ref: "refs/heads/main",
+        result_text: "Completed. Findings were detected.",
+        counts: { medium: 1, high: 4, low: 0 },
+      },
+      { ...scan({ id: "s3" }), origin: "upload", ref: null },
+    ]);
+    render(<AppScanning canCreate />);
+    const items = await screen.findAllByRole("listitem");
+    const text = items.map((i) => i.textContent ?? "").join("\n");
+    expect(text).toMatch(
+      /\(CI pipeline, refs\/heads\/main\): Completed\. Findings were detected\. 4 high, 1 medium\./,
+    );
+    expect(text).toMatch(/\(Browser upload\): Completed\. No findings/);
+    expect(text).not.toMatch(/score|grade|secure\b/i);
   });
 
   it("an incomplete result is shown as a problem, not as success, with what was not checked", async () => {

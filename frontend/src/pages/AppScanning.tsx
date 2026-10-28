@@ -7,7 +7,7 @@ import {
   SeverityBadge,
 } from "../components/ui";
 import { formatDate } from "../format";
-import { describeUsage } from "../appScanning";
+import { describeRun, describeUsage } from "../appScanning";
 
 const SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"] as const;
 
@@ -339,11 +339,16 @@ export default function AppScanning({ canCreate }: { canCreate: boolean }) {
           <p className="muted">No runs yet.</p>
         ) : (
           <ul>
-            {history.slice(0, 20).map((h) => (
-              <li key={h.id}>
-                {formatDate(h.created_at)}: {h.result_text}
-              </li>
-            ))}
+            {history.slice(0, 20).map((h) => {
+              const run = describeRun(h);
+              return (
+                <li key={h.id}>
+                  {formatDate(h.created_at)} ({run.origin}
+                  {run.ref ? `, ${run.ref}` : ""}): {h.result_text}
+                  {run.findings ? ` ${run.findings}.` : ""}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
