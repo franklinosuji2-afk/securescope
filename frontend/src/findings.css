@@ -1,0 +1,379 @@
+/* Findings: the list and one finding. Ruled rows and sections, a serif title, no boxes.
+   Scoped under .fl (the list) and .fd (one finding) so other pages keep their own look. */
+.fl,
+.fd {
+  --f-serif: var(
+    --serif,
+    "Newsreader Variable",
+    "Iowan Old Style",
+    Georgia,
+    serif
+  );
+  --f-code: var(
+    --code,
+    "JetBrains Mono Variable",
+    ui-monospace,
+    "SFMono-Regular",
+    Menlo,
+    monospace
+  );
+  gap: clamp(20px, 2.4vw, 32px);
+}
+.fl > *,
+.fd > * {
+  min-width: 0;
+}
+.fl .page-head,
+.fd .detail-head {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 12px;
+}
+.fl .page-head h1,
+.fd .detail-head h1 {
+  margin: 0;
+  font-family: var(--f-serif);
+  font-size: clamp(2.2rem, 1.4rem + 2.6vw, 3.4rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.fd .detail-head h1 {
+  font-size: clamp(1.9rem, 1.3rem + 2vw, 2.8rem);
+  line-height: 1.12;
+  max-width: 36ch;
+}
+.fl .page-head p,
+.fd .detail-head > p {
+  max-width: 68ch;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+/* Which scan this is */
+.fl-context {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.fl-context > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 12px 22px 14px;
+  border-left: 1px solid var(--border);
+}
+.fl-context > div:first-child {
+  border-left: 0;
+}
+.fl-context dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.fl-context dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 1.0625rem;
+}
+.fl-context code {
+  font-family: var(--f-code);
+  font-size: 0.9375rem;
+}
+@media (max-width: 560px) {
+  .fl-context > div {
+    flex: 1 1 100%;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+  .fl-context > div:first-child {
+    border-top: 0;
+  }
+}
+
+/* Filters: one band, the selects drawn by us */
+.fl .toolbar {
+  margin: 0;
+  gap: 14px 16px;
+  padding: 16px 20px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.fl .toolbar .field-label {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.fl .toolbar .input,
+.fd .status-form .input {
+  min-height: 44px;
+  border-radius: 6px;
+  background-color: var(--bg);
+}
+.fl .toolbar select.input,
+.fd .status-form select.input {
+  appearance: none;
+  padding-right: 40px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) 50%,
+    calc(100% - 14px) 50%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+}
+
+/* Severity filter: a ruled strip of counts, not pills */
+.fl .chips {
+  gap: 0;
+  margin: 0;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.fl .chip,
+.fl .chip[aria-pressed="true"] {
+  min-height: 44px;
+  padding: 8px 18px;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.fl .chip:first-child {
+  border-left: 0;
+}
+.fl .chip:hover {
+  background: var(--hover);
+}
+.fl .chip[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.fl .chip:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -3px;
+}
+@media (max-width: 560px) {
+  .fl .chips {
+    width: 100%;
+  }
+  .fl .chip,
+  .fl .chip[aria-pressed="true"] {
+    flex: 1 1 auto;
+    padding: 8px 10px;
+  }
+}
+.fl [role="status"] {
+  margin: 0;
+}
+
+/* The list: ruled rows with a coloured edge for severity */
+.fl .finding-list {
+  gap: 0;
+  border-top: 1px solid var(--border);
+}
+.fl .finding-row,
+.fl .finding-row:hover {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.fl .finding-row:has(.sev-critical) {
+  border-left-color: var(--sev-critical);
+}
+.fl .finding-row:has(.sev-high) {
+  border-left-color: var(--sev-high);
+}
+.fl .finding-row:has(.sev-medium) {
+  border-left-color: var(--sev-medium);
+}
+.fl .finding-row:has(.sev-low) {
+  border-left-color: var(--sev-low);
+}
+.fl .finding-row:hover {
+  background: var(--hover);
+}
+.fl .finding-link {
+  grid-template-columns: 96px minmax(0, 1fr) auto auto;
+  gap: 8px 20px;
+  padding: 18px 16px 18px 16px;
+  border-radius: 0;
+}
+.fl .finding-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.fl .finding-main code {
+  font-family: var(--f-code);
+  font-size: 0.8125rem;
+}
+@media (max-width: 860px) {
+  .fl .finding-link {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 16px 10px;
+  }
+}
+
+/* Export and share */
+.fl > [role="group"][aria-label="Export report"] {
+  gap: 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-strong);
+  align-items: center;
+}
+.fl > [role="group"][aria-label="Export report"] > .muted {
+  margin-right: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.fl details {
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+/* One finding: reading column, and the working panel beside it */
+.fd .back-link {
+  font-size: 0.9375rem;
+}
+.fd .detail-head .row {
+  gap: 8px 14px;
+}
+.fd-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(24px, 3vw, 40px);
+  align-items: start;
+}
+.fd-main,
+.fd-side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(20px, 2.4vw, 32px);
+  min-width: 0;
+}
+@media (min-width: 1000px) {
+  .fd-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
+  }
+  .fd-side {
+    position: sticky;
+    top: 24px;
+  }
+}
+.fd .detail-section,
+.fd .detail-section:hover {
+  gap: 14px;
+  padding: 18px 0 0;
+  border: 0;
+  border-top: 1px solid var(--border-strong);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.fd .detail-section > h2 {
+  margin: 0;
+  font-family: var(--f-serif);
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.fd .detail-section h3 {
+  margin: 4px 0 0;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+}
+.fd .detail-section p {
+  margin: 0;
+  max-width: 68ch;
+  line-height: 1.6;
+}
+.fd .detail-section p + p {
+  margin-top: -2px;
+}
+.fd .detail-section ol,
+.fd .refs {
+  margin: 0;
+  padding-left: 1.3rem;
+  max-width: 68ch;
+  line-height: 1.6;
+}
+.fd .detail-section li + li {
+  margin-top: 6px;
+}
+.fd pre.evidence {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--control);
+  border-radius: 6px;
+  background: var(--surface);
+  font-family: var(--f-code);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+}
+
+/* The side panel is one surface with ruled sections, as on the Overview */
+.fd-side {
+  gap: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.fd-side .detail-section,
+.fd-side .detail-section:hover {
+  padding: 20px 22px 22px;
+  border-top: 1px solid var(--border);
+}
+.fd-side .detail-section:first-child {
+  border-top: 0;
+}
+.fd-side .detail-section > h2 {
+  font-size: 1.25rem;
+}
+.fd-side .meta {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+}
+.fd-side .meta dt {
+  margin-top: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.fd-side .meta dt:first-child {
+  margin-top: 0;
+}
+.fd-side .meta dd {
+  font-size: 0.9375rem;
+}
+.fd-side .status-form {
+  max-width: none;
+}
+.fd .assistant-prompt {
+  margin: 8px 0 0;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}

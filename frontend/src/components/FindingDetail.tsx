@@ -14,6 +14,9 @@ import type { Finding, FindingStatus, ScanDetail } from "../types";
 import { ANALYST_STATUSES, canTriageFindings } from "../types";
 import RecheckPanel from "./RecheckPanel";
 import { FindingStatusTag, SeverityBadge } from "./ui";
+import "@fontsource-variable/newsreader/opsz.css";
+import "@fontsource-variable/jetbrains-mono/wght.css";
+import "../findings.css";
 
 function Section({
   id,
@@ -193,7 +196,7 @@ export default function FindingDetail({
   const guidance = guidanceFor(finding.id);
   const meta = scan.metadata;
   return (
-    <article className="stack">
+    <article className="stack fd">
       <a className="back-link" href={buildHash("findings", scan.id)}>
         ← All findings
       </a>
@@ -213,103 +216,108 @@ export default function FindingDetail({
         </p>
       </header>
 
-      <StatusPanel finding={finding} onChanged={onChanged} />
-      <RecheckPanel scan={scan} finding={finding} />
+      <div className="fd-layout">
+        <div className="fd-main">
+          <Section id="d-evidence" title="Evidence">
+            {finding.evidence ? (
+              <pre className="evidence">{finding.evidence}</pre>
+            ) : (
+              <p className="muted">No evidence was recorded.</p>
+            )}
+            <p className="small">
+              <strong>How this was detected:</strong>{" "}
+              {finding.confidence === "high"
+                ? "Direct observation. "
+                : "Heuristic match, not confirmed. "}
+              {guidance.detectionNote}
+            </p>
+          </Section>
 
-      <Section id="d-target" title="Affected target">
-        <dl className="meta">
-          <dt>Host</dt>
-          <dd>{scan.host}</dd>
-          <dt>Scanned URL</dt>
-          <dd>{scan.target_url}</dd>
-          {meta?.final_url && (
-            <>
-              <dt>Final URL</dt>
-              <dd>{meta.final_url}</dd>
-            </>
-          )}
-          {meta?.status_code != null && (
-            <>
-              <dt>HTTP status</dt>
-              <dd>{meta.status_code}</dd>
-            </>
-          )}
-          <dt>Scan</dt>
-          <dd>
-            <a href={buildHash("overview", scan.id)}>Open scan summary</a>
-          </dd>
-        </dl>
-      </Section>
+          <Section id="d-impact" title="What it means">
+            <p>{finding.description}</p>
+            <p>
+              <strong>Why it matters:</strong> {guidance.impact}
+            </p>
+          </Section>
 
-      <Section id="d-evidence" title="Evidence">
-        {finding.evidence ? (
-          <pre className="evidence">{finding.evidence}</pre>
-        ) : (
-          <p className="muted">No evidence was recorded.</p>
-        )}
-        <p className="small">
-          <strong>How this was detected:</strong>{" "}
-          {finding.confidence === "high"
-            ? "Direct observation. "
-            : "Heuristic match, not confirmed. "}
-          {guidance.detectionNote}
-        </p>
-      </Section>
+          <Section id="d-fix" title="Recommended fix">
+            <p>{finding.remediation}</p>
+            {guidance.fixes.map((fix) => (
+              <div key={fix.label}>
+                <h3>{fix.label}</h3>
+                <pre className="evidence">{fix.code}</pre>
+              </div>
+            ))}
+            {guidance.fixes.length > 0 && (
+              <p className="muted small">
+                Adapt these examples to your framework or hosting platform
+                before using them.
+              </p>
+            )}
+            <AssistantPrompt text={buildAssistantPrompt(finding, guidance)} />
+          </Section>
 
-      <Section id="d-impact" title="What it means">
-        <p>{finding.description}</p>
-        <p>
-          <strong>Why it matters:</strong> {guidance.impact}
-        </p>
-      </Section>
-
-      <Section id="d-fix" title="Recommended fix">
-        <p>{finding.remediation}</p>
-        {guidance.fixes.map((fix) => (
-          <div key={fix.label}>
-            <h3>{fix.label}</h3>
-            <pre className="evidence">{fix.code}</pre>
-          </div>
-        ))}
-        {guidance.fixes.length > 0 && (
-          <p className="muted small">
-            Adapt these examples to your framework or hosting platform before
-            using them.
-          </p>
-        )}
-        <AssistantPrompt text={buildAssistantPrompt(finding, guidance)} />
-      </Section>
-
-      <Section id="d-verify" title="How to verify">
-        <ol>
-          {guidance.verify.map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
-        <p className="muted small">
-          SecureScope does not mark a finding as fixed. It is treated as
-          resolved only when a later scan of the same target no longer reports
-          it.
-        </p>
-      </Section>
-
-      <Section id="d-limits" title="Limits of this finding">
-        <p>{guidance.limitations}</p>
-        {guidance.references.length > 0 && (
-          <>
-            <h3>References</h3>
-            <ul className="refs">
-              {guidance.references.map((r) => (
-                <li key={r.url}>
-                  <a href={r.url} target="_blank" rel="noopener noreferrer">
-                    {r.label}
-                  </a>
-                </li>
+          <Section id="d-verify" title="How to verify">
+            <ol>
+              {guidance.verify.map((step) => (
+                <li key={step}>{step}</li>
               ))}
-            </ul>
-          </>
-        )}
-      </Section>
+            </ol>
+            <p className="muted small">
+              SecureScope does not mark a finding as fixed. It is treated as
+              resolved only when a later scan of the same target no longer
+              reports it.
+            </p>
+          </Section>
+
+          <Section id="d-limits" title="Limits of this finding">
+            <p>{guidance.limitations}</p>
+            {guidance.references.length > 0 && (
+              <>
+                <h3>References</h3>
+                <ul className="refs">
+                  {guidance.references.map((r) => (
+                    <li key={r.url}>
+                      <a href={r.url} target="_blank" rel="noopener noreferrer">
+                        {r.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </Section>
+        </div>
+        <div className="fd-side">
+          <StatusPanel finding={finding} onChanged={onChanged} />
+          <RecheckPanel scan={scan} finding={finding} />
+
+          <Section id="d-target" title="Affected target">
+            <dl className="meta">
+              <dt>Host</dt>
+              <dd>{scan.host}</dd>
+              <dt>Scanned URL</dt>
+              <dd>{scan.target_url}</dd>
+              {meta?.final_url && (
+                <>
+                  <dt>Final URL</dt>
+                  <dd>{meta.final_url}</dd>
+                </>
+              )}
+              {meta?.status_code != null && (
+                <>
+                  <dt>HTTP status</dt>
+                  <dd>{meta.status_code}</dd>
+                </>
+              )}
+              <dt>Scan</dt>
+              <dd>
+                <a href={buildHash("overview", scan.id)}>Open scan summary</a>
+              </dd>
+            </dl>
+          </Section>
+        </div>
+      </div>
     </article>
   );
 }

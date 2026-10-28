@@ -11,6 +11,9 @@ import { useScan } from "../useScan";
 import { useRecentScans } from "../components/bento/useRecentScans";
 import { buildHash } from "../router";
 import { formatDate } from "../format";
+import "@fontsource-variable/newsreader/opsz.css";
+import "@fontsource-variable/jetbrains-mono/wght.css";
+import "../findings.css";
 
 type SortKey = "severity" | "title";
 
@@ -105,7 +108,7 @@ export default function Findings({ route }: { route: Route }) {
   }
 
   return (
-    <div className="stack">
+    <div className="stack fl">
       <header className="page-head">
         <h1>Findings</h1>
         <p>
@@ -114,6 +117,29 @@ export default function Findings({ route }: { route: Route }) {
         </p>
       </header>
       {!route.scanId && <NoScanSelected />}
+      {scan && (
+        <dl className="fl-context" aria-label="This scan">
+          <div>
+            <dt>Site</dt>
+            <dd>
+              <code>{scan.host}</code>
+            </dd>
+          </div>
+          <div>
+            <dt>Scanned</dt>
+            <dd>{formatDate(scan.created_at)}</dd>
+          </div>
+          {scan.score !== null && scan.score !== undefined && (
+            <div>
+              <dt>Score</dt>
+              <dd>
+                {scan.score}
+                {scan.grade ? `, grade ${scan.grade}` : ""}
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
       {error && <ErrorNotice message={error} />}
       {loading && !scan && <Loading label="Loading findings…" />}
       {scan &&
@@ -216,7 +242,7 @@ export default function Findings({ route }: { route: Route }) {
                 return n ? (
                   <button
                     key={s}
-                    className="chip"
+                    className={`chip chip-${s}`}
                     type="button"
                     aria-pressed={severity === s}
                     onClick={() => setSeverity(s)}
