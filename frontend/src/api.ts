@@ -631,6 +631,8 @@ export interface AppFinding {
 export interface AppScanSummary {
   id: string;
   project_id: string;
+  origin: "ci" | "upload";
+  ref: string | null;
   status: string;
   result: AppResult;
   result_text: string;

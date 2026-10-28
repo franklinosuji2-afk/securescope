@@ -414,6 +414,29 @@ def test_a_ci_key_cannot_collide_with_a_browser_key(env) -> None:  # type: ignor
     assert r.status_code == 201
 
 
+def test_the_run_list_says_whether_a_run_came_from_a_pipeline_or_an_upload(env) -> None:  # type: ignore[no-untyped-def]
+    client, pid, app_token, _w = env
+    sent = submit(client, app_token, doc(pid, ref="refs/heads/main"), "pipeline-origin")
+    assert sent.status_code == 201
+    assert sent.json()["origin"] == "ci" and sent.json()["ref"] == "refs/heads/main"
+    items = client.get(f"{APP}/scans").json()["items"]
+    assert [(i["origin"], i["ref"]) for i in items] == [("ci", "refs/heads/main")]
+    # A run that did not arrive through the CI endpoint has no "ci:" key, so it is an upload, and no ref.
+    with engine(client).begin() as conn:
+        conn.execute(update(AppScanRow).values(idempotency_key="browser-key", token_id=None, ref=None))
+    after = client.get(f"{APP}/scans").json()["items"]
+    assert [(i["origin"], i["ref"]) for i in after] == [("upload", None)]
+
+
+def test_a_ci_run_stays_a_ci_run_after_its_token_is_deleted(env) -> None:  # type: ignore[no-untyped-def]
+    client, pid, app_token, _w = env
+    run = submit(client, app_token, doc(pid), "pipeline-keep").json()["id"]
+    with engine(client).begin() as conn:
+        conn.execute(update(AppScanRow).values(token_id=None))
+    listed = client.get(f"{APP}/scans").json()["items"]
+    assert [(i["id"], i["origin"]) for i in listed] == [(run, "ci")]
+
+
 # --- 13: limits that hold across instances -------------------------------------------------------------------
 
 

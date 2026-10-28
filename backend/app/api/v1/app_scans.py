@@ -157,6 +157,10 @@ def _summary(row: AppScanRow, severities: list[str]) -> AppScanSummary:
     return AppScanSummary(
         id=row.id,
         project_id=row.project_id,
+        # Only the CI endpoint can store a "ci:" key (the browser endpoint refuses it), so this stays true even
+        # after the token that submitted the run is deleted.
+        origin="ci" if (row.idempotency_key or "").startswith(CI_KEY_PREFIX) else "upload",
+        ref=row.ref or None,
         status=row.status,
         result=label,
         result_text=RESULT_TEXT[label],
