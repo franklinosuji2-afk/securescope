@@ -266,34 +266,49 @@ const APP_PREVIEW = [
   },
 ];
 
-const FAQ = [
+const FAQ_GROUPS = [
   {
-    q: "Who is SecureScope for?",
-    a: "People who look after websites they own or are responsible for: freelancers, small teams and agencies that want a clear, repeatable check of the basics, with something to show a client. It does not replace a penetration test or a security team.",
+    title: "About SecureScope",
+    items: [
+      {
+        q: "Who is SecureScope for?",
+        a: "People who look after websites they own or are responsible for: freelancers, small teams and agencies that want a clear, repeatable check of the basics, with something to show a client. It does not replace a penetration test or a security team.",
+      },
+      {
+        q: "Is this a penetration test?",
+        a: "No. It checks the basics that are visible from outside, such as headers, cookies, HTTPS and exposed files. A clean result does not mean a site is secure, and every report says what was not checked.",
+      },
+      {
+        q: "What is App Scanning, and can I use it?",
+        a: "App Scanning will check the dependency files of an application for known vulnerabilities. It is in development and not open to the public: the vulnerability database is not connected yet, so it cannot report vulnerabilities today. Website Scanning is the product available now.",
+      },
+    ],
   },
   {
-    q: "Is it safe to run on my site?",
-    a: "Yes. SecureScope only reads: a few normal page requests, requests for a few well-known paths such as /.env to see whether they are publicly readable, and one TLS connection. It sends no exploit payloads, no brute force and no port scans, and it never stores page contents.",
+    title: "Safety and permission",
+    items: [
+      {
+        q: "Is it safe to run on my site?",
+        a: "Yes. SecureScope only reads: a few normal page requests, requests for a few well-known paths such as /.env to see whether they are publicly readable, and one TLS connection. It sends no exploit payloads, no brute force and no port scans, and it never stores page contents.",
+      },
+      {
+        q: "Can I scan a site that isn't mine?",
+        a: "No. Every site has to be verified with a DNS record or a file first, so SecureScope is not a tool for testing other people's websites. Verification proves technical control of the domain; if it is not your own site you also need the owner's permission.",
+      },
+    ],
   },
   {
-    q: "Can I scan a site that isn't mine?",
-    a: "No. Every site has to be verified with a DNS record or a file first, so SecureScope is not a tool for testing other people's websites. Verification proves technical control of the domain; if it is not your own site you also need the owner's permission.",
-  },
-  {
-    q: "What does scheduled monitoring do?",
-    a: "On the Professional and Agency plans (not on sale yet) SecureScope scans a verified site daily or weekly and emails you only when something new appears or the score drops by 5 points or more, so a change that opens a gap does not go unnoticed for months.",
-  },
-  {
-    q: "Is this a penetration test?",
-    a: "No. It checks the basics that are visible from outside, such as headers, cookies, HTTPS and exposed files. A clean result does not mean a site is secure, and every report says what was not checked.",
-  },
-  {
-    q: "What is App Scanning, and can I use it?",
-    a: "App Scanning will check the dependency files of an application for known vulnerabilities. It is in development and not open to the public: the vulnerability database is not connected yet, so it cannot report vulnerabilities today. Website Scanning is the product available now.",
-  },
-  {
-    q: "Where is my data?",
-    a: "Scan results are kept for as long as your plan allows (30, 90 or 365 days) and then deleted. You can delete your account and its data yourself. See the privacy notice for details.",
+    title: "Monitoring and your data",
+    items: [
+      {
+        q: "What does scheduled monitoring do?",
+        a: "On the Professional and Agency plans (not on sale yet) SecureScope scans a verified site daily or weekly and emails you only when something new appears or the score drops by 5 points or more, so a change that opens a gap does not go unnoticed for months.",
+      },
+      {
+        q: "Where is my data?",
+        a: "Scan results are kept for as long as your plan allows (30, 90 or 365 days) and then deleted. You can delete your account and its data yourself. See the privacy notice for details.",
+      },
+    ],
   },
 ];
 
@@ -803,11 +818,20 @@ export default function Landing() {
           <section className="landing-section" aria-labelledby="h-faq">
             <h2 id="h-faq">Questions</h2>
             <div className="landing-faq">
-              {FAQ.map((f) => (
-                <details key={f.q} className="card">
-                  <summary>{f.q}</summary>
-                  <p className="muted">{f.a}</p>
-                </details>
+              {FAQ_GROUPS.map((g, i) => (
+                <section
+                  key={g.title}
+                  className={`faq-group faq-group-${i + 1}`}
+                  aria-labelledby={`faq-g${i}`}
+                >
+                  <h3 id={`faq-g${i}`}>{g.title}</h3>
+                  {g.items.map((f) => (
+                    <details key={f.q}>
+                      <summary>{f.q}</summary>
+                      <p className="muted">{f.a}</p>
+                    </details>
+                  ))}
+                </section>
               ))}
             </div>
           </section>
