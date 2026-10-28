@@ -9,6 +9,8 @@ import {
 import { formatDate } from "../format";
 import { buildHash, compareHash, type Route } from "../router";
 import type { Finding, ScanComparison, ScanSummary } from "../types";
+import "@fontsource-variable/newsreader/opsz.css";
+import "../compare.css";
 
 function message(err: unknown): string {
   return err instanceof Error ? err.message : "Something went wrong.";
@@ -113,9 +115,9 @@ function CompareFor({
   const data = ready ? result.data : null;
 
   return (
-    <>
+    <div className="stack scmp">
       <h1>Compare scans</h1>
-      <p className="muted">
+      <p className="muted scmp-lead">
         See what changed between two scans of the same site. Findings are
         matched by their fingerprint, nothing is estimated.
       </p>
@@ -154,7 +156,11 @@ function CompareFor({
       {selected && !ready && !error && <Loading label="Comparing…" />}
       {data && (
         <>
-          <div className="card" role="group" aria-label="Score change">
+          <div
+            className="card scmp-score"
+            role="group"
+            aria-label="Score change"
+          >
             <p>
               <strong>{data.host}</strong>
             </p>
@@ -211,19 +217,19 @@ function CompareFor({
           <p className="muted small">{data.note}</p>
         </>
       )}
-    </>
+    </div>
   );
 }
 
 export default function Compare({ route }: { route: Route }) {
   if (!route.scanId) {
     return (
-      <>
+      <div className="stack scmp">
         <h1>Compare scans</h1>
         <EmptyState title="Pick a scan first">
           Open a scan and choose “Compare with another scan”.
         </EmptyState>
-      </>
+      </div>
     );
   }
   return (

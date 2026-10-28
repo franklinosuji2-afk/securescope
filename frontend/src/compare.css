@@ -1,0 +1,140 @@
+/* Compare scans: what changed between two scans of one site. */
+.scmp {
+  --c-serif: var(
+    --serif,
+    "Newsreader Variable",
+    "Iowan Old Style",
+    Georgia,
+    serif
+  );
+  gap: clamp(20px, 2.4vw, 32px);
+}
+.scmp > * {
+  min-width: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.scmp > h1 {
+  font-family: var(--c-serif);
+  font-size: clamp(2.2rem, 1.4rem + 2.6vw, 3.4rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.scmp .scmp-lead {
+  max-width: 68ch;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+.scmp .form-stack,
+.scmp .scmp-score {
+  max-width: none;
+  padding: 20px 24px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: none;
+}
+.scmp .form-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  max-width: 36rem;
+}
+.scmp .form-stack label {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.scmp select.input {
+  min-height: 44px;
+  appearance: none;
+  padding-right: 40px;
+  border-radius: 6px;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) 50%,
+    calc(100% - 14px) 50%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+}
+
+/* The result: two scans and the change, as one strip */
+.scmp .scmp-score {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px 0;
+  padding: 0;
+  overflow: hidden;
+}
+.scmp .scmp-score p {
+  margin: 0;
+  padding: 14px 24px;
+  line-height: 1.5;
+}
+.scmp .scmp-score p:first-child {
+  grid-column: 1 / -1;
+  border-bottom: 1px solid var(--border);
+  font-size: 1.0625rem;
+}
+.scmp .scmp-score p + p {
+  border-left: 1px solid var(--border);
+}
+.scmp .scmp-score p:nth-child(2) {
+  border-left: 0;
+}
+.scmp .scmp-score p:last-child {
+  font-family: var(--c-serif);
+  font-size: 1.6rem;
+  letter-spacing: -0.01em;
+}
+.scmp .scmp-score p:last-child strong {
+  font-weight: 400;
+}
+@media (max-width: 720px) {
+  .scmp .scmp-score {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .scmp .scmp-score p,
+  .scmp .scmp-score p + p {
+    border-left: 0;
+    padding: 12px 18px;
+  }
+  .scmp .scmp-score p + p {
+    border-top: 1px solid var(--border);
+  }
+}
+
+/* The groups: ruled sections */
+.scmp section.card,
+.scmp section.card:hover {
+  padding: 18px 0 0;
+  border: 0;
+  border-top: 1px solid var(--border-strong);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.scmp .card-title {
+  margin: 0 0 14px;
+  justify-content: flex-start;
+  font-family: var(--c-serif);
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.scmp .plain-list {
+  gap: 0;
+  border-top: 1px solid var(--border);
+}
+.scmp .plain-list li,
+.scmp .plain-list li + li {
+  padding: 14px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
