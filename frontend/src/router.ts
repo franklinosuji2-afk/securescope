@@ -26,7 +26,11 @@ export type Page =
   | "compare"
   | "impressum"
   | "privacy"
-  | "terms";
+  | "terms"
+  | "checks"
+  | "pricing"
+  | "help"
+  | "early-access";
 
 const PAGES: readonly Page[] = [
   "targets",
@@ -53,6 +57,10 @@ const PAGES: readonly Page[] = [
   "impressum",
   "privacy",
   "terms",
+  "checks",
+  "pricing",
+  "help",
+  "early-access",
 ];
 export const LEGAL_PAGES: readonly Page[] = ["impressum", "privacy", "terms"];
 export const PUBLIC_PAGES: readonly Page[] = [

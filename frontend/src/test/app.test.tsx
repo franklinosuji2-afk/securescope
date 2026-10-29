@@ -455,7 +455,7 @@ describe("Authentication", () => {
     expect(
       await screen.findByRole("heading", {
         level: 1,
-        name: /Know what puts your/,
+        name: /Find the security gaps on your website/,
       }),
     ).toBeInTheDocument();
     expect(
@@ -465,7 +465,8 @@ describe("Authentication", () => {
     expect(screen.queryByLabelText("Target URL")).not.toBeInTheDocument();
   });
 
-  it("offers the sample PDF report on the home page, labelled as a demonstration", async () => {
+  it("offers the sample PDF report on the What we check page, labelled as a demonstration", async () => {
+    window.location.hash = "#/checks";
     mockApi(() => ({}), null);
     renderApp();
     const section = (

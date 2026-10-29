@@ -1,5 +1,5 @@
 import { render } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CONTACT } from "../contact";
 import Landing from "../pages/Landing";
 
@@ -7,6 +7,10 @@ function page(): { text: string; container: HTMLElement } {
   const { container } = render(<Landing />);
   return { text: container.textContent ?? "", container };
 }
+
+afterEach(() => {
+  window.location.hash = "";
+});
 
 describe("public home page", () => {
   it("links to security reporting from the footer and shows the support address only once, on the Impressum", () => {
@@ -20,15 +24,54 @@ describe("public home page", () => {
     ).not.toBeNull();
   });
 
-  it("answers who it is for and what scheduled monitoring does", () => {
-    const { text } = page();
-    expect(text).toContain("Who is SecureScope for?");
-    expect(text).toContain("What does scheduled monitoring do?");
+  it("has the four blocks and one primary action", () => {
+    const { container } = page();
+    const headings = [...container.querySelectorAll("main h1, main h2")].map(
+      (h) => h.textContent,
+    );
+    expect(headings).toEqual([
+      "Find the security gaps on your website, and know how to fix them.",
+      "Two products, with clear status.",
+      "Built for people who ship, not security teams.",
+      "Three steps, a few minutes.",
+    ]);
+    const primary = [...container.querySelectorAll("main a.btn")];
+    expect(primary.length).toBeGreaterThan(0);
+    for (const a of primary) {
+      expect(a.textContent).toBe("Scan your website");
+      expect(a.getAttribute("href")).toBe("#/register");
+    }
   });
 
-  it("says scheduled monitoring is not on sale yet", () => {
-    const { text } = page();
-    expect(text).toMatch(/Coming soon/);
+  it("keeps the detail off the home page and points to the pages that hold it", () => {
+    const { container, text } = page();
+    for (const jargon of ["HSTS", "Content-Security-Policy", "DMARC", "CORS"])
+      expect(text).not.toContain(jargon);
+    expect(text).not.toContain("€");
+    expect(container.querySelector("details")).toBeNull();
+    for (const href of [
+      "#/checks",
+      "#/pricing",
+      "#/help",
+      "#/sample-report",
+      "#/early-access",
+      "#/agency-features",
+    ])
+      expect(container.querySelector(`a[href="${href}"]`)).not.toBeNull();
+  });
+
+  it("names both products, with App Scanning labelled Early Access and not as available", () => {
+    const { container } = page();
+    const cards = [...container.querySelectorAll("#products article")];
+    expect(cards).toHaveLength(2);
+    const [website, app] = cards.map((c) => c.textContent ?? "");
+    expect(website).toContain("Website Scanning");
+    expect(website).toContain("Available now");
+    expect(app).toContain("App Scanning");
+    expect(app).toContain("Early Access");
+    expect(app).not.toContain("Available now");
+    expect(app).toMatch(/not open to everyone yet/);
+    expect(app).not.toMatch(/vulnerabilit|scans? your (code|dependencies)/i);
   });
 
   it("makes none of the claims a basic external check cannot support", () => {
@@ -49,50 +92,6 @@ describe("public home page", () => {
     ];
     for (const pattern of forbidden) expect(text).not.toMatch(pattern);
   });
-});
-
-describe("two products on the home page", () => {
-  it("names both products and gives App Scanning an honest status", () => {
-    const { container } = page();
-    const text = container.textContent ?? "";
-    expect(text).toContain("Website Scanning");
-    expect(text).toContain("App Scanning");
-    expect(container.querySelector("#app-scanning")?.textContent).toContain(
-      "In development",
-    );
-    expect(container.querySelector("#products")?.textContent).toContain(
-      "Available",
-    );
-  });
-
-  it("does not present planned features as available", () => {
-    const { container } = page();
-    const card = container.querySelector("#products")?.textContent ?? "";
-    const planned = card.slice(card.indexOf("Planned, not available"));
-    for (const item of ["SAST", "Secret detection", "vulnerability database"])
-      expect(planned).toContain(item);
-    // Nothing outside that list claims them as working.
-    const rest = card.slice(0, card.indexOf("Planned, not available"));
-    expect(rest).not.toMatch(/SAST|Secret detection/);
-  });
-
-  it("says an unavailable source is never a clean result", () => {
-    const { container } = page();
-    const section = container.querySelector("#app-scanning")?.textContent ?? "";
-    expect(section).toMatch(/never reported as clean/);
-    expect(section).toMatch(/not a penetration test/);
-    expect(section).toContain("Illustrative example");
-  });
-
-  it("publishes no App Scanning allowances, prices or unlimited claims", () => {
-    const { container } = page();
-    const section = container.querySelector("#app-scanning")?.textContent ?? "";
-    const products = container.querySelector("#products")?.textContent ?? "";
-    for (const t of [section, products]) {
-      expect(t).not.toMatch(/unlimited/i);
-      expect(t).not.toMatch(/\d+ runs|runs per month|€|\$\s?\d/i);
-    }
-  });
 
   it("makes no request to the App Scanning API", () => {
     const fetchSpy = vi.fn();
@@ -101,11 +100,25 @@ describe("two products on the home page", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
+});
 
-  it("links to the privacy notice and the terms from the trust section", () => {
-    const { container } = page();
-    const trust = container.querySelector("#app-scanning");
-    expect(trust?.querySelector('a[href="#/privacy"]')).not.toBeNull();
-    expect(trust?.querySelector('a[href="#/terms"]')).not.toBeNull();
+describe("old section links", () => {
+  it.each([
+    ["pricing", "#/pricing"],
+    ["checks", "#/checks"],
+    ["how", "#/checks"],
+    ["problem", "#/checks"],
+    ["app-scanning", "#/early-access"],
+    ["products", "#/early-access"],
+  ])("sends #/?section=%s to %s", (section, target) => {
+    window.location.hash = `#/?section=${section}`;
+    page();
+    expect(window.location.hash).toBe(target);
+  });
+
+  it("leaves an unknown section alone", () => {
+    window.location.hash = "#/?section=nothing";
+    page();
+    expect(window.location.hash).toBe("#/?section=nothing");
   });
 });

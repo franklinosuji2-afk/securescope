@@ -13,7 +13,14 @@ export default function PublicShell({
   current,
   children,
 }: {
-  current: "sample-report" | "agency-features" | null;
+  current:
+    | "sample-report"
+    | "agency-features"
+    | "checks"
+    | "pricing"
+    | "help"
+    | "early-access"
+    | null;
   children: ReactNode;
 }) {
   return (
@@ -28,8 +35,18 @@ export default function PublicShell({
             <span className="landing-wordmark">SecureScope</span>
           </a>
           <nav className="sample-links" aria-label="Site">
-            <a href="#/?section=problem">Why SecureScope</a>
-            <a href="#/?section=checks">What we check</a>
+            <a
+              href="#/checks"
+              aria-current={current === "checks" ? "page" : undefined}
+            >
+              What we check
+            </a>
+            <a
+              href="#/pricing"
+              aria-current={current === "pricing" ? "page" : undefined}
+            >
+              Pricing
+            </a>
             <a
               href="#/sample-report"
               aria-current={current === "sample-report" ? "page" : undefined}
@@ -37,12 +54,11 @@ export default function PublicShell({
               Sample report
             </a>
             <a
-              href="#/agency-features"
-              aria-current={current === "agency-features" ? "page" : undefined}
+              href="#/help"
+              aria-current={current === "help" ? "page" : undefined}
             >
-              For agencies
+              Help
             </a>
-            <a href="#/?section=pricing">Pricing</a>
           </nav>
           <div className="landing-actions">
             <ThemeToggle />
@@ -68,19 +84,21 @@ export default function PublicShell({
           </div>
           <nav aria-label="Product" className="landing-foot-col">
             <h2>Product</h2>
-            <a href="#/?section=checks">What we check</a>
-            <a href="#/?section=how">How it works</a>
+            <a href="#/checks">What we check</a>
             <a href="#/sample-report">Sample report</a>
             <a href="#/agency-features">For agencies</a>
-            <a href="#/?section=pricing">Pricing</a>
+            <a href="#/pricing">Pricing</a>
+            <a href="#/early-access">App Scanning (Early Access)</a>
           </nav>
           <nav aria-label="Account" className="landing-foot-col">
             <h2>Account</h2>
             <a href={login}>Sign in</a>
             <a href={register}>Create free account</a>
           </nav>
-          <nav aria-label="Legal" className="landing-foot-col">
-            <h2>Legal</h2>
+          <nav aria-label="Help and legal" className="landing-foot-col">
+            <h2>Help and legal</h2>
+            <a href="#/help">Help</a>
+            <a href="/.well-known/security.txt">Report a security issue</a>
             <a href="#/impressum">Impressum</a>
             <a href="#/privacy">Privacy</a>
             <a href="#/terms">Terms</a>

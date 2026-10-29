@@ -34,6 +34,10 @@ const AgencyFeatures = lazyPage(() => import("./pages/AgencyFeatures"));
 const Compare = lazyPage(() => import("./pages/Compare"));
 const Clients = lazyPage(() => import("./pages/Clients"));
 const SampleReport = lazyPage(() => import("./pages/SampleReport"));
+const Checks = lazyPage(() => import("./pages/Checks"));
+const Pricing = lazyPage(() => import("./pages/Pricing"));
+const Help = lazyPage(() => import("./pages/Help"));
+const EarlyAccess = lazyPage(() => import("./pages/EarlyAccess"));
 const SharedReport = lazyPage(() => import("./pages/SharedReport"));
 import { useAgencyAvailable } from "./agency";
 import { useAppScanningAvailable } from "./appScanning";
@@ -142,6 +146,30 @@ export default function App() {
     return (
       <PageLoader>
         <SampleReport />
+      </PageLoader>
+    );
+  if (route.page === "checks")
+    return (
+      <PageLoader>
+        <Checks />
+      </PageLoader>
+    );
+  if (route.page === "pricing")
+    return (
+      <PageLoader>
+        <Pricing />
+      </PageLoader>
+    );
+  if (route.page === "help")
+    return (
+      <PageLoader>
+        <Help />
+      </PageLoader>
+    );
+  if (route.page === "early-access")
+    return (
+      <PageLoader>
+        <EarlyAccess />
       </PageLoader>
     );
   if (route.page === "agency-features")
