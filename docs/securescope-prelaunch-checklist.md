@@ -43,7 +43,7 @@ Sources for the evidence column are in `docs/legal-audit.md`.
 
 | Item | What to verify | Why | Blocks launch | Owner | Status |
 | --- | --- | --- | --- | --- | --- |
-| Name, postal address, email | Present and correct | § 5 DDG | Yes | Operator | Done: present on the page (`Legal.tsx`) |
+| Name, postal address, email | Present and correct | § 5 DDG | Yes | Operator | **Blocked**: postal address withheld from the page (`Legal.tsx`); a compliant address solution is needed before public promotion. Removing the address does not make the Impressum compliant. |
 | Telephone | Not required when email gives fast contact | Avoid publishing more than needed | No | Lawyer to confirm | Open |
 | Business statements | Only "individual, not a registered company"; no register, VAT or professional data | No invented data | Yes | Operator | Done in code; confirm the sentence stays true after registration, then update |
 | § 18 Abs. 2 MStV block | Needed only for journalistic-editorial content | Probably not needed; harmless | No | Lawyer | Open |

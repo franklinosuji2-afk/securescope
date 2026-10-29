@@ -60,7 +60,7 @@ They must match exactly, including `https` and no trailing slash. The Cloudflare
    above. Copy the client ID and secret into the host environment.
 5. While the consent screen is in **Testing**, only listed test users can sign in. Publish it to **In
    production** before inviting anyone else.
-6. Fill in the real postal address in the Impressum first: Google's consent screen links to the legal pages.
+6. The Impressum currently withholds the postal address and needs a compliant address solution before you publish the consent screen: Google's consent screen links to the legal pages.
 
 ## GitHub
 

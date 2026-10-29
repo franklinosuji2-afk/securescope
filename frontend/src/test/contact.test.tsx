@@ -76,15 +76,28 @@ describe("legal pages use the product addresses", () => {
     );
   });
 
-  it("the Impressum shows a real postal address, not a placeholder", () => {
-    const { container } = render(
-      <AuthProvider>
-        <LegalPage page="impressum" />
-      </AuthProvider>,
-    );
-    const text = container.textContent ?? "";
-    expect(text).toContain("Mariendorfer Weg 52");
-    expect(text).toContain("12051 Berlin");
-    expect(text).not.toMatch(/\[[^\]]*to be added[^\]]*\]/i);
+  it("the legal pages publish no private postal address and invent none", () => {
+    // The operator's home address is withheld on purpose. The Impressum is
+    // therefore incomplete (§ 5 DDG) until a compliant address is supplied; this
+    // test must be revisited, not weakened, when that happens.
+    for (const page of ["impressum", "privacy"] as const) {
+      const { container, unmount } = render(
+        <AuthProvider>
+          <LegalPage page={page} />
+        </AuthProvider>,
+      );
+      const text = container.textContent ?? "";
+      // No German postcode + town, and no "<name>weg/straße/allee 12" street line.
+      expect(text).not.toMatch(/\b\d{5}\s+\p{Lu}/u);
+      expect(text).not.toMatch(
+        /\p{L}+\s*(weg|stra(ß|ss)e|allee|platz|damm)\s+\d+/iu,
+      );
+      expect(text).not.toMatch(/c\/o|registered office|Handelsregister|GmbH/i);
+      if (page === "impressum") {
+        expect(text).toContain("Postal address: not currently published.");
+        expect(text).toContain("not a registered company");
+      }
+      unmount();
+    }
   });
 });
