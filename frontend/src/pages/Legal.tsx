@@ -8,9 +8,11 @@ import { buildHash } from "../router";
 
 // Legal text for the operator. Update these constants if the operator's details change.
 const OPERATOR = "Franklin Chinonso Osuji";
-const STREET = "Mariendorfer Weg 52";
-const CITY = "12051 Berlin";
-const UPDATED = "24 October 2026";
+// LAUNCH BLOCKER: the operator's postal address is deliberately NOT published.
+// § 5 DDG expects a serviceable postal address, so this Impressum is incomplete
+// until the operator supplies a compliant address solution. Do not invent one,
+// and do not promote the site publicly before this is resolved.
+const UPDATED = "29 October 2026";
 
 const TABS: { page: Page; label: string }[] = [
   { page: "impressum", label: "Impressum" },
@@ -83,11 +85,7 @@ function Impressum() {
       <p>
         {OPERATOR}
         <br />
-        {STREET}
-        <br />
-        {CITY}
-        <br />
-        Germany
+        Postal address: not currently published.
       </p>
       <h2>Contact</h2>
       <p>
@@ -109,7 +107,7 @@ function Impressum() {
         company.
       </p>
       <h2>Responsible for content (§ 18 Abs. 2 MStV)</h2>
-      <p>{OPERATOR}, address as above.</p>
+      <p>{OPERATOR}. Contact: see the email addresses above.</p>
       <h2>Disclaimer</h2>
       <p>
         SecureScope runs passive, heuristic checks. Its results are guidance and
@@ -132,8 +130,8 @@ function Privacy() {
       </p>
       <h2>Who is responsible</h2>
       <p>
-        {OPERATOR}, {STREET}, {CITY}, Germany. Contact for privacy questions and
-        data requests: <Mail kind="privacy" />.
+        {OPERATOR}, Germany. Contact for privacy questions and data requests:{" "}
+        <Mail kind="privacy" />.
       </p>
 
       <h2>What we store and why</h2>
