@@ -380,10 +380,10 @@ export default function SampleReport() {
               <a className="btn" href={register}>
                 Create free account
               </a>
-              <a className="btn-ghost" href="#/?section=pricing">
+              <a className="btn-ghost" href="#/pricing">
                 See pricing
               </a>
-              <a className="btn-ghost" href="#/?section=how">
+              <a className="btn-ghost" href="#/checks">
                 See how it works
               </a>
             </div>

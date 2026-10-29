@@ -13,7 +13,7 @@ import {
 } from "../components/bento/OverviewLists";
 import { useRecentScans } from "../components/bento/useRecentScans";
 import type { RecentScans } from "../components/bento/useRecentScans";
-import Landing from "../pages/Landing";
+import Help from "../pages/Help";
 import type { ScanSummary, SitePosture, Target } from "../types";
 
 const scan = (
@@ -272,12 +272,12 @@ describe("site inventory", () => {
   });
 });
 
-describe("questions on the home page", () => {
+describe("questions on the Help page", () => {
   it("groups every question and keeps each answer reachable", () => {
-    const { container } = render(<Landing />);
+    const { container } = render(<Help />);
     const groups = container.querySelectorAll(".faq-group");
     expect(groups).toHaveLength(3);
-    expect([...groups].map((g) => g.querySelector("h3")?.textContent)).toEqual([
+    expect([...groups].map((g) => g.querySelector("h2")?.textContent)).toEqual([
       "About SecureScope",
       "Safety and permission",
       "Monitoring and your data",

@@ -585,6 +585,7 @@
   border-radius: var(--radius-lg);
   background: var(--surface);
 }
+.faq-group h2,
 .faq-group h3 {
   margin: 16px 0 8px;
   font-size: 0.9375rem;
@@ -594,6 +595,7 @@
 .faq-group details {
   border-top: 1px solid var(--border);
 }
+.faq-group h2 + details,
 .faq-group h3 + details {
   border-top: 0;
 }

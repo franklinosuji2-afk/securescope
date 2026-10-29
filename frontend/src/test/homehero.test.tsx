@@ -1,9 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { HomeHero, HomeProducts } from "../components/HomeHero";
+import { HomeProducts, Sheet } from "../components/HomeHero";
 
 function hero() {
-  return render(<HomeHero register="#/register" onApp={() => undefined} />);
+  return render(<Sheet />);
 }
 
 describe("home hero", () => {
@@ -50,20 +50,10 @@ describe("home hero", () => {
     expect(text).toContain("never shown as clean");
     expect(text).toContain("Not checked: the version is a range");
   });
-
-  it("keeps the call to action and the sample report link", () => {
-    hero();
-    expect(
-      screen.getByRole("link", { name: "Scan your website" }),
-    ).toHaveAttribute("href", "#/register");
-    expect(
-      screen.getByRole("link", { name: "View sample report" }),
-    ).toHaveAttribute("href", "#/sample-report");
-  });
 });
 
 describe("home products", () => {
-  it("marks Website Scanning available and App Scanning in development, with planned work listed apart", () => {
+  it("marks Website Scanning available and App Scanning Early Access and in development, with planned work listed apart", () => {
     const { container } = render(
       <HomeProducts
         register="#/register"
@@ -74,6 +64,7 @@ describe("home products", () => {
     );
     const text = container.textContent ?? "";
     expect(text).toContain("Available");
+    expect(text).toContain("Early Access");
     expect(text).toContain("In development");
     const before = text.slice(0, text.indexOf("Planned, not available"));
     expect(before).not.toMatch(/SAST|Secret detection/);

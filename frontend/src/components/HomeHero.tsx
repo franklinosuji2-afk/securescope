@@ -5,8 +5,9 @@ import "@fontsource-variable/jetbrains-mono/wght.css";
 import "../home.css";
 
 /**
- * The first screen. SecureScope reads what a site sends back and says what is missing, so the hero shows exactly
- * that: an excerpt of a response with the gaps marked. All of it is an illustration and says so.
+ * SecureScope reads what a site sends back and says what is missing, so the sheet shows exactly that: an
+ * excerpt of a response with the gaps marked. All of it is an illustration and says so. It sits on the
+ * "What we check" page; the product summary sits on the App Scanning Early Access page.
  */
 
 type Verdict = "ok" | "weak" | "missing";
@@ -95,7 +96,7 @@ const APP: Line[] = [
   { id: "a4", text: "}" },
 ];
 
-function Sheet() {
+export function Sheet() {
   const [tab, setTab] = useState<"site" | "app">("site");
   const lines = tab === "site" ? WEBSITE : APP;
   const first = lines.find((l) => l.verdict === "missing") ?? lines[0];
@@ -195,45 +196,6 @@ function Sheet() {
   );
 }
 
-export function HomeHero({
-  register,
-  onApp,
-}: {
-  register: string;
-  onApp: () => void;
-}) {
-  return (
-    <section className="hx-hero" aria-labelledby="hx-title">
-      <div className="hx-copy">
-        <h1 id="hx-title" className="hx-title">
-          Know what puts your digital assets at risk.
-        </h1>
-        <p className="hx-lead">
-          SecureScope reads what your website sends to every visitor and tells
-          you what is missing, with the evidence and the fix. App Scanning, for
-          known vulnerabilities in your application's dependencies, is in
-          development.
-        </p>
-        <div className="hx-actions">
-          <a className="btn" href={register}>
-            Scan your website
-          </a>
-          <button type="button" className="btn-ghost" onClick={onApp}>
-            Explore App Scanning
-          </button>
-          <a className="hx-quiet" href="#/sample-report">
-            View sample report
-          </a>
-        </div>
-        <p className="hx-assure">
-          Passive checks only. Ownership verified first. Free plan, no card.
-        </p>
-      </div>
-      <Sheet />
-    </section>
-  );
-}
-
 const SPEC = {
   site: [
     [
@@ -300,7 +262,8 @@ export function HomeProducts({
         <header>
           <h3>App Scanning</h3>
           <p className="hx-status">
-            <span aria-hidden="true" className="hx-dot" /> In development
+            <span aria-hidden="true" className="hx-dot" /> Early Access · In
+            development
           </p>
           <p className="hx-blurb">
             Assess supported dependency manifests for known vulnerabilities. Not

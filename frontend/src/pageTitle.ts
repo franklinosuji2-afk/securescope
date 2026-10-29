@@ -33,6 +33,10 @@ const TITLES: Partial<Record<Page, string>> = {
   impressum: "Impressum",
   privacy: "Privacy notice",
   terms: "Terms of use",
+  checks: "What we check",
+  pricing: "Pricing",
+  help: "Help",
+  "early-access": "App Scanning (Early Access)",
 };
 
 /** Pages that manage `document.title` themselves. */
