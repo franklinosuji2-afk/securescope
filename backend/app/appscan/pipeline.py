@@ -191,7 +191,9 @@ def run_dependency_scan(
         outcome.checks_skipped.append(
             {
                 "check": "dependency",
-                "reason": f"{outcome.entries_unsupported} entries could not be checked (ranges, addresses or options).",
+                "reason": f"{outcome.entries_unsupported} "
+                f"{'entry' if outcome.entries_unsupported == 1 else 'entries'} could not be checked "
+                "(version ranges, addresses or options). Pin exact versions or upload a lockfile to check them.",
             }
         )
     if not packages:
@@ -231,9 +233,10 @@ def run_dependency_scan(
                     found[(finding.rule_id, package.ecosystem, package.name, package.version)] = finding
 
     if info is not None:
-        outcome.scanners.append(
-            {"name": info.name, "version": info.version, "data_timestamp": info.data_timestamp or ""}
-        )
+        scanner = {"name": info.name, "version": info.version, "data_timestamp": info.data_timestamp or ""}
+        if info.attribution:
+            scanner["attribution"] = info.attribution
+        outcome.scanners.append(scanner)
     order = {
         s: i
         for i, s in enumerate(

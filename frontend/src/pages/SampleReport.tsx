@@ -94,10 +94,8 @@ function plural(n: number, one: string, many: string) {
 
 export default function SampleReport() {
   useEffect(() => {
+    // Not reset on the way out: the next page sets its own title, and a reset would overwrite it.
     document.title = "Sample security report – SecureScope";
-    return () => {
-      document.title = "SecureScope";
-    };
   }, []);
 
   const findings = sample.findings as SampleFinding[];

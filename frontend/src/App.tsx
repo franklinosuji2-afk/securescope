@@ -25,7 +25,7 @@ const Analytics = lazyPage(() => import("./pages/Analytics"));
 const Health = lazyPage(() => import("./pages/Health"));
 const Audit = lazyPage(() => import("./pages/Audit"));
 const History = lazyPage(() => import("./pages/History"));
-import NotFound from "./pages/NotFound";
+import NotFound, { Unavailable } from "./pages/NotFound";
 import ErrorBoundary from "./components/ErrorBoundary";
 const Account = lazyPage(() => import("./pages/Account"));
 import Overview from "./pages/Overview";
@@ -364,6 +364,35 @@ export default function App() {
             {route.page === "targets" && <Targets />}
             {route.page === "integrations" && <Integrations />}
             {route.page === "clients" && agency === true && <Clients />}
+            {route.page === "clients" && agency === null && (
+              <Loading label="Loading…" />
+            )}
+            {route.page === "clients" && agency === false && (
+              <Unavailable
+                title="Clients"
+                link={{
+                  href: buildHash("agency-features", null),
+                  label: "See what the Agency plan includes",
+                }}
+              >
+                Clients is part of the Agency plan, and viewers cannot open it.
+              </Unavailable>
+            )}
+            {route.page === "app-scanning" && appScanning === null && (
+              <Loading label="Loading…" />
+            )}
+            {route.page === "app-scanning" && appScanning === false && (
+              <Unavailable
+                title="App Scanning"
+                link={{
+                  href: buildHash("early-access", null),
+                  label: "Read about Early Access",
+                }}
+              >
+                App Scanning is in Early Access and is not switched on for this
+                workspace.
+              </Unavailable>
+            )}
             {route.page === "app-scanning" && appScanning === true && (
               <AppScanning
                 canCreate={
@@ -383,6 +412,9 @@ export default function App() {
               <Analytics />
             )}
             {route.page === "health" && user.is_admin === true && <Health />}
+            {/* Operator pages are not advertised to anyone else: the address looks like any unknown one. */}
+            {(route.page === "analytics" || route.page === "health") &&
+              user.is_admin !== true && <NotFound />}
           </PageLoader>
         </ErrorBoundary>
       </main>

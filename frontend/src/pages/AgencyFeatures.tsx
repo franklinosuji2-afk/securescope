@@ -71,10 +71,9 @@ function FeatureGroup({
 
 export default function AgencyFeatures() {
   useEffect(() => {
+    // The next page sets its own title (App does it for every page), so nothing is reset on the way out:
+    // a reset here would run after it and overwrite it.
     document.title = "SecureScope for agencies";
-    return () => {
-      document.title = "SecureScope";
-    };
   }, []);
   return (
     <PublicShell current="agency-features">

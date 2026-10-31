@@ -97,6 +97,8 @@ class AppScanOut(BaseModel):
     counts: dict[str, int]
     findings: list[AppFindingOut]
     limitations: list[str]
+    # Credit for the advisory data, when a run used an outside data source (its licence asks for attribution).
+    attribution: str | None = None
     replayed: bool = False
 
 
@@ -134,4 +136,6 @@ class AppOverview(BaseModel):
     max_files: int
     max_file_bytes: int
     ci_tokens_available: bool
+    # False while no vulnerability database is connected: a browser dependency scan then cannot check anything.
+    lookups_available: bool = False
     limitations: list[str]

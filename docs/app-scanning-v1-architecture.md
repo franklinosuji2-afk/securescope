@@ -58,7 +58,7 @@ D-A (who calls OSV), D1 to D4 in the entitlements document, and gate G1 in the p
 
 ## 8. Dependency scan result rules (built in batch 35, tested with fake sources only)
 
-The scan depends on a `VulnerabilitySource` interface (`appscan/vulns.py`). No network client exists; the OSV integration stays blocked until gates G1, G3 and G4 close.
+The scan depends on a `VulnerabilitySource` interface (`appscan/vulns.py`). Since 31 Oct 2026 an OSV client exists (`services/osv.py`, decision D-A option 1), used only when `SECURESCOPE_APP_OSV_ENABLED` is set; it stays off in deployments until gates G1 and G3 close.
 
 | Situation                                                                            | Status                                              | Why                                                                                                                                                                   |
 | ------------------------------------------------------------------------------------ | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

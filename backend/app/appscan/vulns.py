@@ -31,6 +31,8 @@ class SourceInfo:
     version: str = ""
     # When the source's data was last updated, if it says.
     data_timestamp: str | None = None
+    # Credit shown with results when the data's licence asks for it.
+    attribution: str = ""
 
 
 @dataclass(slots=True)

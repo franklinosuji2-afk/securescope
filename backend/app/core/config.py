@@ -133,6 +133,11 @@ class Settings(BaseSettings):
     # none. A site served over https must set it, so switching the feature on can never open it to everyone by
     # forgetting this value. It adds a gate on top of the plans and changes no plan value.
     app_scanning_allowed_orgs: list[str] | None = None
+    # Dependency lookups against OSV.dev (SECURESCOPE_APP_OSV_ENABLED). Off: every browser dependency scan ends
+    # Failed and is not counted, because nothing can be checked. On: package ecosystem, name and exact version are
+    # sent to api.osv.dev (see docs/app-scanning-v1-privacy-and-licensing.md). Switch it on only once the privacy
+    # notice says so (gate G3).
+    app_osv_enabled: bool = False
     # Runs accepted per project per hour, counted in the database so every instance agrees. PROVISIONAL.
     app_scans_per_project_per_hour: int = Field(6, ge=1)
     # Runs processed at once. The free instance has 0.1 CPU, so parsing is done one run at a time. PROVISIONAL.
