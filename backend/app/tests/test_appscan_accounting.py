@@ -373,11 +373,14 @@ def test_older_runs_leave_the_hourly_window_and_failed_runs_still_count_towards_
 
 def test_the_project_cap_is_enforced_and_archiving_frees_a_slot(repo: AppScanRepository, org: str) -> None:
     first = repo.create_project(org, None, "one", "upload", project_limit=1)
-    with pytest.raises(PlanLimitError, match="projects"):
+    with pytest.raises(PlanLimitError, match="1 App Scanning project and it is in use. Archive a project"):
         repo.create_project(org, None, "two", "upload", project_limit=1)
     assert repo.archive_project(org, first)
     repo.create_project(org, None, "two", "upload", project_limit=1)
     assert repo.usage(org, PERIOD_START).projects == 1
+    repo.create_project(org, None, "three", "upload", project_limit=2)
+    with pytest.raises(PlanLimitError, match="2 App Scanning projects and they are all in use"):
+        repo.create_project(org, None, "four", "upload", project_limit=2)
 
 
 def test_project_names_are_unique_per_workspace_and_validated(
