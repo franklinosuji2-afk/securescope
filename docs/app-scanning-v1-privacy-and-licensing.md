@@ -2,7 +2,7 @@
 
 Date: 26 Oct 2026. **This is a record of what is known, unknown and blocked. It is not legal advice and contains no legal conclusions.** The official OSV documentation, data pages and terms could not be fetched from this session (the hosts were outside the session's allowed list), so every statement about OSV below is from general knowledge and is marked UNVERIFIED. Nothing may ship on the basis of this file. **Update 31 Oct 2026:** the official pages were read; section 2 now records what they say, with sources.
 
-## 1. The data flow, exactly (proposed; nothing is implemented)
+## 1. The data flow, exactly (built 31 Oct 2026, switched off: `SECURESCOPE_APP_OSV_ENABLED`)
 
 If SecureScope's server performs the lookup (decision D-A, option 1):
 
@@ -54,7 +54,7 @@ Added only when the feature is enabled, and only to match the implementation:
 5. Transfer mechanism and the recipient's location: depends on V6 and counsel's view. **Owner / lawyer item.**
 6. Update `docs/PRIVACY.md`, `docs/DATA_RETENTION.md` and the Privacy page together. A generic sentence that does not match the data flow must not be published.
 
-## 4a. Provisional privacy wording (owner direction, 26 Oct 2026). NOT APPROVED, NOT FOR PUBLICATION
+## 4a. Provisional privacy wording (owner direction, 26 Oct 2026). NOT APPROVED, NOT FOR PUBLICATION. Superseded by the draft in 4c
 
 The owner approved this draft as a **direction** only. Publication is blocked until the actual data flow and the OSV terms are verified (gates G1 and G3). It is not in `docs/PRIVACY.md`, not on the Privacy page and must not be added to either yet. If the implementation differs from it, the text changes, not the implementation's description.
 
@@ -83,13 +83,55 @@ Note on the wording "does not intentionally transmit": the implementation design
 
 Nothing in this file is a legal conclusion and nothing is marked approved.
 
+## 4c. Draft privacy notice text for App Scanning (31 Oct 2026). NOT APPROVED, NOT FOR PUBLICATION
+
+Written from the code on `main` at `4eb2346`, to describe what the build does today, not what is planned. It replaces the direction in 4a once approved. It is not on the Privacy page and must not be added there until the owner (and a lawyer where needed) approves it, which closes gate G3. Points marked **[Decision]** or **[Lawyer]** are open; the text must change if the answer changes the facts.
+
+### Facts it is based on (with where to check them)
+
+| Fact | Source |
+| --- | --- |
+| Browser uploads are read in memory; file contents are never stored. A run stores file name, size and SHA-256 digest only | `api/v1/app_scans.py` (`inputs`), `models/app_scan.py` |
+| Package names are stored only inside findings (package, version, advisory id, severity, text, fixed versions, links). Packages without a finding are not stored | `appscan/pipeline.py`, `AppFindingRow` |
+| CI submissions carry per finding: rule id, severity, file path, line, and for static analysis a rule title and message; plus tool name and version, project id, branch and first 12 characters of the commit. Secret findings carry no message and no value; the server refuses a document that looks like it contains a secret | `action/app-scanning/README.md`, `appscan/submission.py` |
+| Each run records who started it (or which API token sent it) and when; audit events `app_project.created`, `app_project.archived`, `app_scan.created`, `app_scan.submitted`, `app_scan.finished` | `api/v1/app_scans.py` |
+| No package information leaves SecureScope while `SECURESCOPE_APP_OSV_ENABLED` is off (production: off on 31 Oct 2026, checked through `lookups_available`) | `api/deps.py`, `services/osv.py` |
+| **No automatic deletion by age.** Projects, runs and findings stay until the workspace is deleted (or the account, for a workspace with no other member). Archiving a project hides it and frees its place in the plan but deletes nothing. Website scan results, by contrast, are deleted after the plan's history period | `repositories/accounts.py` (workspace deletion), no App Scanning purge job exists |
+| The account data export (Account page) does not include App Scanning data, as it does not include website scan data | `repositories/accounts.py` `export_personal_data` |
+
+### Draft text (to sit under "What we store and why", after "Scan data")
+
+> **App Scanning (Early Access, pilot workspaces only):** App Scanning checks the dependencies and code of an application. It is open only to workspaces we have invited to the pilot.
+>
+> *Files you upload.* When you upload a dependency file (package-lock.json, package.json or requirements.txt), it is read in memory to list the packages and exact versions it declares, and is not stored. For each run we keep the file name, its size and a fingerprint (SHA-256 digest), which checks ran or could not run and why, when the run started and ended, and who started it. For each finding we keep the package name, version and ecosystem, the advisory identifier, its title, severity and description, the fixed versions and links to the advisory. We do not keep the list of packages that had no finding.
+>
+> *Results your CI pipeline sends.* If you use the SecureScope GitHub Action, the analysis tools run in your own pipeline and only their results are sent to us: for each finding the rule identifier, severity, file path and line number, and for code analysis the rule's title and message; the names and versions of the tools; the project; the branch name and the first 12 characters of the commit identifier. Your source code is not sent, and the value of a detected secret is never sent or stored. We refuse a submission that looks like it contains a secret. Check that your analysis rules do not copy code into their messages, because a rule's message is sent as written.
+>
+> *What leaves SecureScope.* At present nothing from App Scanning is sent to anyone else: the vulnerability database is not connected, so dependency checks end as "failed" and are not counted. **[Decision: publish this sentence now; replace it with the OSV paragraph below only on the day lookups are switched on.]**
+>
+> Needed to provide the feature you use (Art. 6(1)(b) GDPR). **[Lawyer: confirm the legal basis for pilot use.]**
+>
+> *How long we keep it.* App Scanning projects, runs and findings are kept until you delete the workspace, or your account if no one else is a member of the workspace. Archiving a project does not delete its results. **[Decision: keep this, or add automatic deletion after the plan's history period as for website scans, then change this sentence.]**
+
+### Paragraph to add only when `SECURESCOPE_APP_OSV_ENABLED` is switched on
+
+> *Vulnerability lookups.* To check whether a package version has a known vulnerability, our server sends the package ecosystem (for example npm or PyPI), the package name and the exact version to OSV.dev, a public vulnerability database **[Lawyer/owner: name the operator and its location after verifying them; not stated in the OSV documentation read on 31 Oct 2026]**. Nothing else is sent: not the file, its name, your project, your workspace or who you are. OSV.dev sees our server's address, not yours. A package name can reveal part of how your application is built; if you use private packages, their names are sent too. If OSV.dev cannot be reached, the run is marked incomplete or failed, never clean.
+
+Before that paragraph may be published, the open items in section 2 must be closed: V3 (terms of service and commercial use), V5 (caching and display of records) and V6 (whether OSV logs or keeps requests, and for how long), plus a decision on private package names (section 1).
+
+### Other places that change with it
+
+- `docs/PRIVACY.md` and `docs/DATA_RETENTION.md`: add the same facts.
+- Privacy page "Service providers": no change while lookups are off (App Scanning uses the same hosting and database providers). With lookups on, OSV.dev is added with its role. **[Lawyer: processor or independent recipient?]**
+- Early Access page, card "Not yet decided": keep as is until the notice is published.
+
 ## 5. Gates
 
 | Gate | Condition                                                                                    | State |
 | ---- | -------------------------------------------------------------------------------------------- | ----- |
 | G1   | V1 to V7 verified from the official sources and recorded here with the date                  | Partly (31 Oct 2026): V1, V7 verified; V2, V4 partly; V3 terms, V5, V6 not stated |
 | G2   | Every component row above reviewed                                                           | Open  |
-| G3   | Privacy notice text approved by the owner (and a lawyer where needed) and matching the build | Open  |
+| G3   | Privacy notice text approved by the owner (and a lawyer where needed) and matching the build | Open. Draft written 31 Oct 2026 (section 4c), awaiting review |
 | G4   | Owner decision D-A                                                                           | Closed 31 Oct 2026: option 1 (the server looks packages up), built behind `SECURESCOPE_APP_OSV_ENABLED`, off by default |
 
 No lookup to an external service is enabled until G1, G3 and G4 are closed. The client exists since 31 Oct 2026 (`app/services/osv.py`) but runs only when `SECURESCOPE_APP_OSV_ENABLED` is set; no deployment sets it. Its outbound payload (ecosystem, name, version only) is asserted in `test_appscan_osv.py`; all tests use mocked responses.
