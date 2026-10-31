@@ -1,18 +1,18 @@
 # Runtime dependencies, pinned (generated from a working environment on Python 3.13).
-alembic==1.20.0
+alembic==1.20.1
 annotated-doc==0.0.5
 annotated-types==0.8.0
 anyio==4.15.1
 argon2-cffi-bindings==26.1.0
 argon2-cffi==25.1.0
 brotli==1.2.1
-certifi==2026.10.19
+certifi==2026.10.23
 cffi==2.1.1
 click==8.5.0
 cssselect2==0.10.1
 dnspython==2.9.0
 email-validator==2.3.0
-fastapi==0.158.2
+fastapi==0.162.0
 fonttools==4.67.0
 greenlet==3.5.6
 h11==0.16.0
@@ -26,7 +26,7 @@ opentelemetry-api==1.45.1
 pillow==13.0.0
 psycopg-binary==3.3.6
 psycopg==3.3.6
-pycparser==3.11
+pycparser==3.12
 pydantic-settings==2.16.1
 pydantic==2.14.1
 pydantic_core==2.50.1
