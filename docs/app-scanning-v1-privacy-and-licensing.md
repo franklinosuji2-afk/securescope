@@ -96,7 +96,7 @@ Written from the code on `main` at `4eb2346`, to describe what the build does to
 | CI submissions carry per finding: rule id, severity, file path, line, and for static analysis a rule title and message; plus tool name and version, project id, branch and first 12 characters of the commit. Secret findings carry no message and no value; the server refuses a document that looks like it contains a secret | `action/app-scanning/README.md`, `appscan/submission.py` |
 | Each run records who started it (or which API token sent it) and when; audit events `app_project.created`, `app_project.archived`, `app_scan.created`, `app_scan.submitted`, `app_scan.finished` | `api/v1/app_scans.py` |
 | No package information leaves SecureScope while `SECURESCOPE_APP_OSV_ENABLED` is off (production: off on 31 Oct 2026, checked through `lookups_available`) | `api/deps.py`, `services/osv.py` |
-| **No automatic deletion by age.** Projects, runs and findings stay until the workspace is deleted (or the account, for a workspace with no other member). Archiving a project hides it and frees its place in the plan but deletes nothing. Website scan results, by contrast, are deleted after the plan's history period | `repositories/accounts.py` (workspace deletion), no App Scanning purge job exists |
+| Runs and findings are deleted by the hourly maintenance job once older than the plan's history period (Free 30 days, Professional 90, Agency 365), the same rule as website scans, except that runs from the current usage month are never deleted and queued or running runs are never touched. Projects stay until the workspace is deleted (or the account, for a workspace with no other member); archiving a project deletes nothing (added 31 Oct 2026) | `repositories/appscans.py` `delete_expired_history`, `main.py` maintenance loop, `test_appscan_retention.py` |
 | The account data export (Account page) does not include App Scanning data, as it does not include website scan data | `repositories/accounts.py` `export_personal_data` |
 
 ### Draft text (to sit under "What we store and why", after "Scan data")
@@ -111,7 +111,7 @@ Written from the code on `main` at `4eb2346`, to describe what the build does to
 >
 > Needed to provide the feature you use (Art. 6(1)(b) GDPR). **[Lawyer: confirm the legal basis for pilot use.]**
 >
-> *How long we keep it.* App Scanning projects, runs and findings are kept until you delete the workspace, or your account if no one else is a member of the workspace. Archiving a project does not delete its results. **[Decision: keep this, or add automatic deletion after the plan's history period as for website scans, then change this sentence.]**
+> *How long we keep it.* App Scanning results (runs and their findings) are deleted automatically after the history period of your plan, as for website scans (30 days on Free, 90 days on Professional, 365 days on Agency), but never during the calendar month in which they count towards your allowance. Projects are kept until you delete the workspace, or your account if no one else is a member of the workspace; archiving a project does not delete it. Deleting the workspace deletes everything in it at once.
 
 ### Paragraph to add only when `SECURESCOPE_APP_OSV_ENABLED` is switched on
 

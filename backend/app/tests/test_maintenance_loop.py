@@ -29,11 +29,14 @@ class Recorder:
         return 0
 
 
-def fake_state(history: Recorder, audit: Recorder, sessions: Recorder) -> Any:
+def fake_state(
+    history: Recorder, audit: Recorder, sessions: Recorder, app_history: Recorder | None = None
+) -> Any:
     return SimpleNamespace(
         settings=SimpleNamespace(admin_email="", analytics_retention_days=90, audit_retention_days=365),
         plans=SimpleNamespace(assign_internal_to_operator=Recorder()),
         repo=SimpleNamespace(delete_expired_history=history),
+        app_scans=SimpleNamespace(delete_expired_history=app_history or Recorder()),
         accounts=SimpleNamespace(
             purge_expired_sessions=sessions,
             purge_expired_oauth_states=Recorder(),
@@ -72,3 +75,14 @@ def test_the_loop_runs_again_after_a_failed_pass(monkeypatch: pytest.MonkeyPatch
     run_for(fake_state(history, audit, sessions), 1)
     assert history.calls >= 3
     assert audit.calls >= 3
+
+
+def test_app_scanning_history_is_cleaned_up_and_its_failure_stops_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(main, "MAINTENANCE_INTERVAL_SECONDS", 0.05)
+    app_history = Recorder(fail_first=1_000)  # always fails
+    history, audit, sessions = Recorder(), Recorder(), Recorder()
+    run_for(fake_state(history, audit, sessions, app_history), 1)
+    assert app_history.calls >= 3  # tried on every pass
+    assert sessions.calls >= 3 and audit.calls >= 3  # the steps after it still ran

@@ -10,7 +10,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import Engine, func, select, update
+from sqlalchemy import Engine, delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -18,10 +18,11 @@ from app.appscan.pipeline import CodeFinding, DependencyFinding, ScanOutcome
 from app.appscan.redaction import redact_text, redact_value
 from app.appscan.states import ACTIVE, FINAL, KINDS, NOT_COUNTED, AppScanStatus
 from app.billing.errors import PlanLimitError
+from app.billing.plans import DEFAULT_PLAN_ID, PLANS, current_period
 from app.database.session import make_session_factory
 from app.models.app_scan import AppFindingRow, AppProjectRow, AppScanRow
 from app.models.integration import ApiTokenRow
-from app.repositories.plans import lock_organization
+from app.repositories.plans import lock_organization, organizations_by_plan
 
 MAX_INPUTS = 5
 MAX_JSON_CHARS = 8_000
@@ -143,6 +144,38 @@ class AppScanRepository:
             rows = list(session.scalars(query.order_by(AppProjectRow.created_at, AppProjectRow.id)))
             session.expunge_all()
             return rows
+
+    def delete_expired_history(self, now: datetime | None = None) -> int:
+        """Deletes App Scanning runs, with their findings, once they are older than the history period of the
+        workspace's plan: the same rule as website scans (30, 90 or 365 days). Two things are never deleted, so
+        the clean-up cannot change what a workspace has used: runs from the current usage month (otherwise a 30-day
+        history in a 31-day month would hand back a run that was already counted), and runs still queued or
+        running. Projects stay; only their results age out. Returns how many runs were deleted."""
+        now = now or _now()
+        period_start, _ = current_period(now)
+        removed = 0
+        with self._session.begin() as session:
+            by_plan = organizations_by_plan(session, now)
+            on_other_plans = [
+                org for plan_id, orgs in by_plan.items() if plan_id != DEFAULT_PLAN_ID for org in orgs
+            ]
+            for plan in PLANS.values():
+                cutoff = min(now - timedelta(days=plan.history_days), period_start)
+                belongs = (
+                    AppScanRow.organization_id.not_in(on_other_plans)
+                    if plan.id == DEFAULT_PLAN_ID
+                    else AppScanRow.organization_id.in_(by_plan.get(plan.id, []))
+                )
+                expired = (belongs, AppScanRow.created_at < cutoff, AppScanRow.status.not_in(ACTIVE))
+                # Findings first and explicitly, so the result does not depend on the database enforcing FKs.
+                session.execute(
+                    delete(AppFindingRow).where(
+                        AppFindingRow.scan_id.in_(select(AppScanRow.id).where(*expired))
+                    )
+                )
+                result = session.execute(delete(AppScanRow).where(*expired))
+                removed += int(result.rowcount or 0)  # type: ignore[attr-defined]
+        return removed
 
     def archive_project(self, organization_id: str, project_id: str) -> bool:
         with self._session.begin() as session:
