@@ -36,7 +36,7 @@ Code and dependency checks are being built as a separate module (`docs/app-scann
 | App Scanning projects (placeholder)                | 1                        | 10           | 50     | no limit |
 | App Scanning CI tokens                             | no (browser upload only) | yes          | yes    | yes      |
 
-Rules (decisions of 26 Oct 2026): runs have their own counter and never use up website scans, or the reverse. One accepted request for one project is one run. Rejected requests, failed runs and interrupted runs are not counted; a retry with the same idempotency key returns the first run and is not counted again. A per-project hourly limit (`SECURESCOPE_APP_SCANS_PER_PROJECT_PER_HOUR`, placeholder 6) is counted in the database. Website limits, tokens and permissions are unchanged. These numbers are hypotheses; the Free plan keeps no CI access because tokens stay a Professional feature.
+Rules (decisions of 26 Oct 2026): runs have their own counter and never use up website scans, or the reverse. One accepted request for one project is one run. Rejected requests, failed runs and interrupted runs are not counted; a retry with the same idempotency key returns the first run and is not counted again. A per-project hourly limit (`SECURESCOPE_APP_SCANS_PER_PROJECT_PER_HOUR`, placeholder 6) is counted in the database. App Scanning runs and findings follow the plan's history window like website scans, but runs from the current usage month are never deleted (31 Oct 2026). Website limits, tokens and permissions are unchanged. These numbers are hypotheses; the Free plan keeps no CI access because tokens stay a Professional feature.
 
 ## Which plan applies
 

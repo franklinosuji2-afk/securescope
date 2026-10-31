@@ -7,17 +7,38 @@ from datetime import UTC, datetime
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
-from app.billing.plans import INTERNAL
+from app.billing.lifecycle import effective_plan_id
+from app.billing.plans import INTERNAL, get_plan
 from app.database.session import make_session_factory
 from app.models.account import MemberRow, OrganizationRow, UserRow
-from app.models.billing import OrganizationPlanRow
+from app.models.billing import OrganizationPlanRow, SubscriptionRow
 from app.models.scan import ScanRow
 from app.models.target import TargetRow
+from app.repositories.billing import state_from_row
 from app.schemas.scan import ScanStatus
 
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def organizations_by_plan(session: Session, now: datetime) -> dict[str, list[str]]:
+    """The organizations that have a stored plan or a subscription, grouped by the id of the plan that applies at
+    `now`: a paid subscription gives its plan while the paid period lasts, the stored base plan applies otherwise,
+    and an unknown plan id falls back to the default. Organizations not in the result follow the default plan.
+    Used by the retention clean-ups, so website and App Scanning history follow the same plan."""
+    base = {
+        org: plan
+        for org, plan in session.execute(
+            select(OrganizationPlanRow.organization_id, OrganizationPlanRow.plan_id)
+        )
+    }
+    subs = {row.organization_id: state_from_row(row) for row in session.scalars(select(SubscriptionRow))}
+    by_plan: dict[str, list[str]] = {}
+    for org in base.keys() | subs.keys():
+        plan_id = get_plan(effective_plan_id(base.get(org), subs.get(org), now)).id
+        by_plan.setdefault(plan_id, []).append(org)
+    return by_plan
 
 
 def lock_organization(session: Session, organization_id: str) -> None:

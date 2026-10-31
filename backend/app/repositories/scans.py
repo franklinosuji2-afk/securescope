@@ -11,13 +11,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.billing.errors import PlanLimitError
-from app.billing.lifecycle import effective_plan_id
-from app.billing.plans import DEFAULT_PLAN_ID, PLANS, get_plan
+from app.billing.plans import DEFAULT_PLAN_ID, PLANS
 from app.database.session import make_session_factory
-from app.models.billing import OrganizationPlanRow, SubscriptionRow
 from app.models.scan import FindingRow, FindingStateRow, ReportRow, ScanRow
-from app.repositories.billing import state_from_row
-from app.repositories.plans import lock_organization
+from app.repositories.plans import lock_organization, organizations_by_plan
 from app.scanner.fingerprint import fingerprint
 from app.scanner.scoring import count_by_severity
 from app.schemas.scan import (
@@ -352,19 +349,7 @@ class ScanRepository:
         now = _now()
         removed = 0
         with self._session.begin() as session:
-            base = {
-                org: plan
-                for org, plan in session.execute(
-                    select(OrganizationPlanRow.organization_id, OrganizationPlanRow.plan_id)
-                )
-            }
-            subs = {
-                row.organization_id: state_from_row(row) for row in session.scalars(select(SubscriptionRow))
-            }
-            by_plan: dict[str, list[str]] = {}
-            for org in base.keys() | subs.keys():
-                plan_id = get_plan(effective_plan_id(base.get(org), subs.get(org), now)).id
-                by_plan.setdefault(plan_id, []).append(org)
+            by_plan = organizations_by_plan(session, now)
             on_other_plans = [
                 org for plan_id, orgs in by_plan.items() if plan_id != DEFAULT_PLAN_ID for org in orgs
             ]

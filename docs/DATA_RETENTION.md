@@ -10,6 +10,8 @@
 
 **Retention:** scans older than the workspace's plan window (Free 30 days, Professional 90, Agency 365; see `PLANS.md`) are deleted by a background job at start-up and periodically, **together with their reports**. Deleting a scan deletes its report. Scans interrupted by a restart are marked failed. Used, revoked and expired invitations are deleted a month after they expire.
 
+**App Scanning (pilot):** runs and their findings follow the same plan window (Free 30 days, Professional 90, Agency 365, Internal 365), deleted by the hourly maintenance job. Two exceptions keep usage exact: runs from the current usage month are never deleted (so a 30-day window in a 31-day month cannot hand back a counted run), and runs still queued or running are never touched. Projects are kept until the workspace is deleted; archiving a project hides it but deletes nothing. Uploaded files are never stored, only their name, size and SHA-256 digest.
+
 **Verification challenges:** the random value a person publishes to prove they control a domain is kept only while it can be used. It is erased as soon as the domain is verified, when the person removes it, and by the periodic background job once its 7 days have passed. After that only the fact that the domain was verified (when, and by which method) remains.
 
 **Webhook retries:** an alert that could not be delivered is kept (host, score, and the titles of new findings, the same facts as the message) until it is delivered, has been tried five times in all, the address is switched off or deleted, or a day has passed. Then it is deleted.
