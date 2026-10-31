@@ -19,7 +19,6 @@ export default function SharedReport({ token }: { token: string | null }) {
     document.head.appendChild(robots);
     return () => {
       robots.remove();
-      document.title = "SecureScope";
     };
   }, []);
 

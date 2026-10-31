@@ -13,6 +13,8 @@ vi.mock("../api", async (importOriginal) => ({
   listAppScans: vi.fn(),
   createAppProject: vi.fn(),
   createAppScan: vi.fn(),
+  getAppScan: vi.fn(),
+  archiveAppProject: vi.fn(),
 }));
 import * as api from "../api";
 
@@ -50,6 +52,7 @@ const scan = (extra: Partial<AppScan> = {}): AppScan => ({
   scanners: [],
   findings: [],
   limitations: ["Only declared dependencies with exact versions are checked."],
+  error: null,
   replayed: false,
   ...extra,
 });
@@ -89,10 +92,152 @@ describe("App Scanning page", () => {
 
   it("does not claim a vulnerability database is being queried", async () => {
     render(<AppScanning canCreate />);
-    expect(
-      await screen.findByText(/database is not connected yet/),
-    ).toBeTruthy();
+    expect(await screen.findByText(/database is not connected/)).toBeTruthy();
     expect(screen.queryByText(/are looked up/)).toBeNull();
+  });
+
+  it("says what is sent when the server has lookups switched on", async () => {
+    vi.mocked(api.getAppOverview).mockResolvedValue(
+      overview({ lookups_available: true }),
+    );
+    render(<AppScanning canCreate />);
+    expect(
+      await screen.findByText(/looks\s+each one up in the OSV\.dev/),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/ecosystem, name and version are sent/),
+    ).toBeTruthy();
+    expect(screen.queryByText(/not connected/)).toBeNull();
+  });
+
+  it("shows progress while a scan runs, then the result", async () => {
+    let finish: (value: AppScan) => void = () => {};
+    vi.mocked(api.createAppScan).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    render(<AppScanning canCreate />);
+    await upload();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Check dependencies" }),
+    );
+    expect((await screen.findByRole("status")).textContent).toMatch(
+      /Checking 1 file/,
+    );
+    expect(
+      (screen.getByRole("button", { name: "Checking…" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    finish(scan());
+    expect(
+      await screen.findByText("No known vulnerabilities in these packages"),
+    ).toBeTruthy();
+    expect(screen.queryByText(/Checking 1 file/)).toBeNull();
+  });
+
+  it("a failed run says why", async () => {
+    vi.mocked(api.createAppScan).mockResolvedValue(
+      scan({
+        status: "failed",
+        result: "scanner_error",
+        result_text:
+          "Scanner error. Nothing was checked and this run was not counted.",
+        error:
+          "The vulnerability source could not be reached, so nothing was checked.",
+      }),
+    );
+    render(<AppScanning canCreate />);
+    await upload();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Check dependencies" }),
+    );
+    const status = await screen.findByRole("status");
+    expect(status.className).toContain("notice-error");
+    expect(status.textContent).toContain("Did not complete");
+    expect(status.textContent).toContain("could not be reached");
+  });
+
+  it("shows how to fix a finding and credits the advisory data", async () => {
+    vi.mocked(api.createAppScan).mockResolvedValue(
+      scan({
+        result: "completed_findings",
+        counts: { high: 1 },
+        attribution: "Advisory data from OSV.dev.",
+        findings: [
+          {
+            rule_id: "GHSA-x",
+            title: "lodash 4.17.20 has a known vulnerability (GHSA-x)",
+            severity: "high",
+            description: "d",
+            remediation: "Upgrade lodash to a fixed version (4.17.21).",
+            package_name: "lodash",
+            package_version: "4.17.20",
+            fixed_versions: ["4.17.21"],
+            references: [],
+            aliases: [],
+            path: null,
+          },
+        ],
+      }),
+    );
+    render(<AppScanning canCreate />);
+    await upload();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Check dependencies" }),
+    );
+    expect(
+      await screen.findByText(/Upgrade lodash to a fixed version/),
+    ).toBeTruthy();
+    expect(screen.getByText("Advisory data from OSV.dev.")).toBeTruthy();
+  });
+
+  it("opens an earlier run from the runs list", async () => {
+    vi.mocked(api.listAppScans).mockResolvedValue([scan({ id: "old" })]);
+    vi.mocked(api.getAppScan).mockResolvedValue(
+      scan({
+        id: "old",
+        status: "incomplete",
+        result: "incomplete",
+        result_text: "Incomplete. Some checks could not run.",
+        checks_skipped: [{ reason: "2 entries could not be checked" }],
+      }),
+    );
+    render(<AppScanning canCreate />);
+    await userEvent.click(
+      await screen.findByRole("button", { name: /View result/ }),
+    );
+    expect(
+      await screen.findByText("2 entries could not be checked"),
+    ).toBeTruthy();
+    expect(api.getAppScan).toHaveBeenCalledWith("old");
+    expect(screen.getByRole("button", { name: /Shown above/ })).toBeTruthy();
+  });
+
+  it("archives the selected project after confirmation, freeing its place", async () => {
+    vi.mocked(api.archiveAppProject).mockResolvedValue(undefined);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<AppScanning canCreate />);
+    vi.mocked(api.listAppProjects).mockResolvedValue([]);
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Archive this project" }),
+    );
+    expect(confirm).toHaveBeenCalledWith(
+      expect.stringContaining("Archive web?"),
+    );
+    expect(api.archiveAppProject).toHaveBeenCalledWith("p1");
+    expect(await screen.findByText("No projects yet")).toBeTruthy();
+    confirm.mockRestore();
+  });
+
+  it("does nothing when archiving is not confirmed", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<AppScanning canCreate />);
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Archive this project" }),
+    );
+    expect(api.archiveAppProject).not.toHaveBeenCalled();
+    confirm.mockRestore();
   });
 
   it("a clean result says no findings from the selected checks, never 'secure'", async () => {
@@ -353,6 +498,22 @@ describe("menu entry", () => {
       ),
     );
     expect(screen.queryByRole("link", { name: "App Scanning" })).toBeNull();
+  });
+  it("a direct link while the feature is off explains instead of showing a blank page", async () => {
+    stub(404);
+    window.location.hash = "#/app-scanning";
+    render(
+      <AuthProvider>
+        <App />
+      </AuthProvider>,
+    );
+    expect(
+      await screen.findByText(/not switched on for this workspace/),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "Read about Early Access" }),
+    ).toBeTruthy();
+    window.location.hash = "";
   });
   it("appears when the server has it on", async () => {
     stub(200);

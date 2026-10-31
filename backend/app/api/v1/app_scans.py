@@ -29,6 +29,7 @@ from app.appscan.submission import (
     build_outcome,
     parse_submission,
 )
+from app.appscan.vulns import UnavailableSource
 from app.billing.errors import PlanLimitError
 from app.billing.plans import current_period
 from app.models.app_scan import AppScanRow
@@ -176,6 +177,7 @@ async def _detail(state: StateDep, organization_id: str, scan_id: str, replayed:
         raise HTTPException(status_code=404, detail="Not found.")
     stored = await asyncio.to_thread(state.app_scans.get_findings, organization_id, scan_id)
     summary = _summary(row, [f.severity for f in stored])
+    scanners: list[dict[str, str]] = list(_loads(row.scanners_json, []))  # type: ignore[call-overload]
     return AppScanOut(
         **summary.model_dump(),
         kinds=list(_loads(row.kinds_json, [])),  # type: ignore[call-overload]
@@ -183,7 +185,7 @@ async def _detail(state: StateDep, organization_id: str, scan_id: str, replayed:
         inputs=[AppInputOut(**i) for i in _loads(row.inputs_json, [])],  # type: ignore[attr-defined]
         checks_run=list(_loads(row.checks_run_json, [])),  # type: ignore[call-overload]
         checks_skipped=list(_loads(row.checks_skipped_json, [])),  # type: ignore[call-overload]
-        scanners=list(_loads(row.scanners_json, [])),  # type: ignore[call-overload]
+        scanners=scanners,
         error=row.error,
         findings=[
             AppFindingOut(
@@ -209,6 +211,14 @@ async def _detail(state: StateDep, organization_id: str, scan_id: str, replayed:
             for f in stored
         ],
         limitations=LIMITATIONS,
+        attribution=next(
+            (
+                s["attribution"]
+                for s in scanners
+                if isinstance(s, dict) and isinstance(s.get("attribution"), str) and s["attribution"]
+            ),
+            None,
+        ),
         replayed=replayed,
     )
 
@@ -403,6 +413,7 @@ async def overview(state: StateDep, ctx: CanRead) -> AppOverview:
         max_files=manifests.MAX_FILES_PER_SCAN,
         max_file_bytes=manifests.MAX_FILE_BYTES,
         ci_tokens_available=plan.app_ci_tokens,
+        lookups_available=not isinstance(state.app_source, UnavailableSource),
         limitations=LIMITATIONS,
     )
 

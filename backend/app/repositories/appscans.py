@@ -116,8 +116,10 @@ class AppScanRepository:
                     )
                     if int(used or 0) >= project_limit:
                         raise PlanLimitError(
-                            f"Your plan includes {project_limit} App Scanning projects and they are all in use. "
-                            "Archive one or upgrade."
+                            f"Your plan includes {project_limit} App Scanning "
+                            f"{'project' if project_limit == 1 else 'projects'} and "
+                            f"{'it is' if project_limit == 1 else 'they are all'} in use. "
+                            "Archive a project or upgrade."
                         )
                 session.add(
                     AppProjectRow(

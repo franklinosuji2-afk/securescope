@@ -40,6 +40,7 @@ from app.services.auth import AuthService
 from app.services.invitations import InvitationService
 from app.services.mailer import Mailer, build_mailer
 from app.services.oauth import OAuthService
+from app.services.osv import OsvSource
 from app.services.reports import ReportService
 from app.services.webhooks import WebhookService
 
@@ -80,9 +81,11 @@ class AppState:
         self.analytics_salt = salt
         self.analytics_limiter = SlidingWindowLimiter(settings.analytics_events_per_client_per_hour)
         self.audit = AuditRepository(self.engine)
-        # App Scanning (off by default). The source is replaced when a vulnerability database is approved.
+        # App Scanning (off by default). Without SECURESCOPE_APP_OSV_ENABLED the source never answers.
         self.app_scans = AppScanRepository(self.engine)
-        self.app_source: VulnerabilitySource = UnavailableSource()
+        self.app_source: VulnerabilitySource = (
+            OsvSource() if settings.app_osv_enabled else UnavailableSource()
+        )
         self.app_scan_semaphore = asyncio.Semaphore(settings.max_concurrent_app_scans)
         self.feedback = FeedbackRepository(self.engine)
         # Saves or changes of feedback per person per hour.

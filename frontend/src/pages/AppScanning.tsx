@@ -47,6 +47,7 @@ function safeLink(url: string): boolean {
 const VERDICT_LABEL: Partial<Record<api.AppResult, string>> = {
   completed_findings: "Findings detected",
   completed_no_findings: "Completed",
+  incomplete: "Incomplete",
 };
 
 function formatSize(bytes: number): string {
@@ -76,6 +77,9 @@ function Result({ scan }: { scan: api.AppScan }) {
             {" "}
             This is the result of your earlier request.
           </span>
+        )}
+        {!completed && scan.error && (
+          <span className="as-verdict-reason">{scan.error}</span>
         )}
       </div>
       {withFindings && (
@@ -123,6 +127,12 @@ function Result({ scan }: { scan: api.AppScan }) {
                   </div>
                   <strong className="as-finding-title">{f.title}</strong>
                   <div className="muted small">{f.description}</div>
+                  {f.remediation && (
+                    <div className="small as-remedy">
+                      <span className="as-fix-label">How to fix</span>{" "}
+                      {f.remediation}
+                    </div>
+                  )}
                   {f.references
                     .filter(safeLink)
                     .slice(0, 3)
@@ -147,6 +157,15 @@ function Result({ scan }: { scan: api.AppScan }) {
           </ul>
         </section>
       )}
+      {completed && !withFindings && (
+        <EmptyState title="No known vulnerabilities in these packages">
+          Every listed package version was checked and no published advisory
+          names it. Check again after you change your dependencies.
+        </EmptyState>
+      )}
+      {scan.attribution && (
+        <p className="muted small as-attribution">{scan.attribution}</p>
+      )}
       <Limitations items={scan.limitations} />
     </div>
   );
@@ -163,6 +182,7 @@ export default function AppScanning({ canCreate }: { canCreate: boolean }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [opening, setOpening] = useState<string | null>(null);
   const [key, setKey] = useState(newKey);
 
   const fetchAll = useCallback(
@@ -221,6 +241,28 @@ export default function AppScanning({ canCreate }: { canCreate: boolean }) {
     }
   };
 
+  const archiveProject = async () => {
+    const project = projects.find((p) => p.id === projectId);
+    if (!project) return;
+    if (
+      !window.confirm(
+        `Archive ${project.name}? It leaves the project list and frees its place in your plan. Its past runs stay in Recent runs.`,
+      )
+    )
+      return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.archiveAppProject(project.id);
+      setProjectId("");
+      await load();
+    } catch (err) {
+      setError(message(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const chooseFiles = async (list: FileList | null) => {
     setError(null);
     setKey(newKey());
@@ -238,6 +280,18 @@ export default function AppScanning({ canCreate }: { canCreate: boolean }) {
       picked.push({ name: file.name, content: await file.text() });
     }
     setFiles(picked);
+  };
+
+  const openRun = async (id: string) => {
+    setOpening(id);
+    setError(null);
+    try {
+      setResult(await api.getAppScan(id));
+    } catch (err) {
+      setError(message(err));
+    } finally {
+      setOpening(null);
+    }
   };
 
   const submit = async (event: FormEvent) => {
@@ -266,12 +320,22 @@ export default function AppScanning({ canCreate }: { canCreate: boolean }) {
     <div className="as-page">
       <header className="as-head">
         <h1 className="as-title">App Scanning</h1>
-        <p className="as-lead">
-          Reads the exact package versions in your dependency files. The
-          vulnerability database is not connected yet, so a browser scan cannot
-          report vulnerabilities today and ends as failed, not as clean. Your
-          files are read in memory and are not stored.
-        </p>
+        {overview.lookups_available ? (
+          <p className="as-lead">
+            Reads the exact package versions in your dependency files and looks
+            each one up in the OSV.dev vulnerability database. Only the package
+            ecosystem, name and version are sent; your files are read in memory
+            and are not stored.
+          </p>
+        ) : (
+          <p className="as-lead">
+            Reads the exact package versions in your dependency files. The
+            vulnerability database is not connected on this server, so a browser
+            scan cannot report vulnerabilities and ends as failed, not as clean.
+            Failed runs are not counted. Your files are read in memory and are
+            not stored.
+          </p>
+        )}
       </header>
       {error && <ErrorNotice message={error} />}
 
@@ -305,6 +369,14 @@ export default function AppScanning({ canCreate }: { canCreate: boolean }) {
                       ))}
                     </select>
                   </label>
+                  <button
+                    type="button"
+                    className="as-run-open as-archive"
+                    disabled={busy || !projectId}
+                    onClick={() => void archiveProject()}
+                  >
+                    Archive this project
+                  </button>
                   <label className="as-drop">
                     <span className="field-label">Dependency files</span>
                     <input
@@ -339,6 +411,14 @@ export default function AppScanning({ canCreate }: { canCreate: boolean }) {
                   >
                     {busy ? "Checking…" : "Check dependencies"}
                   </button>
+                  {busy && (
+                    <p className="as-progress" role="status">
+                      <span className="as-spinner" aria-hidden="true" />
+                      Checking {files.length}{" "}
+                      {files.length === 1 ? "file" : "files"}. This usually
+                      takes a few seconds and stops after one minute at most.
+                    </p>
+                  )}
                 </form>
               )}
               <form
@@ -411,7 +491,26 @@ export default function AppScanning({ canCreate }: { canCreate: boolean }) {
                         {h.result_text}
                         {run.findings ? (
                           <strong className="as-run-count">{` ${run.findings}.`}</strong>
-                        ) : null}
+                        ) : null}{" "}
+                        <button
+                          type="button"
+                          className="as-run-open"
+                          disabled={opening !== null}
+                          aria-current={
+                            result?.id === h.id ? "true" : undefined
+                          }
+                          onClick={() => void openRun(h.id)}
+                        >
+                          {opening === h.id
+                            ? "Opening…"
+                            : result?.id === h.id
+                              ? "Shown above"
+                              : "View result"}
+                          <span className="visually-hidden">
+                            {" "}
+                            from {formatDate(h.created_at)}
+                          </span>
+                        </button>
                       </span>
                     </li>
                   );

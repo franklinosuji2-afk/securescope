@@ -127,6 +127,18 @@ async function describeError(response: Response): Promise<string> {
     if (body && typeof body === "object" && "detail" in body) {
       const detail = (body as { detail: unknown }).detail;
       if (typeof detail === "string") return detail;
+      // Some routes answer {code, message, file}: the message is fixed server text, safe to show.
+      if (
+        detail &&
+        typeof detail === "object" &&
+        "message" in detail &&
+        typeof (detail as { message: unknown }).message === "string"
+      ) {
+        const { message, file } = detail as { message: string; file?: unknown };
+        return typeof file === "string" && file
+          ? `${file}: ${message}`
+          : message;
+      }
       if (Array.isArray(detail)) {
         const first: unknown = detail[0];
         if (first && typeof first === "object" && "msg" in first) {
@@ -607,6 +619,8 @@ export interface AppOverview {
   max_files: number;
   max_file_bytes: number;
   ci_tokens_available: boolean;
+  /** False while no vulnerability database is connected (older servers omit it). */
+  lookups_available?: boolean;
   limitations: string[];
 }
 export interface AppProject {
@@ -647,6 +661,8 @@ export interface AppScan extends AppScanSummary {
   scanners: { name?: string; version?: string; data_timestamp?: string }[];
   findings: AppFinding[];
   limitations: string[];
+  error: string | null;
+  attribution?: string | null;
   replayed: boolean;
 }
 
@@ -666,6 +682,10 @@ export const createAppProject = (name: string) =>
   request<AppProject>("/app/projects", {
     method: "POST",
     body: JSON.stringify({ name }),
+  });
+export const archiveAppProject = (id: string) =>
+  request<void>(`/app/projects/${encodeURIComponent(id)}/archive`, {
+    method: "POST",
   });
 export const listAppScans = (projectId?: string) =>
   request<{ items: AppScanSummary[] }>(
