@@ -25,6 +25,23 @@ describe("the plan comparison", () => {
   });
 });
 
+describe("App Scanning on the pricing table", () => {
+  it("is listed as not part of any plan yet, with no allowances", () => {
+    const { container } = render(<PlanComparison />);
+    const planned = screen.getByRole("heading", {
+      name: "Planned, not available yet",
+    }).parentElement as HTMLElement;
+    expect(within(planned).getByText(/App Scanning/).textContent).toMatch(
+      /not part of any plan yet/,
+    );
+    // Provisional allowances (docs/PLANS.md) are never published.
+    expect(container.querySelector("table")?.textContent).not.toMatch(
+      /App Scanning/,
+    );
+    expect(container.textContent).not.toMatch(/\b(5|100|500) runs\b/);
+  });
+});
+
 describe("CI and badge rows", () => {
   const cells = (label: string) => {
     render(<PlanComparison />);
