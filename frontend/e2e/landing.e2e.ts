@@ -8,7 +8,10 @@ for (const scheme of ["dark", "light"] as const) {
     await page.emulateMedia({ colorScheme: scheme });
     await page.goto("/#/");
     await expect(
-      page.getByRole("heading", { level: 1, name: /Find the security gaps on your website/ }),
+      page.getByRole("heading", {
+        level: 1,
+        name: /Find the security gaps on your website/,
+      }),
     ).toBeVisible();
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -274,9 +277,7 @@ test.describe("floating cards", () => {
     ["agency-features", [".landing-card", ".agency-availability"]],
   ];
   for (const [route, selectors] of cases) {
-    test(`cards on /${route} lift under the pointer`, async ({
-      page,
-    }) => {
+    test(`cards on /${route} lift under the pointer`, async ({ page }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(`/#/${route}`);
       for (const selector of selectors) {
