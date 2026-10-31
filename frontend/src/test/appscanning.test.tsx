@@ -46,6 +46,7 @@ const scan = (extra: Partial<AppScan> = {}): AppScan => ({
   created_at: "2026-10-26T10:00:00Z",
   finished_at: "2026-10-26T10:00:01Z",
   counts: {},
+  kinds: ["dependency"],
   inputs: [],
   checks_run: [],
   checks_skipped: [],
@@ -166,6 +167,7 @@ describe("App Scanning page", () => {
         attribution: "Advisory data from OSV.dev.",
         findings: [
           {
+            kind: "dependency",
             rule_id: "GHSA-x",
             title: "lodash 4.17.20 has a known vulnerability (GHSA-x)",
             severity: "high",
@@ -177,6 +179,7 @@ describe("App Scanning page", () => {
             references: [],
             aliases: [],
             path: null,
+            line: null,
           },
         ],
       }),
@@ -190,6 +193,83 @@ describe("App Scanning page", () => {
       await screen.findByText(/Upgrade lodash to a fixed version/),
     ).toBeTruthy();
     expect(screen.getByText("Advisory data from OSV.dev.")).toBeTruthy();
+  });
+
+  it("shows a pipeline's code findings by file and line, with the check that found them", async () => {
+    vi.mocked(api.createAppScan).mockResolvedValue(
+      scan({
+        origin: "ci",
+        kinds: ["sast", "secrets"],
+        result: "completed_findings",
+        counts: { high: 1, medium: 1 },
+        findings: [
+          {
+            kind: "sast",
+            rule_id: "py.sql-injection",
+            title: "SQL built from user input",
+            severity: "high",
+            description: "d",
+            remediation: "Use parameters.",
+            package_name: null,
+            package_version: null,
+            fixed_versions: [],
+            references: [],
+            aliases: [],
+            path: "app/db.py",
+            line: 42,
+          },
+          {
+            kind: "secrets",
+            rule_id: "generic-credential",
+            title: "Possible credential in code",
+            severity: "medium",
+            description: "d",
+            remediation: "Rotate it.",
+            package_name: null,
+            package_version: null,
+            fixed_versions: [],
+            references: [],
+            aliases: [],
+            path: "config/settings.py",
+            line: null,
+          },
+        ],
+      }),
+    );
+    render(<AppScanning canCreate />);
+    await upload();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Check dependencies" }),
+    );
+    expect(await screen.findByText("app/db.py:42")).toBeTruthy();
+    expect(screen.getByText("config/settings.py")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Findings" })).toBeTruthy();
+    expect(screen.queryByText("Dependency findings")).toBeNull();
+    expect(screen.queryByText("No fixed version listed")).toBeNull();
+    expect(screen.getByText("Static analysis")).toBeTruthy();
+    expect(screen.getByText("Secret detection")).toBeTruthy();
+  });
+
+  it("a clean pipeline run names its checks, not packages", async () => {
+    vi.mocked(api.createAppScan).mockResolvedValue(
+      scan({ origin: "ci", kinds: ["sast", "secrets"] }),
+    );
+    render(<AppScanning canCreate />);
+    await upload();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Check dependencies" }),
+    );
+    expect(
+      await screen.findByText("No findings from these checks"),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        /Static analysis and Secret detection ran on your pipeline/,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.queryByText("No known vulnerabilities in these packages"),
+    ).toBeNull();
   });
 
   it("opens an earlier run from the runs list", async () => {
@@ -298,6 +378,7 @@ describe("App Scanning page", () => {
         counts: { high: 1 },
         findings: [
           {
+            kind: "dependency",
             rule_id: "GHSA-x",
             title: "<img src=x onerror=alert(1)>",
             severity: "high",
@@ -309,6 +390,7 @@ describe("App Scanning page", () => {
             references: ["https://example.com/a", "javascript:alert(1)"],
             aliases: [],
             path: null,
+            line: null,
           },
         ],
       }),

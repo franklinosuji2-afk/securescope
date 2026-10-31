@@ -67,6 +67,16 @@ LIMITATIONS = [
     "Source code is never uploaded or stored: only package names, versions, file names and file digests are kept.",
 ]
 
+# For runs a pipeline submitted: the checks ran on the customer's runner, so the upload wording does not apply.
+CI_LIMITATIONS = [
+    "Only the checks your pipeline ran are included, for the commit it scanned.",
+    "Static analysis and secret detection report patterns in code. Review each finding: some can be false "
+    "positives, and code they do not cover is not checked.",
+    "No findings means none were found by these checks, not that the application is secure.",
+    "Source code is never sent or stored: only each finding, its file path and line are kept, and never the "
+    "value of a secret.",
+]
+
 RESULT_TEXT = {
     "queued": "Waiting to start.",
     "running": "Running.",
@@ -210,7 +220,7 @@ async def _detail(state: StateDep, organization_id: str, scan_id: str, replayed:
             )
             for f in stored
         ],
-        limitations=LIMITATIONS,
+        limitations=CI_LIMITATIONS if summary.origin == "ci" else LIMITATIONS,
         attribution=next(
             (
                 s["attribution"]

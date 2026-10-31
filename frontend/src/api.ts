@@ -630,6 +630,8 @@ export interface AppProject {
   created_at: string;
 }
 export interface AppFinding {
+  /** "dependency" for a package advisory; "sast" or "secrets" for a finding a pipeline's tool made in code. */
+  kind: string;
   rule_id: string;
   title: string;
   severity: "critical" | "high" | "medium" | "low" | "info";
@@ -641,6 +643,7 @@ export interface AppFinding {
   references: string[];
   aliases: string[];
   path: string | null;
+  line: number | null;
 }
 export interface AppScanSummary {
   id: string;
@@ -655,6 +658,7 @@ export interface AppScanSummary {
   counts: Record<string, number>;
 }
 export interface AppScan extends AppScanSummary {
+  kinds: string[];
   inputs: { name: string; size: number; sha256: string }[];
   checks_run: unknown[];
   checks_skipped: { reason?: string; name?: string }[];
