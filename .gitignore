@@ -18,3 +18,6 @@ backups/
 *.bak
 .env.*
 !.env.example
+
+# Local Claude Code worktrees and session files
+.claude/worktrees/
