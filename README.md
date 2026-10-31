@@ -57,13 +57,14 @@ Captured from the running app against a real scan history of my own portfolio si
 | Domain targets with DNS TXT / HTTP-file ownership verification; scans refused for unverified hosts                                                                                                                         | Implemented. HTTP-file verification confirmed once end to end on a real domain; the DNS TXT path is tested with mocks only |
 | Registration, login, logout, sessions (HttpOnly cookies + CSRF), Argon2id passwords                                                                                                                                        | Implemented                                                                                                                |
 | Organizations, 5 roles enforced server-side, tenant-isolated scans, audit events                                                                                                                                           | Implemented                                                                                                                |
-| Email verification / password reset flows                                                                                                                                                                                  | Implemented. Mail is sent only when a provider is configured; otherwise it goes to the server log                         |
+| Email verification / password reset flows                                                                                                                                                                                  | Implemented. Mail is sent only when a provider is configured; otherwise it goes to the server log                          |
+| Scheduled rescans (daily or weekly) with alerts only for new problems or a score drop (Professional and Agency)                                                                                                            | Implemented                                                                                                                |
+| Re-verification of site ownership after the verification period lapses                                                                                                                                                     | Implemented                                                                                                                |
+| Signed-in devices list with sign-out of other sessions (Account page)                                                                                                                                                      | Implemented                                                                                                                |
+| App Scanning (Early Access pilot, off by default): dependency manifests read in the browser, CI results from Semgrep and Gitleaks via the GitHub Action, OSV lookups behind `SECURESCOPE_APP_OSV_ENABLED`                  | Pilot only. See `docs/app-scanning-stage-1-runbook.md`                                                                     |
 
 ## Roadmap (not implemented)
 
-- Periodic re-verification of target ownership
-- Session management UI
-- Scheduled rescans
 - Outdated-software detection, full TLS configuration testing (cipher/protocol enumeration), optional OWASP ZAP integration
 - Egress proxy for production DNS-rebinding defence
 
