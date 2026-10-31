@@ -8,7 +8,7 @@ for (const scheme of ["dark", "light"] as const) {
     await page.emulateMedia({ colorScheme: scheme });
     await page.goto("/#/");
     await expect(
-      page.getByRole("heading", { level: 1, name: /Know what puts your/ }),
+      page.getByRole("heading", { level: 1, name: /Find the security gaps on your website/ }),
     ).toBeVisible();
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -38,15 +38,19 @@ for (const scheme of ["dark", "light"] as const) {
   });
 }
 
-test("the home page leads to registration and sign-in, and scrolls to its sections", async ({
+test("the home page leads to its pages, to registration and to sign-in", async ({
   page,
 }) => {
   await page.goto("/#/");
   await page
     .getByRole("navigation", { name: "Site" })
-    .getByRole("button", { name: "Pricing" })
+    .getByRole("link", { name: "Pricing" })
     .click();
-  await expect(page.getByRole("heading", { name: "Pricing" })).toBeInViewport();
+  await expect(page).toHaveURL(/#\/pricing/);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Pricing" }),
+  ).toBeVisible();
+  await page.goto("/#/");
   await page.getByRole("link", { name: "Scan your website" }).first().click();
   await expect(page).toHaveURL(/#\/register/);
   await page.goto("/#/");
@@ -54,7 +58,7 @@ test("the home page leads to registration and sign-in, and scrolls to its sectio
   await expect(page).toHaveURL(/#\/login/);
 });
 
-test("on a phone the section links open from a menu that closes with Escape", async ({
+test("on a phone the page links open from a menu that closes with Escape", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -64,7 +68,7 @@ test("on a phone the section links open from a menu that closes with Escape", as
   await expect(
     page
       .getByRole("navigation", { name: "Site" })
-      .getByRole("button", { name: "Pricing" }),
+      .getByRole("link", { name: "Pricing" }),
   ).toBeHidden();
   await menu.click();
   await expect(
@@ -78,13 +82,12 @@ test("on a phone the section links open from a menu that closes with Escape", as
   await page.getByRole("button", { name: "Menu" }).click();
   await page
     .getByRole("navigation", { name: "Site" })
-    .getByRole("button", { name: "Pricing" })
+    .getByRole("link", { name: "Pricing" })
     .click();
-  await expect(page.getByRole("heading", { name: "Pricing" })).toBeInViewport();
-  await expect(page.getByRole("button", { name: "Menu" })).toHaveAttribute(
-    "aria-expanded",
-    "false",
-  );
+  await expect(page).toHaveURL(/#\/pricing/);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Pricing" }),
+  ).toBeVisible();
 });
 
 for (const scheme of ["dark", "light"] as const) {
@@ -131,12 +134,18 @@ test("the sample report shows real finding detail and links onward", async ({
     page.getByRole("img", { name: /82 out of 100, grade B/ }),
   ).toBeVisible();
   await page.getByRole("link", { name: "See pricing" }).click();
-  await expect(page.getByRole("heading", { name: "Pricing" })).toBeInViewport();
+  await expect(page).toHaveURL(/#\/pricing/);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Pricing" }),
+  ).toBeVisible();
 });
 
 test("the home page links to the sample report", async ({ page }) => {
   await page.goto("/#/");
-  await page.getByRole("link", { name: "View sample report" }).click();
+  await page
+    .getByRole("link", { name: "View a sample report" })
+    .first()
+    .click();
   await expect(page).toHaveURL(/#\/sample-report/);
   await expect(
     page.getByRole("heading", { level: 1, name: "Sample security report" }),
@@ -146,7 +155,7 @@ test("the home page links to the sample report", async ({ page }) => {
 test("the plan comparison table is accessible and honest about plans", async ({
   page,
 }) => {
-  await page.goto("/#/");
+  await page.goto("/#/pricing");
   const table = page.locator("#pricing").getByRole("table");
   await expect(table).toBeVisible();
   await expect(
@@ -207,16 +216,10 @@ test("the header never wraps or overflows between phone and desktop widths", asy
   }
 });
 
-test("the home page hero links to the full sample report", async ({ page }) => {
-  await page.goto("/#/");
-  await page.getByRole("link", { name: "View sample report" }).click();
-  await expect(page).toHaveURL(/#\/sample-report/);
-});
-
 test("the numbers in The Answer keep clear space around their labels", async ({
   page,
 }) => {
-  await page.goto("/#/");
+  await page.goto("/#/checks");
   const gap = await page
     .locator(".landing-numbers > div")
     .first()
@@ -257,7 +260,7 @@ test("the public pages never overflow between phone and desktop widths", async (
 test.describe("floating cards", () => {
   test.use({ reducedMotion: "no-preference" });
   const cases: [string, string[]][] = [
-    ["", [".landing-card", ".landing-numbers > div", ".landing-final"]],
+    ["checks", [".landing-card", ".landing-numbers > div", ".landing-final"]],
     [
       "sample-report",
       [
@@ -271,7 +274,7 @@ test.describe("floating cards", () => {
     ["agency-features", [".landing-card", ".agency-availability"]],
   ];
   for (const [route, selectors] of cases) {
-    test(`cards on /${route || "home"} lift under the pointer`, async ({
+    test(`cards on /${route} lift under the pointer`, async ({
       page,
     }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
@@ -328,10 +331,10 @@ test.describe("floating cards", () => {
   });
 });
 
-test("the home page offers the sample report as a PDF that really downloads", async ({
+test("the checks page offers the sample report as a PDF that really downloads", async ({
   page,
 }) => {
-  await page.goto("/#/");
+  await page.goto("/#/checks");
   const links = page.getByRole("link", { name: /Download the sample PDF/ });
   await expect(links).toHaveCount(1); // the sample section
   for (const link of await links.all())

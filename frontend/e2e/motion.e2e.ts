@@ -32,7 +32,7 @@ test.describe("motion", () => {
       reducedMotion: "no-preference",
     });
     const page = await context.newPage();
-    await page.goto("/#/");
+    await page.goto("/#/checks");
     const cover = page.getByRole("link", {
       name: "Open the sample PDF report",
     });
@@ -62,7 +62,7 @@ test.describe("motion", () => {
   test("with reduced motion the sample PDF cover stays still", async ({
     page,
   }) => {
-    await page.goto("/#/");
+    await page.goto("/#/checks");
     const cover = page.getByRole("link", {
       name: "Open the sample PDF report",
     });

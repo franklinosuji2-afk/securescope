@@ -195,6 +195,6 @@ for (const scheme of ["dark", "light"] as const) {
 
 test("the home page leads to the agency explainer", async ({ page }) => {
   await page.goto("/#/");
-  await page.getByRole("link", { name: "Explore Agency features" }).click();
+  await page.getByRole("link", { name: "For agencies" }).first().click();
   await expect(page).toHaveURL(/#\/agency-features/);
 });
