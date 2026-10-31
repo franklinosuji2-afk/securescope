@@ -175,6 +175,8 @@ const GROUPS: Group[] = [
 
 const PLANNED = [
   "A general-purpose public API (today, API tokens can only start and read scans, for the GitHub Action and CI)",
+  // Early Access, by invitation: its allowances per plan are provisional (docs/PLANS.md), so no numbers are shown.
+  "App Scanning (dependency and code checks): in Early Access by invitation, not part of any plan yet. Which plans include it, and how many runs, will be published when it opens",
 ];
 
 const NOT_OFFERED = [
