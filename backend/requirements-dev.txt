@@ -9,6 +9,6 @@ pluggy==1.7.0
 Pygments==2.21.0
 pytest==9.1.1
 pytest-timeout==2.4.0
-ruff==0.17.1
+ruff==0.17.2
 httpx2==2.16.0
 pypdf==6.21.2
