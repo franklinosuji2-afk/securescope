@@ -1182,3 +1182,17 @@ def test_revoking_a_token_frees_a_slot_in_its_own_scope_only(env) -> None:  # ty
     client.delete(f"{API}/api-tokens/{web_id}").raise_for_status()
     assert make_token(client, "app").status_code == 409  # a Web slot does not help App
     assert make_token(client, "web").status_code == 201
+
+
+def test_a_pipeline_run_describes_its_own_limits_not_the_upload_ones(env) -> None:  # type: ignore[no-untyped-def]
+    from app.api.v1.app_scans import CI_LIMITATIONS, LIMITATIONS
+
+    client, pid, app_token, _ = env
+    r = submit(client, app_token, doc(pid), "limits-1")
+    assert r.status_code == 201, r.text
+    assert r.json()["origin"] == "ci"
+    assert r.json()["limitations"] == CI_LIMITATIONS
+    shown = client.get(f"{APP}/scans/{r.json()['id']}").json()
+    assert shown["limitations"] == CI_LIMITATIONS
+    assert not any("upload" in line for line in CI_LIMITATIONS)
+    assert any("upload" in line for line in LIMITATIONS)

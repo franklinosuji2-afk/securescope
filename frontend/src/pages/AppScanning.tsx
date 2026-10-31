@@ -50,6 +50,20 @@ const VERDICT_LABEL: Partial<Record<api.AppResult, string>> = {
   incomplete: "Incomplete",
 };
 
+const KIND_LABEL: Record<string, string> = {
+  dependency: "Dependency check",
+  sast: "Static analysis",
+  secrets: "Secret detection",
+};
+
+/** Where a finding is: the package for a dependency, the file and line for a finding in code. */
+function findingPlace(f: api.AppFinding): string {
+  if (f.kind === "dependency" || f.package_name)
+    return [f.package_name, f.package_version].filter(Boolean).join(" ");
+  if (!f.path) return "";
+  return f.line ? `${f.path}:${f.line}` : f.path;
+}
+
 function formatSize(bytes: number): string {
   if (bytes < 1000) return `${bytes} B`;
   if (bytes < 1_000_000) return `${Math.round(bytes / 1000)} kB`;
@@ -62,6 +76,10 @@ function Result({ scan }: { scan: api.AppScan }) {
     scan.result === "completed_no_findings";
   const tone = completed ? "notice" : "notice notice-error";
   const withFindings = SEVERITY_ORDER.some((k) => (scan.counts[k] ?? 0) > 0);
+  const onlyDependencies = scan.findings.every((f) => f.kind === "dependency");
+  const dependencyRun =
+    (scan.kinds ?? []).length === 0 ||
+    (scan.kinds ?? []).every((k) => k === "dependency");
   return (
     <div className="as-result stack" aria-live="polite">
       <div
@@ -110,7 +128,7 @@ function Result({ scan }: { scan: api.AppScan }) {
       {scan.findings.length > 0 && (
         <section className="as-block" aria-labelledby="app-findings">
           <h2 id="app-findings" className="as-h2">
-            Dependency findings
+            {onlyDependencies ? "Dependency findings" : "Findings"}
           </h2>
           <ul className="as-findings">
             {scan.findings.map((f, i) => (
@@ -122,9 +140,9 @@ function Result({ scan }: { scan: api.AppScan }) {
                   <SeverityBadge severity={f.severity} />
                 </div>
                 <div className="as-finding-body">
-                  <div className="as-pkg">
-                    {f.package_name} {f.package_version}
-                  </div>
+                  {findingPlace(f) && (
+                    <div className="as-pkg">{findingPlace(f)}</div>
+                  )}
                   <strong className="as-finding-title">{f.title}</strong>
                   <div className="muted small">{f.description}</div>
                   {f.remediation && (
@@ -144,23 +162,36 @@ function Result({ scan }: { scan: api.AppScan }) {
                       </div>
                     ))}
                 </div>
-                <div className="as-fix">
-                  <span className="as-fix-label">Fixed in</span>
-                  <span className="as-fix-value">
-                    {f.fixed_versions.length
-                      ? f.fixed_versions.join(", ")
-                      : "No fixed version listed"}
-                  </span>
-                </div>
+                {f.kind === "dependency" ? (
+                  <div className="as-fix">
+                    <span className="as-fix-label">Fixed in</span>
+                    <span className="as-fix-value">
+                      {f.fixed_versions.length
+                        ? f.fixed_versions.join(", ")
+                        : "No fixed version listed"}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="as-fix">
+                    <span className="as-fix-label">Found by</span>
+                    <span>{KIND_LABEL[f.kind] ?? f.kind}</span>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
         </section>
       )}
-      {completed && !withFindings && (
+      {completed && !withFindings && dependencyRun && (
         <EmptyState title="No known vulnerabilities in these packages">
           Every listed package version was checked and no published advisory
           names it. Check again after you change your dependencies.
+        </EmptyState>
+      )}
+      {completed && !withFindings && !dependencyRun && (
+        <EmptyState title="No findings from these checks">
+          {(scan.kinds ?? []).map((k) => KIND_LABEL[k] ?? k).join(" and ")} ran
+          on your pipeline and reported nothing.
         </EmptyState>
       )}
       {scan.attribution && (
